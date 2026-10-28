@@ -3,7 +3,9 @@ name: Core C++ CI
 on:
   push:
     branches: [main]
+    paths: ['src/**', 'include/**', 'tests/**', 'CMakeLists.txt', '.github/workflows/core-ci.yml']
   pull_request:
+    paths: ['src/**', 'include/**', 'tests/**', 'CMakeLists.txt', '.github/workflows/core-ci.yml']
   workflow_dispatch:
 
 permissions:
@@ -20,7 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-15]
+        # PR feedback: Linux + sanitizer. Windows/macOS on main or manual.
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["ubuntu-24.04","windows-2022","macos-15"]') }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4

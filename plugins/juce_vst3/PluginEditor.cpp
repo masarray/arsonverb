@@ -3,10 +3,10 @@
 
 namespace arplugin {
 namespace {
-constexpr auto background = juce::Colour (0xff171b22);
-constexpr auto accent = juce::Colour (0xff9dd6b1);
-constexpr auto foreground = juce::Colour (0xffdae2eb);
-constexpr auto muted = juce::Colour (0xff84919f);
+const juce::Colour background = juce::Colour (0xff171b22);
+const juce::Colour accent = juce::Colour (0xff9dd6b1);
+const juce::Colour foreground = juce::Colour (0xffdae2eb);
+const juce::Colour muted = juce::Colour (0xff84919f);
 }
 
 ReverbEditor::ReverbEditor (ReverbProcessor& p)
@@ -23,7 +23,7 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     theme.setColour (juce::ToggleButton::textColourId, foreground);
     setLookAndFeel (&theme);
 
-    title.setText ("AR STUDIO REVERB", juce::dontSendNotification);
+    title.setText ("ARSONVERB", juce::dontSendNotification);
     title.setColour (juce::Label::textColourId, foreground);
     title.setFont (juce::Font (juce::FontOptions (17.0f, juce::Font::plain)));
     addAndMakeVisible (title);

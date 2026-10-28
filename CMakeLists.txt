@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(ar_studio_reverb VERSION 0.4.0 LANGUAGES C CXX)
+project(arsonverb VERSION 0.4.1 LANGUAGES C CXX)
 option(ARVERB_BUILD_TESTS "Build DSP unit tests and benchmarks" ON)
 option(ARVERB_BUILD_SHARED "Build C ABI shared library for C#/other hosts" OFF)
 option(ARVERB_BUILD_PLUGIN "Build JUCE 9 VST3 + standalone plugin" OFF)
@@ -79,11 +79,11 @@ if(ARVERB_BUILD_PLUGIN)
     endif()
 
     juce_add_plugin(ARStudioReverb
-        COMPANY_NAME "AR Studio"
-        BUNDLE_ID "com.arstudio.reverb"
+        COMPANY_NAME "ArSon"
+        BUNDLE_ID "com.arsonverb.plugin"
         PLUGIN_MANUFACTURER_CODE Arst
         PLUGIN_CODE Arvb
-        PRODUCT_NAME "AR Studio Reverb"
+        PRODUCT_NAME "ArSonVerb"
         IS_SYNTH FALSE
         NEEDS_MIDI_INPUT FALSE
         NEEDS_MIDI_OUTPUT FALSE

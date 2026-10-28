@@ -40,4 +40,4 @@ Current verified release status: **v0.3 Linux core Release and ASan/UBSan tests 
 - CMake owns product version. ABI major is `ARVERB_ABI_VERSION=1`. Stable `arverb_parameter_count()=13`; never reorder `Parameter` values or `ARVERB_*` enum IDs without explicit migration.
 - Always build with `-DARVERB_BUILD_SHARED=ON` when testing C ABI. In plugin-enabled CI, run all six tests (5 core/C ABI + real JUCE host smoke).
 - The 4 preset names currently choose parameter bundles for **one FDN algorithm**. Never describe distinct Plate/Chamber/Hall engines as implemented.
-- No dedicated GitHub repository is known. Never claim GitHub CI or pluginval success without a real run URL.
+- Canonical repository is `masarray/arsonverb`. Verify the current commit, workflow run IDs, and PRs before changing code; never infer pluginval success.

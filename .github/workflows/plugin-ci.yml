@@ -5,18 +5,14 @@ on:
   pull_request:
     paths:
       - 'plugins/**'
-      - 'include/**'
-      - 'src/**'
-      - 'tests/**'
       - 'CMakeLists.txt'
       - '.github/workflows/plugin-ci.yml'
   push:
     branches: [main]
     paths:
-      - 'plugins/**'
       - 'include/**'
       - 'src/**'
-      - 'tests/**'
+      - 'plugins/**'
       - 'CMakeLists.txt'
       - '.github/workflows/plugin-ci.yml'
 
