@@ -1,0 +1,16 @@
+build/
+build-*/
+cmake-build-*/
+.vs/
+*.wav
+*.vst3/
+*.dll
+*.so
+*.dylib
+*.pdb
+*.obj
+*.o
+*.a
+*.lib
+*.exe
+.DS_Store

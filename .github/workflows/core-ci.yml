@@ -1,0 +1,55 @@
+name: Core C++ CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arverb-core-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-build-and-tests:
+    name: Core / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure CMake
+        run: cmake -S . -B build-ci -DCMAKE_BUILD_TYPE=Release -DARVERB_BUILD_TESTS=ON -DARVERB_BUILD_SHARED=ON
+      - name: Compile (Release)
+        run: cmake --build build-ci --config Release --parallel 2
+      - name: Run CTest
+        run: ctest --test-dir build-ci -C Release --output-on-failure
+
+  linux-sanitizers:
+    name: Linux / ASan + UBSan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure sanitizers
+        run: >-
+          cmake -S . -B build-sanitizers
+          -DCMAKE_BUILD_TYPE=Debug
+          -DARVERB_BUILD_TESTS=ON
+          -DARVERB_BUILD_SHARED=OFF
+          -DCMAKE_CXX_FLAGS=-fsanitize=address,undefined\ -fno-omit-frame-pointer
+          -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined
+      - name: Compile
+        run: cmake --build build-sanitizers --parallel 2
+      - name: Run sanitizers
+        run: ctest --test-dir build-sanitizers --output-on-failure
