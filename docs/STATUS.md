@@ -1,3 +1,30 @@
+# ArSonVerb — verified integration status (2026-10-29)
+
+**Canonical repo:** https://github.com/masarray/arsonverb  
+**Main integration SHA:** `14d8c28e80e9838038692645b5c7f90f6f3b4cd8`  
+**Product:** ArSonVerb 0.4.1, JUCE 9.0.4 + independent C++17 DSP core.  
+**Status:** Windows VST3 **compiled** and real JUCE host-contract CTest **passed**. **Not** yet pluginval-, DAW-, or hardware-validated; **not** sound-quality parity with Valhalla.
+
+## Verified evidence
+
+- [PR #1](https://github.com/masarray/arsonverb/pull/1) merged, MSVC C2131 fixed (`constexpr juce::Colour` replaced by runtime `const`). New plugin name and bundle metadata, stable existing JUCE manufacturer/plugin numeric codes and parameter IDs.
+- [PR #3](https://github.com/masarray/arsonverb/pull/3) merged: optional offline `scripts/sonic_qa.py` and `docs/SONIC_BASELINE.md`; Python/SciPy **not** in realtime DSP or plugin.
+- [Windows JUCE PR build](https://github.com/masarray/arsonverb/actions/runs/40789813680): VST3, Standalone, host smoke tests **PASS**; six out of six CTest **PASS**; unsigned artifact **uploaded** (artifact #12862115128).
+- [Core PR run](https://github.com/masarray/arsonverb/actions/runs/40789813630): Linux Release + ASan/UBSan **PASS**.
+- [Core main SHA run](https://github.com/masarray/arsonverb/actions/runs/40790715579): Windows, macOS, Linux and sanitizer CI **PASS**.
+- [Windows plugin main run](https://github.com/masarray/arsonverb/actions/runs/40790715515): still in progress at time of this evidence update; confirm final status before claiming main plugin CI green.
+- [Unsigned Windows artifact download](https://github.com/masarray/arsonverb/actions/runs/40789813680/artifacts/12862115128): includes `ArSonVerb.vst3` bundle and `ArSonVerb.exe`. Filename in workflow still uses historical `ARStudioReverb` identifier; internal product binary is ArSonVerb.
+- Checked bundled `moduleinfo.json`: correct `Name=ArSonVerb`, `Version=0.4.1` and 2 classes. It is **valid JSON5**, as required by Steinberg VST3; trailing commas are permitted, so do not mistakenly treat them as a packaging defect.
+
+## Next unpassed gates
+
+1. Actual pluginval/Steinberg validator result from an appropriately configured Windows/macOS environment.
+2. DAW install, scan, preset/state save/restore, automation, mono/stereo behavior and long-term tail test on hardware.
+3. Level-matched blind listening, mono-compatibility and per-band decay review before any premium-sonic claims (see [Issue #2](https://github.com/masarray/arsonverb/issues/2)). Four presets still use **one FDN topology**.
+4. Resolve source and JUCE distribution licenses prior to a public licensed binary release. Artifact is an **unsigned test build**, not a production release.
+
+---
+
 # ArSonVerb — current GitHub integration handoff
 
 Updated: 2026-10-29 | Base commit: `33f35872e6de82e2c3972bd2e713dc9be0a662f5` | Branch: `feat/arsonverb-brand-msvc-ci-gates`
