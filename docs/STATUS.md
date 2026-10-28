@@ -1,3 +1,16 @@
+# ArSonVerb — current GitHub integration handoff
+
+Updated: 2026-10-29 | Base commit: `33f35872e6de82e2c3972bd2e713dc9be0a662f5` | Branch: `feat/arsonverb-brand-msvc-ci-gates`
+
+- Canonical repository: https://github.com/masarray/arsonverb (public). The historical statement below that GitHub was not published is superseded.
+- Core C++ CI passed on base commit: https://github.com/masarray/arsonverb/actions/runs/40789129891
+- First Windows JUCE VST3 CI failed at GUI compilation: MSVC C2131 in `PluginEditor.cpp` lines 6–9, because `juce::Colour` was used in `constexpr` variables. Build/run: https://github.com/masarray/arsonverb/actions/runs/40789129900
+- Proposed fix: file-scope `const juce::Colour` rather than `constexpr`; preserve all four color values. Rename user-visible product to **ArSonVerb** (JUCE plugin code and APVTS parameter IDs unchanged). No current release is established; freeze identifiers before first external public release.
+- CI economy: PR core jobs run Linux + sanitizer; Windows/macOS core jobs run on main and manual dispatch. Plugin Windows PR runs only for plugin/CMake/workflow changes; core changes remain covered on main and manual plugin dispatch.
+- **This note is not evidence of a Windows VST3 pass.** Read the newest PR workflow logs/artifacts. Gate progression on actual compile + CTest + VST3 artifact; then pluginval and real DAW test. Do not publish sonic parity claims with Valhalla without level-matched listening measurements.
+
+---
+
 # AR Studio Reverb — cross-thread status
 
 Updated: **2026-10-29** | Source milestone: **v0.4.0** | GitHub repo/CI: **NOT PUBLISHED / NOT RUN** | Validated Windows VST3: **NO**

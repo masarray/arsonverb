@@ -1,8 +1,8 @@
-# AR Studio Reverb Core
+# ArSonVerb — reusable studio reverb core
 
-**Original, portable C++17 algorithmic reverb foundation for vocals and music.**
+**ArSonVerb: original, portable C++17 algorithmic reverb foundation for vocals and music.**
 
-Status: **v0.4.0 source prototype — 5/5 GCC and Clang Release tests, 4/4 core sanitizer tests; JUCE VST3/Standalone wrapper and host smoke test are source-only and NOT yet Windows-built/DAW-validated**.
+Historical local baseline: **v0.4.0 source prototype — 5/5 GCC and Clang Release tests, 4/4 core sanitizer tests; JUCE VST3/Standalone wrapper and host smoke test are source-only and NOT yet Windows-built/DAW-validated**.
 No code or private algorithms from Valhalla DSP have been copied. The implementation uses established, independently implementable DSP techniques and publicly documented design goals. It is **not** presented as a sonic match to any third-party commercial plugin.
 
 ## Intent
