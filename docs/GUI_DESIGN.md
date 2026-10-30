@@ -40,3 +40,11 @@ Total: 13 controls plus host bypass. Four preset actions: Vocal Plate, Vocal Cha
 - Native giant full-float popup removed. Compact short unit-correct value readout in header appears during knob drag; permanent Decay display remains.
 - Compile-time dial/DSP order guard, host resized bounds tests, stable parameter-ID checks.
 - All 13 automatable controls, 4 presets, bypass, reusable DSP core untouched; check Windows GUI build before merging.
+
+## Verification / current shipped test GUI
+
+- PR #6 merged on 2026-10-30: https://github.com/masarray/arsonverb/pull/6
+- Windows MSVC VST3+Standalone, 6/6 CTest success: https://github.com/masarray/arsonverb/actions/runs/41069403126
+- Core CI sanitizer passed: https://github.com/masarray/arsonverb/actions/runs/41069403270
+- Preferred compact default 842×394; minimum 800×370; vintage brushed metal image cached on resize, no heavy assets; concise parameter readout shown only while dragging.
+- Preserve native APVTS parameter IDs, all 13 controls, bypass and four presets; compare screenshot in DAW before concluding aesthetics are final.
