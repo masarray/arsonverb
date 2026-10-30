@@ -1,4 +1,15 @@
-# Premium bronze control surface milestone (pending CI)
+# VERIFIED — Premium Bronze Control Surface (2026-10-31)
+
+- [PR #10](https://github.com/masarray/arsonverb/pull/10) **MERGED** into main at `51f9c769b76d312aad417d2349ba541265299bad`.
+- [Windows VST3 + Standalone run #41143173309](https://github.com/masarray/arsonverb/actions/runs/41143173309) **SUCCESS**: MSVC VST3 + Standalone built, **6/6 CTest PASS**, including real JUCE host-contract and extra small-knob socket geometry checks. Unsigned artifact **#13018978289** (ARStudioReverb-Windows-x64-unsigned) uploaded.
+- Core C++ Release + sanitizer run [#41143173140](https://github.com/masarray/arsonverb/actions/runs/41143173140) **SUCCESS**.
+- Current approved visual baseline: satin bronze/graphite chassis, champagne ivory labels, dark-taupe framed modules, muted-jade rotary light arc and proportionally deeper black socket for small knobs. Solid LCD preset with explicitly positioned Inter text, retro ACTIVE/BYPASSED without text compression.
+- Visual test gate remains **OPEN**: manual Windows screenshot, 100/125/150% DPI and actual DAW/pluginval, because CTest proves stability rather than visual satisfaction. Do not claim Valhalla sonic parity.
+- No DSP, C ABI, parameter ID, preset, plugin processor, or automation changes. Keep cached JUCE-only graphics.
+
+---
+
+# Historical design plan — now verified by PR #10
 
 # Premium Vintage Color & Control Surface — 2026-10-31
 

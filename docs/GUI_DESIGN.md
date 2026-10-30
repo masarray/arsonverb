@@ -1,6 +1,6 @@
 # Premium Vintage Color & Control Surface — 2026-10-31
 
-Authoritative milestone after PR #9. Preserve the original 13 automatable DSP parameters and JUCE-independent C++ engine.
+Authoritative production design implemented in PR #10 (merged). Windows VST3 + Standalone and 6/6 tests passed: https://github.com/masarray/arsonverb/actions/runs/41143173309 . Preserve the original 13 automatable DSP parameters and JUCE-independent C++ engine.
 
 ## Visual tokens (original ArSonVerb artwork)
 - Chassis: satin dark bronze `#584840` → cocoa `#493B36` → graphite `#30292A`.
