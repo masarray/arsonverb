@@ -46,15 +46,15 @@ int main() {
 
     {
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
-        check(editor != nullptr && editor->getWidth() >= 660 && editor->getHeight() >= 330,
+        check(editor != nullptr && editor->getWidth() == 842 && editor->getHeight() == 394,
               "plugin editor initial bounds");
         editor->setSize(860, 460);
         check(editor->getWidth() == 860 && editor->getHeight() == 460,
               "editor resize without host window");
         // GUI regression: all interactive controls stay on the visible panel
         // at minimum, default, and DAW-resized dimensions.
-        for (const auto [width, height] : {std::pair<int,int>{830, 390},
-                                           {1100, 510}, {1440, 680}, {860, 460}}) {
+        for (const auto [width, height] : {std::pair<int,int>{800, 370},
+                                           {842, 394}, {1000, 470}, {1180, 545}}) {
             editor->setSize(width, height);
             for (int index = 0; index < editor->getNumChildComponents(); ++index) {
                 const auto* child = editor->getChildComponent(index);
@@ -64,6 +64,10 @@ int main() {
             }
         }
     }
+    for (std::uint32_t i = 0; i < arverb::parameterCount; ++i)
+        check(p.parameters.getParameter(arverb::parameterInfo(
+            static_cast<arverb::Parameter>(i)).id) != nullptr,
+            "stable DSP ID missing after GUI redesign");
     p.prepareToPlay(48000.0, 256);
     p.applyPreset(arverb::Preset::VocalPlate);
     setParameter(p, "decay", 3.4f);

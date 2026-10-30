@@ -1,3 +1,14 @@
+# Pending GUI visual polish milestone
+
+## 2026-10-30 premium compact brushed alloy GUI
+- Original user screenshot feedback: flat stripes, washed-out coral, oversized default, full-precision JUCE tooltip.
+- New default 842x394, min 800x370, max 1180x545.
+- Multi-stop warm alloy gradient, deterministic irregular brushed texture, darker lower third, painted into cached JUCE Image on resize only.
+- Native giant full-float popup removed. Compact short unit-correct value readout in header appears during knob drag; permanent Decay display remains.
+- Compile-time dial/DSP order guard, host resized bounds tests, stable parameter-ID checks.
+- All 13 automatable controls, 4 presets, bypass, reusable DSP core untouched; check Windows GUI build before merging.
+
+---
 # ArSonVerb GUI visual milestone — 2026-10-30 (VERIFIED)
 
 - [PR #5](https://github.com/masarray/arsonverb/pull/5) merged into main, squash commit `465876fa0064f8b3857046c58f8dd947386ea614`.

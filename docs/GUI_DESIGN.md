@@ -32,3 +32,11 @@ Total: 13 controls plus host bypass. Four preset actions: Vocal Plate, Vocal Cha
 - [Windows JUCE CI](https://github.com/masarray/arsonverb/actions/runs/41063910932): VST3 + Standalone built; 6/6 CTest passed.
 - Manual DAW visual QA is still needed: screenshot at native and 125%/150% Windows scale; hover/drag/automation; switch preset and test green display; active/bypass; compare window 830x390, 1100x510, and 1440x680.
 - If audio quality changes are requested, do it in the DSP roadmap, **not** by hiding or re-mapping existing parameters. See `docs/SONIC_BASELINE.md` and issue #2.
+
+## 2026-10-30 premium compact brushed alloy GUI
+- Original user screenshot feedback: flat stripes, washed-out coral, oversized default, full-precision JUCE tooltip.
+- New default 842x394, min 800x370, max 1180x545.
+- Multi-stop warm alloy gradient, deterministic irregular brushed texture, darker lower third, painted into cached JUCE Image on resize only.
+- Native giant full-float popup removed. Compact short unit-correct value readout in header appears during knob drag; permanent Decay display remains.
+- Compile-time dial/DSP order guard, host resized bounds tests, stable parameter-ID checks.
+- All 13 automatable controls, 4 presets, bypass, reusable DSP core untouched; check Windows GUI build before merging.
