@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <utility>
 
 namespace {
 void check(bool success, const char* detail) {
@@ -50,6 +51,18 @@ int main() {
         editor->setSize(860, 460);
         check(editor->getWidth() == 860 && editor->getHeight() == 460,
               "editor resize without host window");
+        // GUI regression: all interactive controls stay on the visible panel
+        // at minimum, default, and DAW-resized dimensions.
+        for (const auto [width, height] : {std::pair<int,int>{830, 390},
+                                           {1100, 510}, {1440, 680}, {860, 460}}) {
+            editor->setSize(width, height);
+            for (int index = 0; index < editor->getNumChildComponents(); ++index) {
+                const auto* child = editor->getChildComponent(index);
+                if (child->isVisible())
+                    check(editor->getLocalBounds().contains(child->getBounds()),
+                          "visible GUI control outside editor bounds");
+            }
+        }
     }
     p.prepareToPlay(48000.0, 256);
     p.applyPreset(arverb::Preset::VocalPlate);

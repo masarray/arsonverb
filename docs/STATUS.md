@@ -1,3 +1,15 @@
+# ArSonVerb hardware-inspired GUI milestone — 2026-10-30
+
+- Target image supplied by user: warm brushed hardware faceplate, large Decay knob, small tactile black controls, compact green readout, spatial Tone/Shape/Space groups.
+- Implemented in `plugins/juce_vst3/PluginEditor.*` with native JUCE vector drawing, no bitmap resource or WebView. Original ArSonVerb colors and wordmark; no third-party brand assets.
+- All **13 DSP controls**, 4 selectable presets, bypass, APVTS attachments and parameter automation are preserved. Knob captions correspond to actual DSP parameters. Decay display updates from the attached slider; user knob drag clears stale preset selection.
+- Message-thread-only drawing and responsive layout; no changes to C++ DSP / audio callback. No new runtime dependency.
+- JUCE host test extended to assert visible controls remain in bounds at 830x390, 860x460, 1100x510, 1440x680.
+- Validation: review the corresponding GitHub Windows plugin workflow on PR before asserting a built binary exists. DAW visual QA and hardware remain an outstanding acceptance gate.
+- This is an original hardware-inspired visual redesign, not a pixel-perfect or branded copy of Valhalla.
+
+---
+
 # ArSonVerb — verified integration status (2026-10-29)
 
 **Canonical repo:** https://github.com/masarray/arsonverb  
