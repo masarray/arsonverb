@@ -17,6 +17,10 @@ public:
                        juce::ComboBox&) override;
     void drawToggleButton (juce::Graphics&, juce::ToggleButton&,
                            bool, bool) override;
+    void drawPopupMenuBackground (juce::Graphics&, int, int) override;
+    void drawTooltip (juce::Graphics&, const juce::String&, int, int) override;
+    juce::Font getComboBoxFont (juce::ComboBox&) override;
+    juce::Font getPopupMenuFont() override;
 };
 
 class ReverbEditor final : public juce::AudioProcessorEditor {

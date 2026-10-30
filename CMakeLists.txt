@@ -78,6 +78,10 @@ if(ARVERB_BUILD_PLUGIN)
         FetchContent_MakeAvailable(JUCE)
     endif()
 
+    # Inter is OFL-licensed and embedded only in the JUCE visual frontend.
+    # The reusable DSP library and pure C ABI do not link this font.
+    juce_add_binary_data(ArSonVerbFonts SOURCES assets/fonts/InterVariable.ttf)
+
     juce_add_plugin(ARStudioReverb
         COMPANY_NAME "ArSon"
         BUNDLE_ID "com.arsonverb.plugin"
@@ -102,6 +106,7 @@ if(ARVERB_BUILD_PLUGIN)
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
     target_link_libraries(ARStudioReverb PRIVATE
         arverb_core
+        ArSonVerbFonts
         juce::juce_audio_utils
         juce::juce_recommended_config_flags)
 
@@ -117,7 +122,8 @@ if(ARVERB_BUILD_PLUGIN)
         target_compile_definitions(arverb_plugin_host_tests PRIVATE
             JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
         target_link_libraries(arverb_plugin_host_tests PRIVATE
-            arverb_core juce::juce_audio_utils juce::juce_recommended_config_flags)
+            arverb_core ArSonVerbFonts
+            juce::juce_audio_utils juce::juce_recommended_config_flags)
         add_test(NAME arverb_plugin_host_tests COMMAND arverb_plugin_host_tests)
     endif()
 endif()

@@ -48,3 +48,15 @@ Total: 13 controls plus host bypass. Four preset actions: Vocal Plate, Vocal Cha
 - Core CI sanitizer passed: https://github.com/masarray/arsonverb/actions/runs/41069403270
 - Preferred compact default 842×394; minimum 800×370; vintage brushed metal image cached on resize, no heavy assets; concise parameter readout shown only while dragging.
 - Preserve native APVTS parameter IDs, all 13 controls, bypass and four presets; compare screenshot in DAW before concluding aesthetics are final.
+
+## GUI polish P4 — 2026-10-31
+- Inter variable font **embedded** as binary resource under SIL OFL 1.1 with full license file `assets/fonts/OFL-Inter.txt`. Installed system fonts are not required; no font source enters the DSP core.
+- C++ LookAndFeel draws a *recessed machined metal socket* around every control, cyan tracking arc confined to its gap, and a luminous rectangular pointer. No animation or timer.
+- More restrained deterministic metallic microbrushing: per-line alpha reduced ~3–6×, short scratches drawn once every four rows; cached faceplate remains resize-only.
+- Engraved twin-tone separators stronger but not dark UI panel walls.
+- Native analog implementation of ArSonMiX BTN-180: embossed surface with light OFF / soft-green ACTIVE color and momentary 1px press depth. BYPASSED text cannot overflow: allocated 138 design units (scaled).
+- Embedded Inter labels increased to 15 design-font units, readable on compact size; scroll wheel enabled on every knob.
+- Preset ComboBox, popup menu, tooltip and live value HUD use deep charcoal LCD with ice-cyan bright lettering.
+- Wordmark ArSon/Verb anchors tightened from x=133 to x=106.
+- Original all 13 APVTS parameter IDs, automation, 4 presets, bypass state and native audio DSP remain unchanged.
+- **Acceptance gate**: Windows JUCE VST3 + Standalone build, host tests and complete 6 CTest must pass before merge. DAW visual screenshots remain manual.
