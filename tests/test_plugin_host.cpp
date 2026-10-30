@@ -76,6 +76,13 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            // Render every native JUCE control in a headless offscreen image.
+            juce::Image image (juce::Image::ARGB, width, height, true);
+            juce::Graphics graphics (image);
+            editor->paintEntireComponent (graphics, true);
+            check(image.isValid() && image.getPixelAt(width/2, height/2)
+                  .getAlpha() > 0, "modular faceplate must render");
+
         }
     }
     for (std::uint32_t i = 0; i < arverb::parameterCount; ++i)

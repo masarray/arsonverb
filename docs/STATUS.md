@@ -1,3 +1,10 @@
+# 2026-10-31 — Pending CI: vintage modular GUI milestone
+Canonical branch: feat/legendary-vintage-modular-control-surface
+Knob matches reference #1 (segmented amber LED, fixed ivory calibration pointer); panel box layout follows reference #3; classic Bakelite power symbol; readable Inter bold.
+Static faceplate + module contours cached on resize. No changes to reusable audio DSP, C ABI, 13 automation IDs, four presets or host state.
+Read docs/GUI_DESIGN.md first. A successful Windows compile/host test and manual screenshot are separate gates; merge only after CI evidence.
+
+---
 # ArSonVerb current verified GUI — 2026-10-31
 
 - [PR #7](https://github.com/masarray/arsonverb/pull/7) **merged** in main commit `bdf15ac46522a57aff0c06b424a5236099b50d16`. Native recessed blue/cyan-lit knob groove, rectangular LED pointers, refined brushed texture, engraved separators, ArSonMix-inspired tactile BTN180 bypass with correctly fitting BYPASSED label, bigger Inter fonts, scroll-wheel operation, black LCD-style preset/menu/tooltip and tighter wordmark.
