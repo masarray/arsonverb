@@ -1,6 +1,7 @@
 // Host-contract smoke tests. Built and run only when JUCE 9 is available.
 // Intentionally calls the actual AudioProcessor methods used by DAWs.
 #include "PluginProcessor.hpp"
+#include "PluginEditor.hpp"
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -37,6 +38,20 @@ int main() {
     // JUCE editor/value attachments require a valid message manager on the
     // test thread; no actual DAW window is necessary.
     juce::ScopedJuceInitialiser_GUI juceGui;
+    // Direct geometry regression: the original bug ignored the slider
+    // position and left the pointer fixed at 12 o'clock for every value.
+    const float start = juce::MathConstants<float>::pi * 1.25f;
+    const float stop = juce::MathConstants<float>::pi * 2.75f;
+    const auto angle = [=] (float v) { return arplugin::vintageRotaryAngle (v, start, stop); };
+    check (std::abs (angle (0.0f) - start) < 1e-5f, "pointer minimum angle");
+    check (std::abs (angle (0.5f) - (start + stop) * 0.5f) < 1e-5f,
+           "pointer follows midpoint");
+    check (std::abs (angle (1.0f) - stop) < 1e-5f, "pointer maximum angle");
+    check (angle (0.25f) < angle (0.75f), "pointer must rotate as value changes");
+    check (std::abs (angle (-1.0f) - start) < 1e-5f &&
+           std::abs (angle (2.0f) - stop) < 1e-5f,
+           "invalid rotary proportions clamp safely");
+
     arplugin::ReverbProcessor p;
     check(p.getNumInputChannels() == 2 && p.getNumOutputChannels() == 2,
           "stereo bus layout");

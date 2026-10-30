@@ -12,7 +12,7 @@ const juce::Colour highlight (0xfff3afb7);
 const juce::Colour displayGreen (0xffb3f1b9);
 const juce::Colour ice (0xffd9faff);
 const juce::Colour amber (0xffffac52);
-const juce::Colour ledAmber (0xffffd086);
+const juce::Colour volumeGreen (0xff2fe46d);
 juce::Typeface::Ptr interTypeface() {
     static const auto face = juce::Typeface::createSystemTypefaceFor (
         BinaryData::InterVariable_ttf, BinaryData::InterVariable_ttfSize);
@@ -33,19 +33,19 @@ struct Dial {
     const char* caption;
 };
 constexpr std::array<Dial, arverb::parameterCount> dials {{
-    {arverb::Parameter::Mix,          92, 220, 74, "MIX"},
-    {arverb::Parameter::PreDelayMs,   92, 375, 74, "PRE-DELAY"},
+    {arverb::Parameter::Mix,          92, 214, 74, "MIX"},
+    {arverb::Parameter::PreDelayMs,   92, 369, 74, "PRE-DELAY"},
     {arverb::Parameter::DecaySeconds, 266, 248, 172, "DECAY"},
-    {arverb::Parameter::Size,         768, 214, 72, "SIZE"},
-    {arverb::Parameter::Diffusion,    768, 369, 72, "DIFFUSION"},
-    {arverb::Parameter::DampingHz,    514, 214, 72, "HF DAMP"},
-    {arverb::Parameter::LowCutHz,     514, 369, 72, "LOW CUT"},
-    {arverb::Parameter::HighCutHz,    622, 214, 72, "HIGH CUT"},
-    {arverb::Parameter::ModDepthMs,  1016, 369, 72, "DEPTH"},
-    {arverb::Parameter::ModRateHz,    904, 369, 72, "RATE"},
-    {arverb::Parameter::Width,       1016, 214, 72, "WIDTH"},
-    {arverb::Parameter::EarlyLevel,   904, 214, 72, "EARLY"},
-    {arverb::Parameter::DuckAmount,   622, 369, 72, "DUCK"}
+    {arverb::Parameter::Size,         768, 214, 74, "SIZE"},
+    {arverb::Parameter::Diffusion,    768, 369, 74, "DIFFUSION"},
+    {arverb::Parameter::DampingHz,    514, 214, 74, "HF DAMP"},
+    {arverb::Parameter::LowCutHz,     514, 369, 74, "LOW CUT"},
+    {arverb::Parameter::HighCutHz,    622, 214, 74, "HIGH CUT"},
+    {arverb::Parameter::ModDepthMs,  1016, 369, 74, "DEPTH"},
+    {arverb::Parameter::ModRateHz,    904, 369, 74, "RATE"},
+    {arverb::Parameter::Width,       1016, 214, 74, "WIDTH"},
+    {arverb::Parameter::EarlyLevel,   904, 214, 74, "EARLY"},
+    {arverb::Parameter::DuckAmount,   622, 369, 74, "DUCK"}
 }};
 struct GroupPanel { float x, y, w, h; const char* title; };
 constexpr std::array<GroupPanel, 4> groupPanels {{
@@ -88,59 +88,114 @@ juce::Rectangle<int> scaled (float x, float y, float w, float h,
 } // namespace
 
 void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
-     int x, int y, int width, int height, float position, float, float,
-     juce::Slider& slider) {
-    const float side = float (std::min (width,height));
-    const float cx=x+width*0.5f,cy=y+height*0.5f;
-    const float ringR=side*0.465f,faceR=side*0.356f;
-    const auto ring=juce::Rectangle<float>(cx-ringR,cy-ringR,2*ringR,2*ringR);
-    g.setColour(juce::Colour(0xff916e65));g.fillEllipse(ring);
-    g.setColour(juce::Colour(0xff211a1e));g.fillEllipse(ring.reduced(1.3f));
-    g.setColour(juce::Colours::white.withAlpha(0.23f));
-    g.drawEllipse(ring.reduced(0.7f),std::max(0.9f,side*0.012f));
-    g.setColour(juce::Colours::black.withAlpha(0.78f));
-    g.drawEllipse(ring.reduced(2.5f),std::max(1.2f,side*0.024f));
-    // Discrete warm lamps reproduce the instrument's level-indicating bezel.
-    // Unlike a moving cyan LED, a single fixed marker stays at 12 o'clock.
-    const int total=side>=110.0f?29:19;
-    const int litCount=juce::jlimit(0,total,
-        int(std::round(juce::jlimit(0.0f,1.0f,position)*total)));
-    const float r0=side*0.411f,r1=side*0.441f;
-    for(int i=0;i<total;++i) {
-        const float theta=-2.38f+4.76f*(float(i)+0.5f)/float(total);
-        const float si=std::sin(theta),co=std::cos(theta);
-        const bool lit=slider.isEnabled()&&i<litCount;
-        g.setColour(lit?amber.withAlpha(0.37f):juce::Colour(0xff514449));
-        g.drawLine(cx+si*(r0-0.7f),cy-co*(r0-0.7f),
-                   cx+si*(r1+0.7f),cy-co*(r1+0.7f),
-                   std::max(1.1f,side*0.023f));
-        if(lit) {
-            g.setColour(ledAmber);
-            g.drawLine(cx+si*r0,cy-co*r0,cx+si*r1,cy-co*r1,
-                       std::max(0.8f,side*0.014f));
+     int x, int y, int width, int height, float position,
+     float rotaryStartAngle, float rotaryEndAngle, juce::Slider& slider) {
+    const float side = static_cast<float> (std::min (width, height));
+    if (side <= 1.0f) return;
+
+    const float cx = x + width * 0.5f;
+    const float cy = y + height * 0.5f;
+    const float angle = vintageRotaryAngle (position, rotaryStartAngle, rotaryEndAngle);
+    const float grooveR = side * 0.465f;
+    const float faceR = side * 0.355f;
+    const float progressR = side * 0.419f;
+
+    // Static outer machined socket; it leaves an actual dark gap between
+    // the panel and the brushed metal knob, not a translucent neon overlay.
+    const auto socket = juce::Rectangle<float> (
+        cx - grooveR, cy - grooveR, grooveR * 2.0f, grooveR * 2.0f);
+    g.setColour (juce::Colour (0xff6c6061));
+    g.fillEllipse (socket);
+    g.setColour (juce::Colour (0xff141519));
+    g.fillEllipse (socket.reduced (1.2f));
+    g.setColour (juce::Colour (0xffbab4b0).withAlpha (0.49f));
+    g.drawEllipse (socket.reduced (0.6f), 0.95f);
+    g.setColour (juce::Colours::black.withAlpha (0.80f));
+    g.drawEllipse (socket.reduced (2.0f), 1.15f);
+
+    // One continuous progress arc, not 19/29 quantized level ticks. The
+    // centerline thickness is 2.9 device-independent drawing units for
+    // EVERY dial size; the subtle soft edge is also constant.
+    constexpr float arcWidth = 2.9f;
+    constexpr float softEdgeWidth = 4.5f;
+    juce::Path track;
+    track.addCentredArc (cx, cy, progressR, progressR, 0.0f,
+                         rotaryStartAngle, rotaryEndAngle, true);
+    g.setColour (juce::Colour (0xff292a2b));
+    g.strokePath (track, juce::PathStrokeType (
+        arcWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    if (slider.isEnabled() && position > 0.0001f) {
+        juce::Path filled;
+        filled.addCentredArc (cx, cy, progressR, progressR, 0.0f,
+                              rotaryStartAngle, angle, true);
+        g.setColour (volumeGreen.withAlpha (0.17f));
+        g.strokePath (filled, juce::PathStrokeType (
+            softEdgeWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (volumeGreen);
+        g.strokePath (filled, juce::PathStrokeType (
+            arcWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    }
+
+    // Circular brushed-metal face: only two cached JUCE images, shared by
+    // all equal-sized controls. No externally loaded assets or GPU shader.
+    const int imageSide = juce::roundToInt (side);
+    const int cacheSlot = imageSide >= 100 ? 1 : 0;
+    if (brushedFaceSizes[cacheSlot] != imageSide ||
+        !brushedFaceCache[cacheSlot].isValid()) {
+        auto image = juce::Image (juce::Image::ARGB, imageSide, imageSide, true);
+        juce::Graphics metal (image);
+        const float c = imageSide * 0.5f;
+        const float radius = imageSide * 0.355f;
+        const auto disk = juce::Rectangle<float> (
+            c - radius, c - radius, radius * 2.0f, radius * 2.0f);
+
+        metal.setColour (juce::Colours::black.withAlpha (0.49f));
+        metal.fillEllipse (disk.translated (0.0f, imageSide * 0.021f)
+                               .expanded (1.15f));
+        metal.setColour (juce::Colour (0xff898385));
+        metal.fillEllipse (disk.expanded (1.3f));
+        metal.setColour (juce::Colour (0xff111215));
+        metal.fillEllipse (disk.expanded (0.2f));
+        metal.setGradientFill (juce::ColourGradient (
+            juce::Colour (0xff67696b), c - radius * 0.70f, c - radius * 0.74f,
+            juce::Colour (0xff292a2d), c + radius * 0.75f,
+            c + radius * 0.85f, false));
+        metal.fillEllipse (disk.reduced (1.05f));
+
+        // Subpixel concentric machining: enough rings for a spun metal
+        // appearance, but never a dense noisy texture on miniature knobs.
+        const int ringCount = imageSide >= 100 ? 30 : 12;
+        for (int i = 0; i < ringCount; ++i) {
+            const float t = (i + 0.5f) / static_cast<float> (ringCount);
+            const float r = radius * (0.24f + t * 0.68f);
+            metal.setColour (i % 3 == 0
+                ? juce::Colours::white.withAlpha (0.047f)
+                : juce::Colours::black.withAlpha (0.028f));
+            metal.drawEllipse (c - r, c - r, 2.0f * r, 2.0f * r, 0.55f);
         }
+        metal.setColour (juce::Colour (0xffd1ceca).withAlpha (0.30f));
+        metal.drawEllipse (disk.reduced (2.0f), 0.8f);
+        brushedFaceCache[cacheSlot] = image;
+        brushedFaceSizes[cacheSlot] = imageSide;
     }
-    const auto disk=juce::Rectangle<float>(cx-faceR,cy-faceR,2*faceR,2*faceR);
-    g.setColour(juce::Colours::black.withAlpha(0.53f));
-    g.fillEllipse(disk.translated(0,side*0.025f).expanded(1.3f));
-    g.setColour(juce::Colour(0xff676063));g.fillEllipse(disk.expanded(1.4f));
-    g.setColour(juce::Colour(0xff151416));g.fillEllipse(disk.expanded(0.5f));
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff333235),
-       cx-faceR*0.65f,cy-faceR*0.83f,
-       juce::Colour(0xff151416),cx+faceR*0.8f,cy+faceR*0.91f,false));
-    g.fillEllipse(disk.reduced(1.4f));
-    g.setColour(juce::Colours::white.withAlpha(0.12f));
-    g.drawEllipse(disk.reduced(2.3f),0.8f);
-    const float length=std::max(4.8f,side*0.075f);
-    const float thick=std::max(2.0f,side*0.022f);
-    const float top=cy-faceR*0.73f;
-    if(slider.isEnabled()) {
-        g.setColour(amber.withAlpha(0.18f));
-        g.fillRoundedRectangle(cx-thick*1.25f,top-1.5f,
-                                thick*2.5f,length+3.0f,thick);
+    g.drawImageAt (brushedFaceCache[cacheSlot],
+        juce::roundToInt (cx - imageSide * 0.5f),
+        juce::roundToInt (cy - imageSide * 0.5f));
+
+    // Actual rotary pointer: both its angle AND the arc endpoint use the
+    // same JUCE-provided normalized position. The previous fixed 12-o'clock
+    // indicator was incorrect and did not communicate the control value.
+    const float sine = std::sin (angle), cosine = std::cos (angle);
+    const float inner = faceR * 0.55f, outer = faceR * 0.83f;
+    const float x0 = cx + sine * inner, y0 = cy - cosine * inner;
+    const float x1 = cx + sine * outer, y1 = cy - cosine * outer;
+    if (slider.isEnabled()) {
+        g.setColour (juce::Colour (0xffffe1b5).withAlpha (0.20f));
+        g.drawLine (x0, y0, x1, y1, 4.2f);
     }
-    g.setColour(slider.isEnabled()?juce::Colour(0xffffe6bd):juce::Colour(0xff80787a));
-    g.fillRoundedRectangle(cx-thick*0.5f,top,thick,length,thick*0.37f);
+    g.setColour (slider.isEnabled() ? juce::Colour (0xffffead3)
+                                    : juce::Colour (0xff98928e));
+    g.drawLine (x0, y0, x1, y1, 1.85f);
 }
 
 void HardwareLookAndFeel::drawComboBox (juce::Graphics& g, int w, int h,
