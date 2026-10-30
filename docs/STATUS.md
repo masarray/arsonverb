@@ -1,3 +1,14 @@
+# ArSonVerb current verified GUI — 2026-10-31
+
+- [PR #7](https://github.com/masarray/arsonverb/pull/7) **merged** in main commit `bdf15ac46522a57aff0c06b424a5236099b50d16`. Native recessed blue/cyan-lit knob groove, rectangular LED pointers, refined brushed texture, engraved separators, ArSonMix-inspired tactile BTN180 bypass with correctly fitting BYPASSED label, bigger Inter fonts, scroll-wheel operation, black LCD-style preset/menu/tooltip and tighter wordmark.
+- Inter font is embedded from the official Google Fonts mirror, with SIL OFL 1.1 in `assets/fonts/OFL-Inter.txt`. BinaryData is linked **only** by JUCE plugin and JUCE host test, not by standalone C++ DSP core.
+- [Windows build](https://github.com/masarray/arsonverb/actions/runs/41129293853) **SUCCESS**: MSVC VST3 + Standalone build, CTest **6/6 passed**, unsigned artifact #13012891311 uploaded. Core Release and sanitizer [run](https://github.com/masarray/arsonverb/actions/runs/41129293855) **SUCCESS**.
+- GUI stays at 842×394 default with min 800×370 and max 1180×545, and C++ reusable core/audio callbacks unchanged.
+- **Pending gate**: actual Windows/DAW screenshots, visual fit on 125/150% DPI screens, pluginval, audio listening; CI alone does not verify visual perfection or Valhalla sound quality.
+- Next-thread agents read `docs/GUI_DESIGN.md` and preserve stable 13 APVTS IDs, presets and JUCE-independent core. Avoid pointless CI reruns.
+
+---
+
 # Active GUI P4 milestone
 
 ## GUI polish P4 — 2026-10-31
