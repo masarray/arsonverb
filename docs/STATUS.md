@@ -1,3 +1,20 @@
+# Active vintage knob fidelity milestone
+
+## 2026-10-31 — Light Volume Knob fidelity / rotary feedback fix
+
+**Reference:** user-provided `LIGHT-VOLUME-KNOB.png` (brushed concentric titanium face, deep black recessed bezel and continuous green level arc). The preceding amber segmented-ring design is superseded.
+
+- The main physical pointer MUST rotate using the exact JUCE rotary angle: `start + clamp(sliderPos, 0..1) * (end-start)`; never draw a fixed 12-o'clock pointer.
+- Progress arc starts at the rotary minimum and ends at **the same angle as the pointer**, so drag, mouse wheel, DAW automation and preset changes stay synchronized automatically.
+- ONE continuous luminous green arc instead of 19/29 orange ticks. Track and lit arc line thickness are **both constant at 2.9 drawing units**, for small and large knobs; outer 4.5-unit soft glow keeps a physical light-ring appearance.
+- Brushed metal is drawn in native JUCE and cached as only two tiny ARGB faces (small unified 74-unit diameter, large Decay 172-unit diameter). Repeated repaint adjusts only arc and pointer, not the machining texture. No external image, GPU texture download or animation timer.
+- Compact default 842×394 retained; top Mix aligns with top rows, bottom Pre-delay aligns with bottom rows; uniform small control diameter. All four framed groups stay consistent.
+- Six-test Windows regression adds deterministic pointer angle assertions at 0%, 25%, 50%, 75%, 100%, including clamping, plus existing offscreen paint, 13 APVTS IDs, host state and audio.
+- **Never change the DSP topology, C API, parameter IDs or presets as part of the knob redraw.** Visual screenshot approval and real host/pluginval still require follow-up.
+
+
+---
+
 # ArSonVerb — VERIFIED vintage modular GUI milestone (2026-10-31)
 
 - [PR #8](https://github.com/masarray/arsonverb/pull/8) **MERGED**; production-source merge commit: 39debeac77ebd18bc9f111c1083f03e6dcb05dc9.
