@@ -52,6 +52,17 @@ int main() {
            std::abs (angle (2.0f) - stop) < 1e-5f,
            "invalid rotary proportions clamp safely");
 
+    check (arplugin::vintageGrooveRatio (74.0f) -
+           arplugin::vintageFaceRatio (74.0f) > 0.15f,
+           "small knob requires visibly deeper socket");
+    check (arplugin::vintageGrooveRatio (74.0f) -
+           arplugin::vintageFaceRatio (74.0f) >
+           arplugin::vintageGrooveRatio (172.0f) -
+           arplugin::vintageFaceRatio (172.0f),
+           "small knob black ring must be proportionally stronger");
+    check (arplugin::vintageFaceRatio (172.0f) > 0.35f,
+           "large Decay knob face remains unchanged");
+
     arplugin::ReverbProcessor p;
     check(p.getNumInputChannels() == 2 && p.getNumOutputChannels() == 2,
           "stereo bus layout");
