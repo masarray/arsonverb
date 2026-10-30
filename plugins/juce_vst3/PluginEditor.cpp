@@ -1,4 +1,5 @@
 #include "PluginEditor.hpp"
+#include <BinaryData.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -9,6 +10,16 @@ const juce::Colour ink (0xff292225);
 const juce::Colour mutedInk (0xff57323a);
 const juce::Colour highlight (0xfff3afb7);
 const juce::Colour displayGreen (0xffb3f1b9);
+const juce::Colour ice (0xffd9faff);
+const juce::Colour cyan (0xff83d2e7);
+juce::Typeface::Ptr interTypeface() {
+    static const auto face = juce::Typeface::createSystemTypefaceFor (
+        BinaryData::InterVariable_ttf, BinaryData::InterVariable_ttfSize);
+    return face;
+}
+juce::Font uiFont (float size) {
+    return juce::Font (juce::FontOptions (size).withTypeface (interTypeface()));
+}
 constexpr float referenceWidth = 1100.0f;
 constexpr float referenceHeight = 510.0f;
 
@@ -68,81 +79,137 @@ juce::Rectangle<int> scaled (float x, float y, float w, float h,
 } // namespace
 
 void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
-                                             int x, int y, int width, int height,
-                                             float position, float start, float end,
-                                             juce::Slider& slider) {
-    const float side = static_cast<float> (std::min (width, height));
-    const float radius = side * 0.465f;
-    const float cx = x + width * 0.5f;
-    const float cy = y + height * 0.5f;
-    const juce::Rectangle<float> disk (cx - radius, cy - radius,
-                                       radius * 2.0f, radius * 2.0f);
-
-    // Edge shadow, machined rim, then restrained radial charcoal highlight.
-    g.setColour (juce::Colours::black.withAlpha (0.24f));
-    g.fillEllipse (disk.translated (0.0f, side * 0.032f));
-    g.setColour (juce::Colour (0xff241e21));
-    g.fillEllipse (disk.expanded (1.6f));
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff454044),
-        cx - radius * 0.5f, cy - radius * 0.8f,
-        juce::Colour (0xff171719), cx + radius * 0.7f,
-        cy + radius * 0.9f, false));
-    g.fillEllipse (disk.reduced (1.3f));
-    g.setColour (juce::Colours::white.withAlpha (0.08f));
-    g.drawEllipse (disk.reduced (2.0f), 1.1f);
-
-    // One concise pointer instead of an illuminated ring (hardware reference).
+     int x, int y, int width, int height, float position, float start,
+     float end, juce::Slider& slider) {
+    const float side = float (std::min (width, height));
+    const float cx = x + width * 0.5f, cy = y + height * 0.5f;
+    const float recessR = side * 0.468f, knobR = side * 0.392f;
     const float angle = start + position * (end - start);
-    const float si = std::sin (angle), co = std::cos (angle);
-    g.setColour (slider.isEnabled() ? juce::Colour (0xffefa6a7)
-                                    : juce::Colour (0xff786668));
-    g.drawLine (cx + si * radius * 0.58f, cy - co * radius * 0.58f,
-                cx + si * radius * 0.82f, cy - co * radius * 0.82f,
-                std::max (1.6f, side * 0.027f));
+    const auto groove = juce::Rectangle<float> (cx-recessR, cy-recessR,
+                                                 2*recessR, 2*recessR);
+
+    // Shadowed metal recess: an actual gap, not a glow drawn over the knob.
+    g.setColour (juce::Colour (0xff69323d).withAlpha (0.60f));
+    g.fillEllipse (groove);
+    g.setColour (juce::Colour (0xff140e14));
+    g.fillEllipse (groove.reduced (1.5f));
+    g.setColour (juce::Colour (0xffffd1c3).withAlpha (0.23f));
+    g.drawEllipse (groove.reduced (0.7f), 1.0f);
+    g.setColour (juce::Colours::black.withAlpha (0.62f));
+    g.drawEllipse (groove.reduced (2.4f), 1.4f);
+
+    // Position-tracking cool cyan in the groove. Two small arcs, no timer.
+    juce::Path arc;
+    const float lightR = side * 0.436f;
+    arc.addCentredArc (cx, cy, lightR, lightR, 0.0f,
+                       angle - 0.20f, angle + 0.20f, true);
+    g.setColour (cyan.withAlpha (slider.isEnabled() ? 0.20f : 0.06f));
+    g.strokePath (arc, juce::PathStrokeType (std::max (3.2f, side*0.07f)));
+    g.setColour (cyan.withAlpha (slider.isEnabled() ? 0.75f : 0.15f));
+    g.strokePath (arc, juce::PathStrokeType (std::max (1.4f, side*0.02f)));
+
+    const auto disk = juce::Rectangle<float> (cx-knobR, cy-knobR, 2*knobR, 2*knobR);
+    g.setColour (juce::Colours::black.withAlpha (0.50f));
+    g.fillEllipse (disk.translated (0, side*0.032f).expanded (1.0f));
+    g.setColour (juce::Colour (0xff17171b));
+    g.fillEllipse (disk.expanded (0.8f));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff554b50),
+       cx-knobR*0.54f, cy-knobR*0.83f, juce::Colour (0xff151619),
+       cx+knobR*0.77f, cy+knobR*0.9f, false));
+    g.fillEllipse (disk.reduced (1.0f));
+    g.setColour (juce::Colours::white.withAlpha (0.07f));
+    g.drawEllipse (disk.reduced (1.8f), 1.0f);
+
+    // Tangential rectangular LED with restrained bloom.
+    const float px = cx + std::sin(angle)*knobR*0.7f;
+    const float py = cy - std::cos(angle)*knobR*0.7f;
+    const float ledW = std::max (5.0f, side*0.102f);
+    const float ledH = std::max (2.6f, side*0.03f);
+    const auto marker = [&] (float inflate) {
+        juce::Path p;
+        p.addRoundedRectangle(-ledW*0.5f-inflate,-ledH*0.5f-inflate,
+                              ledW+2*inflate,ledH+2*inflate,1.4f);
+        p.applyTransform(juce::AffineTransform::rotation(angle).translated(px,py));
+        return p;
+    };
+    if (slider.isEnabled()) {
+        g.setColour (cyan.withAlpha (0.19f));
+        g.fillPath (marker (2.6f));
+        g.setColour (cyan.withAlpha (0.49f));
+        g.fillPath (marker (1.0f));
+    }
+    g.setColour (slider.isEnabled() ? ice : juce::Colour (0xff75787f));
+    g.fillPath (marker(0.0f));
 }
 
-void HardwareLookAndFeel::drawComboBox (juce::Graphics& g, int width, int height,
-                                         bool, int, int, int, int,
-                                         juce::ComboBox&) {
-    auto box = juce::Rectangle<float> (0, 0, (float) width, (float) height);
-    g.setColour (juce::Colour (0xff392a30).withAlpha (0.85f));
-    g.fillRoundedRectangle (box, 5.0f);
-    g.setColour (juce::Colour (0xffefbbbb).withAlpha (0.30f));
-    g.drawRoundedRectangle (box.reduced (0.5f), 5.0f, 0.8f);
-    const float cx = width - 16.0f, cy = height * 0.5f;
-    g.setColour (juce::Colour (0xffffddde));
-    g.drawLine (cx - 4.0f, cy - 1.8f, cx, cy + 2.5f, 1.4f);
-    g.drawLine (cx, cy + 2.5f, cx + 4.0f, cy - 1.8f, 1.4f);
+void HardwareLookAndFeel::drawComboBox (juce::Graphics& g, int w, int h,
+                                         bool, int, int, int, int, juce::ComboBox&) {
+    const auto rect = juce::Rectangle<float>(0,0,float(w),float(h));
+    g.setColour (juce::Colour(0xff04090d)); g.fillRoundedRectangle(rect,4.0f);
+    g.setGradientFill (juce::ColourGradient(juce::Colour(0xff233039),0,0,
+                                            juce::Colour(0xff090e13),0,float(h),false));
+    g.fillRoundedRectangle(rect.reduced(1.1f),3.5f);
+    g.setColour(cyan.withAlpha(0.43f)); g.drawRoundedRectangle(rect.reduced(0.6f),3.6f,1.0f);
+    g.setColour(ice);
+    const float cx=w-15.0f,cy=h*0.5f;
+    g.drawLine(cx-4,cy-2,cx,cy+2,1.3f);g.drawLine(cx,cy+2,cx+4,cy-2,1.3f);
 }
-
-void HardwareLookAndFeel::drawToggleButton (juce::Graphics& g,
-                                              juce::ToggleButton& button,
-                                              bool hovered, bool pressed) {
-    const auto r = button.getLocalBounds().toFloat().reduced (1.0f);
-    const bool bypass = button.getToggleState();
-    g.setColour (bypass ? juce::Colour (0xff453033)
-                        : juce::Colour (0xff34372f));
-    g.fillRoundedRectangle (r, 5.0f);
-    g.setColour (bypass ? juce::Colour (0xfff4b0ae)
-                        : juce::Colour (0xffb7e5ad));
-    g.drawRoundedRectangle (r.reduced (0.5f), 5.0f, hovered ? 1.4f : 0.8f);
-    const auto size = std::min (r.getHeight() * 0.32f, 10.0f);
-    g.fillEllipse (r.getX() + 9.0f, r.getCentreY() - size * 0.5f, size, size);
-    g.setColour (juce::Colour (0xffffe3e1));
-    g.setFont (juce::Font (juce::FontOptions (12.0f)));
-    g.drawFittedText (bypass ? "BYPASSED" : "ACTIVE", button.getLocalBounds()
-        .withTrimmedLeft (25), juce::Justification::centredLeft, 1);
-    juce::ignoreUnused (pressed);
+juce::Font HardwareLookAndFeel::getComboBoxFont (juce::ComboBox&) {
+    return uiFont(12.5f);
+}
+juce::Font HardwareLookAndFeel::getPopupMenuFont() {
+    return uiFont(13.0f);
+}
+void HardwareLookAndFeel::drawPopupMenuBackground(juce::Graphics& g,int w,int h) {
+    g.fillAll(juce::Colour(0xff080e13));
+    g.setColour(cyan.withAlpha(0.52f));g.drawRect(0,0,w,h,1);
+}
+void HardwareLookAndFeel::drawTooltip(juce::Graphics& g,const juce::String& value,
+                                     int w,int h) {
+    g.fillAll(juce::Colour(0xff090f14));
+    g.setColour(cyan);g.drawRect(0,0,w,h,1);
+    g.setColour(ice);g.setFont(uiFont(13.0f));
+    g.drawFittedText(value,7,4,w-14,h-8,juce::Justification::centredLeft,2);
+}
+void HardwareLookAndFeel::drawToggleButton(juce::Graphics& g,juce::ToggleButton& button,
+                                           bool hovered,bool pressed) {
+    const bool bypassed=button.getToggleState();
+    const auto outer=button.getLocalBounds().toFloat().reduced(1.0f);
+    const auto rect=outer.reduced(1.0f).translated(0.0f,pressed?1.0f:0.0f);
+    const auto cap=bypassed?juce::Colour(0xffcbd1d1):juce::Colour(0xff91edac);
+    const auto edge=bypassed?juce::Colour(0xff748081):juce::Colour(0xff4b9b6a);
+    // ArSonMiX BTN-180 physical recipe translated from CSS to native JUCE.
+    g.setColour(juce::Colours::black.withAlpha(0.34f));
+    g.fillRoundedRectangle(outer.translated(0,1.2f),3.7f);
+    g.setColour(edge);g.fillRoundedRectangle(rect,3.4f);
+    g.setGradientFill(juce::ColourGradient(cap.brighter(0.17f),rect.getX(),rect.getY(),
+                             cap.darker(0.08f),rect.getRight(),rect.getBottom(),false));
+    g.fillRoundedRectangle(rect.reduced(1.0f),2.9f);
+    g.setColour(juce::Colours::white.withAlpha(pressed?0.11f:0.34f));
+    g.drawLine(rect.getX()+3,rect.getY()+1.6f,rect.getRight()-3,rect.getY()+1.6f,1);
+    g.setColour(juce::Colours::black.withAlpha(pressed?0.31f:0.17f));
+    g.drawLine(rect.getX()+3,rect.getBottom()-2,rect.getRight()-3,rect.getBottom()-2,1);
+    if(hovered) {g.setColour(juce::Colours::white.withAlpha(0.22f));
+       g.drawRoundedRectangle(rect.reduced(0.8f),3.4f,1.0f);}
+    const float led=std::min(8.0f,rect.getHeight()*0.27f);
+    g.setColour(bypassed?juce::Colour(0xff74525a):juce::Colour(0xff267449));
+    g.fillEllipse(rect.getX()+8.5f,rect.getCentreY()-led*0.5f,led,led);
+    g.setColour(juce::Colour(0xff18252b));
+    g.setFont(uiFont(11.7f));
+    g.drawFittedText(bypassed?"BYPASSED":"ACTIVE",
+         button.getLocalBounds().withTrimmedLeft(20).withTrimmedRight(4),
+         juce::Justification::centred,1);
 }
 
 ReverbEditor::ReverbEditor (ReverbProcessor& p)
     : juce::AudioProcessorEditor (&p), processor (p) {
     setLookAndFeel (&theme);
-    theme.setColour (juce::ComboBox::textColourId, juce::Colour (0xffffe1df));
-    theme.setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff30272c));
-    theme.setColour (juce::PopupMenu::textColourId, juce::Colour (0xffffe6e0));
+    theme.setDefaultSansSerifTypeface (interTypeface());
+    theme.setColour (juce::ComboBox::textColourId, ice);
+    theme.setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff080e13));
+    theme.setColour (juce::PopupMenu::textColourId, ice);
     theme.setColour (juce::PopupMenu::highlightedBackgroundColourId,
-                     juce::Colour (0xff87444e));
+                     juce::Colour (0xff194654));
     theme.setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
 
     presetBox.setTextWhenNothingSelected ("PRESETS");
@@ -173,7 +240,7 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
         slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
         slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.25f,
                                     juce::MathConstants<float>::pi * 2.75f, true);
-        slider.setScrollWheelEnabled (false);
+        slider.setScrollWheelEnabled (true);
         // Avoid JUCE's full-precision floating bubble (e.g. 10000.000000).
         slider.setPopupDisplayEnabled (false, false, this);
         slider.setDoubleClickReturnValue (true, meta.defaultValue);
@@ -210,8 +277,8 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     decayReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (decayReadout);
     refreshDecayReadout();
-    parameterReadout.setColour (juce::Label::backgroundColourId, juce::Colour (0xff483038));
-    parameterReadout.setColour (juce::Label::textColourId, juce::Colour (0xffffe7dc));
+    parameterReadout.setColour (juce::Label::backgroundColourId, juce::Colour (0xff091319));
+    parameterReadout.setColour (juce::Label::textColourId, ice);
     parameterReadout.setJustificationType (juce::Justification::centred);
     parameterReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (parameterReadout);
@@ -268,13 +335,13 @@ void ReverbEditor::rebuildFaceplateCache() {
     for (int y = 9; y < h-9; ++y) {
         const float n = float (next() & 255U) / 255.0f;
         g.setColour (n > 0.50f
-          ? juce::Colours::white.withAlpha (0.012f + (n-0.5f)*0.12f)
-          : juce::Colours::black.withAlpha (0.007f + (0.5f-n)*0.11f));
+          ? juce::Colours::white.withAlpha (0.005f + (n-0.5f)*0.027f)
+          : juce::Colours::black.withAlpha (0.004f + (0.5f-n)*0.025f));
         g.drawHorizontalLine (y, 9.0f, float (w-9));
-        for (int k = 0; k < 3; ++k) {
+        if ((y % 4) == 0) for (int k = 0; k < 2; ++k) {
             const float x = 9.0f + float (next() % std::uint32_t (std::max (1, w-75)));
             const float len = 15.0f + float (next() % 65U);
-            g.setColour (juce::Colours::white.withAlpha (0.020f));
+            g.setColour (juce::Colours::white.withAlpha (0.010f));
             g.drawLine (x, float (y), std::min (x+len,float (w-9)), float (y), 0.5f);
         }
     }
@@ -296,14 +363,14 @@ void ReverbEditor::paint (juce::Graphics& g) {
 
     // Original ArSonVerb faceplate identity (no reference-brand logos or marks).
     g.setColour (ink);
-    g.setFont (juce::Font (juce::FontOptions (29.0f * fs, juce::Font::plain)));
-    g.drawText ("ArSon", scaled (25, 20, 110, 36, sx, sy),
+    g.setFont (uiFont(29.0f * fs));
+    g.drawText ("ArSon", scaled (25, 20, 100, 36, sx, sy),
                 juce::Justification::centredLeft);
     g.setColour (juce::Colour (0xffffe1d8));
-    g.drawText ("Verb", scaled (133, 20, 86, 36, sx, sy),
+    g.drawText ("Verb", scaled (106, 20, 86, 36, sx, sy),
                 juce::Justification::centredLeft);
     g.setColour (mutedInk);
-    g.setFont (juce::Font (juce::FontOptions (10.5f * fs)));
+    g.setFont (uiFont(11.8f * fs));
     g.drawText ("MUSICAL REVERB  /  STUDIO EDITION",
                 scaled (26, 59, 310, 19, sx, sy),
                 juce::Justification::centredLeft);
@@ -314,10 +381,10 @@ void ReverbEditor::paint (juce::Graphics& g) {
     // Optical groups, intentionally separated instead of 7x2 debug grid.
     const auto group = [&] (float left, float right, const juce::String& name) {
         g.setColour (mutedInk.withAlpha (0.85f));
-        g.setFont (juce::Font (juce::FontOptions (10.5f * fs)));
+        g.setFont (uiFont(11.8f * fs));
         g.drawText (name, scaled (left, 114, right - left, 19, sx, sy),
                     juce::Justification::centred);
-        g.setColour (ink.withAlpha (0.22f));
+        g.setColour (ink.withAlpha (0.42f));
         g.drawLine ((left + 6.0f) * sx, 138.0f * sy,
                     (right - 6.0f) * sx, 138.0f * sy, 1.0f);
     };
@@ -326,9 +393,12 @@ void ReverbEditor::paint (juce::Graphics& g) {
     group (850, 1052, "SPACE / MOTION");
 
     // Thin spatial dividers echo studio hardware panel printing.
-    g.setColour (ink.withAlpha (0.28f));
-    for (const float x : {436.0f, 710.0f, 838.0f})
-        g.drawLine (x * sx, 159.0f * sy, x * sx, 432.0f * sy, 1.0f);
+    for (const float x : {436.0f, 710.0f, 838.0f}) {
+        g.setColour (juce::Colour(0xff46242d).withAlpha(0.63f));
+        g.drawLine(x*sx,159*sy,x*sx,432*sy,1.3f);
+        g.setColour(juce::Colour(0xffffcebc).withAlpha(0.40f));
+        g.drawLine(x*sx+1.5f,159*sy,x*sx+1.5f,432*sy,0.9f);
+    }
 
     // Green hardware-style decay readout, not a general-purpose text box.
     const auto display = scaled (206, 425, 122, 44, sx, sy).toFloat();
@@ -349,7 +419,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
                                          7.0f, 15.0f + (i % 2) * 6.0f, sx, sy).toFloat(),
                                 2.0f * fs);
     g.setColour (juce::Colour (0xffffdcce).withAlpha (0.37f));
-    g.setFont (juce::Font (juce::FontOptions (9.0f * fs)));
+    g.setFont (uiFont(10.0f * fs));
     g.drawText ("VINTAGE REVERB  /  ORIGINAL DSP", scaled (838, 469, 218, 22, sx, sy),
                 juce::Justification::centredRight);
 }
@@ -358,8 +428,8 @@ void ReverbEditor::resized() {
     const float sx = getWidth() / referenceWidth;
     const float sy = getHeight() / referenceHeight;
     const float s = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
-    presetBox.setBounds (scaled (785, 26, 188, 33, sx, sy));
-    bypassButton.setBounds (scaled (982, 26, 94, 33, sx, sy));
+    presetBox.setBounds (scaled (754, 26, 174, 33, sx, sy));
+    bypassButton.setBounds (scaled (938, 26, 138, 33, sx, sy));
 
     for (const auto& dial : dials) {
         const auto i = static_cast<std::size_t> (dial.parameter);
@@ -371,12 +441,12 @@ void ReverbEditor::resized() {
         labels[i].setBounds (juce::roundToInt (dial.centreX * sx - 55.0f * sx),
                              juce::roundToInt (captionTop),
                              juce::roundToInt (110.0f * sx), juce::roundToInt (21.0f * s));
-        labels[i].setFont (juce::Font (juce::FontOptions (11.5f * s)));
+        labels[i].setFont (uiFont (15.0f * s));
     }
     decayReadout.setBounds (scaled (207, 424, 120, 44, sx, sy));
-    decayReadout.setFont (juce::Font (juce::FontOptions (23.0f * s)));
+    decayReadout.setFont (uiFont (23.0f * s));
     parameterReadout.setBounds (scaled (370, 25, 325, 34, sx, sy));
-    parameterReadout.setFont (juce::Font (juce::FontOptions (13.5f * s)));
+    parameterReadout.setFont (uiFont (14.5f * s));
     rebuildFaceplateCache();
 }
 } // namespace arplugin
