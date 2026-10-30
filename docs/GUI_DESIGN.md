@@ -1,5 +1,7 @@
 # ArSonVerb — Vintage Modular Control Surface (2026-10-31)
 
+**Latest verified design:** moving cream pointer + smooth green continuous level arc, cached concentric metal face (PR #9, 6/6 Windows CI PASS): https://github.com/masarray/arsonverb/actions/runs/41140089146 . Previous amber segmented LEDs and fixed 12-o'clock pointer are obsolete. Keep framed modules and classic power button.
+
 ## 2026-10-31 — Light Volume Knob fidelity / rotary feedback fix
 
 **Reference:** user-provided `LIGHT-VOLUME-KNOB.png` (brushed concentric titanium face, deep black recessed bezel and continuous green level arc). The preceding amber segmented-ring design is superseded.

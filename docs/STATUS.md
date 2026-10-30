@@ -1,3 +1,14 @@
+# VERIFIED — Brushed Metal Moving Pointer GUI (2026-10-31)
+
+- [PR #9](https://github.com/masarray/arsonverb/pull/9) **MERGED** at commit `77fca6bed3f8b3162db6c6832e266f671558de82`.
+- [Windows JUCE 9 VST3 CI](https://github.com/masarray/arsonverb/actions/runs/41140089146) **SUCCESS**: VST3 + Standalone compiled; **6/6 CTest PASS** including JUCE host-contract, pointer-angle unit cases, core and C ABI. Unsigned Windows artifact **#13017818722** uploaded.
+- [Core CI](https://github.com/masarray/arsonverb/actions/runs/41140089142) Linux Release + ASan/UBSan **SUCCESS**.
+- The previous amber tick ring and fixed 12 o'clock pointer are superseded. Current knobs have moving cream pointer aligned with the green continuous arc, dark milled recess, native fine concentric brushed-metal face, and exactly two face-cache slots.
+- Default editor 842×394, compact four framed modules. Mix/Predelay row positions and all 12 small knob diameters unified; no 13-parameter IDs, presets, audio core, or C ABI modified.
+- Windows test ZIP is an unsigned test build; pluginval, DAW visual screenshot, 125%/150% HiDPI and user listening are **NOT yet verified**. Do not state aesthetic parity with the reference until a screenshot test is reviewed.
+
+---
+
 # Active vintage knob fidelity milestone
 
 ## 2026-10-31 — Light Volume Knob fidelity / rotary feedback fix

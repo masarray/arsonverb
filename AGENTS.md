@@ -1,6 +1,6 @@
 # ArSonVerb — repository rules for coding assistants
 
-Purpose: develop an original, high-quality reverb for vocal/music mixing, with a **reusable C++17 DSP core**. Keep instructions short; read the relevant source/tests before editing. For full rationale use `docs/ARD.md`. For verified current state use `docs/STATUS.md`. As of 2026-10-31, vintage modular GUI PR #8 is merged and Windows VST3+Standalone passed 6/6 tests (run 41137416007). Keep amber segmented knobs, boxed modules and power icon design; never restore prior cyan neon UI without explicit user request.
+Purpose: develop an original, high-quality reverb for vocal/music mixing, with a **reusable C++17 DSP core**. Keep instructions short; read the relevant source/tests before editing. For full rationale use `docs/ARD.md`. For verified current state use `docs/STATUS.md`. As of 2026-10-31, PR #9 is merged and Windows VST3+Standalone passed 6/6 tests (run 41140089146). Current approved baseline: MOVING rotary pointer + CONTINUOUS GREEN progress arc on cached circular brushed-metal knob faces, plus the prior framed modules, embedded Inter and retro power button. Previous fixed 12-o'clock pointers, amber segmented LEDs and cyan neon rings are superseded. Preserve this without explicit user request.
 
 ## Non-negotiable
 
