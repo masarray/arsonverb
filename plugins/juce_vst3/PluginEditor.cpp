@@ -419,16 +419,9 @@ void ReverbEditor::paint (juce::Graphics& g) {
     g.setColour (juce::Colour (0xffa1d5a8).withAlpha (0.42f));
     g.drawRoundedRectangle (display.reduced (2.0f * fs), 4.0f * fs, 0.9f);
 
-    // Original accent: five quiet sound-wave slots, no copied logo.
-    g.setColour (ink.withAlpha (0.68f));
-    for (int i = 0; i < 5; ++i)
-        g.fillRoundedRectangle (scaled (25.0f + i * 12.0f, 469.0f - (i % 2) * 3.0f,
-                                         7.0f, 15.0f + (i % 2) * 6.0f, sx, sy).toFloat(),
-                                2.0f * fs);
-    g.setColour (juce::Colour (0xffffdcce).withAlpha (0.37f));
-    g.setFont (uiFont(10.0f * fs));
-    g.drawText ("ArSonVerb  /  ORIGINAL DSP", scaled (838, 469, 218, 22, sx, sy),
-                juce::Justification::centredRight);
+    // The reference uses framed modules without ornament at their base;
+    // omit the previous decorative waveform/footer that collided with frames.
+
 }
 
 void ReverbEditor::resized() {
