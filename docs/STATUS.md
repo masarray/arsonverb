@@ -1,3 +1,14 @@
+# ArSonVerb — VERIFIED vintage modular GUI milestone (2026-10-31)
+
+- [PR #8](https://github.com/masarray/arsonverb/pull/8) **MERGED**; production-source merge commit: 39debeac77ebd18bc9f111c1083f03e6dcb05dc9.
+- [Windows VST3 CI run 41137416007](https://github.com/masarray/arsonverb/actions/runs/41137416007): **SUCCESS**, VST3+Standalone MSVC build, **6/6 CTest PASS**, raw unsigned artifact #13017189533.
+- Core+sanitizer run 41137415993 **SUCCESS**. Test suite verifies real JUCE host, automation, session state, resize bounds and offscreen paint calls; **pixel appearance still needs human screenshot review**.
+- Physical visual system: fixed ivory 12-o'clock index, 19/29 amber segmented value LEDs, four fully-framed vintage hardware modules, classic power button with real APVTS bypass state, Inter bold on lighter rose/champagne panel faces.
+- Native C++17 DSP and C API were not modified. Original 13 host parameter IDs, all four presets and mouse wheel preserved.
+- First two Windows workflows exposed a **false headless alpha assertion** (not compiler/DSP failure). Resolved in final commit with peerless paint smoke test and strict independent control/bounds checks.
+- User testing still needed at 100/125/150% Windows DPI, actual DAW/VST host and pluginval; **no visual or Valhalla sonic-parity claim based solely on CI**.
+
+---
 # 2026-10-31 — Pending CI: vintage modular GUI milestone
 Canonical branch: feat/legendary-vintage-modular-control-surface
 Knob matches reference #1 (segmented amber LED, fixed ivory calibration pointer); panel box layout follows reference #3; classic Bakelite power symbol; readable Inter bold.

@@ -1,5 +1,7 @@
 # ArSonVerb — Vintage Modular Control Surface (2026-10-31)
 
+**Verified:** PR #8 merged; Windows VST3+Standalone and 6/6 CTest successful: https://github.com/masarray/arsonverb/actions/runs/41137416007 . User visual acceptance in a real DAW remains open.
+
 ## Visual contract and references
 - Knob screenshot #1: fixed ivory vertical marker at 12 o'clock, discrete amber LEDs on an external black metal indicator ring, dark recessed Bakelite face.
 - Layout screenshot #3 (Ventapulse): separate **fully framed modules**, dark etched double border, small header title and clear control grouping, not detached vertical separators.
