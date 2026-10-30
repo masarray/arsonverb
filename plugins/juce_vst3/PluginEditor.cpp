@@ -366,7 +366,7 @@ void ReverbEditor::rebuildFaceplateCache() {
         const auto box=scaled(m.x,m.y,m.w,m.h,sx,sy).toFloat();
         g.setColour (juce::Colour (0xff38242b).withAlpha (0.26f));
         g.fillRoundedRectangle(box.translated(0.0f,1.5f),4.0f);
-        g.setColour (juce::Colour (0xffffe2d4).withAlpha (0.13f));
+        g.setColour (juce::Colour (0xffffe2d4).withAlpha (0.52f));
         g.fillRoundedRectangle(box.reduced(1.2f),3.5f);
         g.setColour (juce::Colour (0xff422029).withAlpha (0.84f));
         g.drawRoundedRectangle(box.reduced(0.5f),4.0f,1.2f);
