@@ -56,12 +56,26 @@ int main() {
         for (const auto [width, height] : {std::pair<int,int>{800, 370},
                                            {842, 394}, {1000, 470}, {1180, 545}}) {
             editor->setSize(width, height);
+            int toggleCount = 0;
+            int sliderCount = 0;
             for (int index = 0; index < editor->getNumChildComponents(); ++index) {
                 const auto* child = editor->getChildComponent(index);
                 if (child->isVisible())
                     check(editor->getLocalBounds().contains(child->getBounds()),
                           "visible GUI control outside editor bounds");
+                if (const auto* toggle = dynamic_cast<const juce::ToggleButton*>(child)) {
+                    ++toggleCount;
+                    check(toggle->getWidth() >= 95,
+                          "BTN180-style BYPASSED text must fit at minimum editor size");
+                }
+                if (const auto* slider = dynamic_cast<const juce::Slider*>(child)) {
+                    ++sliderCount;
+                    check(slider->isScrollWheelEnabled(),
+                          "all rotary controls must respond to mouse wheel");
+                }
             }
+            check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
+                  "editor must retain bypass and all 13 DSP sliders");
         }
     }
     for (std::uint32_t i = 0; i < arverb::parameterCount; ++i)
