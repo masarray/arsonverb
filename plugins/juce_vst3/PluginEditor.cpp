@@ -357,6 +357,25 @@ void ReverbEditor::rebuildFaceplateCache() {
     g.fillRoundedRectangle (panel, 7.0f);
     g.setColour (juce::Colour (0xffffd0c7).withAlpha (0.55f));
     g.drawRoundedRectangle (panel.reduced (0.5f), 7.0f, 1.0f);
+
+    // Framed modular sections, mirroring the clean grouped hardware grammar
+    // of the reference rather than the previous awkward vertical dividers.
+    // Static geometry is rendered into the faceplate cache only upon resize.
+    const float sx=w/referenceWidth, sy=h/referenceHeight;
+    for (const auto& m : groupPanels) {
+        const auto box=scaled(m.x,m.y,m.w,m.h,sx,sy).toFloat();
+        g.setColour (juce::Colour (0xff38242b).withAlpha (0.26f));
+        g.fillRoundedRectangle(box.translated(0.0f,1.5f),4.0f);
+        g.setColour (juce::Colour (0xffffe2d4).withAlpha (0.13f));
+        g.fillRoundedRectangle(box.reduced(1.2f),3.5f);
+        g.setColour (juce::Colour (0xff422029).withAlpha (0.84f));
+        g.drawRoundedRectangle(box.reduced(0.5f),4.0f,1.2f);
+        g.setColour (juce::Colour (0xffffdfca).withAlpha (0.42f));
+        g.drawRoundedRectangle(box.reduced(1.7f),3.2f,0.8f);
+        const float header=(m.y+39.0f)*sy;
+        g.setColour (juce::Colour (0xff482c34).withAlpha (0.40f));
+        g.drawLine(box.getX()+3.8f,header,box.getRight()-3.8f,header,0.95f);
+    }
 }
 
 void ReverbEditor::paint (juce::Graphics& g) {
@@ -366,43 +385,26 @@ void ReverbEditor::paint (juce::Graphics& g) {
     g.fillAll (juce::Colour (0xff241d20));
     if (faceplateCache.isValid()) g.drawImageAt (faceplateCache, 0, 0);
 
-    // Original ArSonVerb faceplate identity (no reference-brand logos or marks).
-    g.setColour (ink);
-    g.setFont (uiFont(29.0f * fs));
-    g.drawText ("ArSon", scaled (25, 20, 100, 36, sx, sy),
+    // Inter typography with deliberate weight and contrast at the compact size.
+    // A single wordmark prevents accidental spacing between ArSon / Verb.
+    g.setColour (juce::Colour (0xff26191d));
+    g.setFont (uiHeavy (33.0f * fs));
+    g.drawText ("ArSonVerb", scaled (25, 20, 270, 38, sx, sy),
                 juce::Justification::centredLeft);
-    g.setColour (juce::Colour (0xffffe1d8));
-    g.drawText ("Verb", scaled (106, 20, 86, 36, sx, sy),
-                juce::Justification::centredLeft);
-    g.setColour (mutedInk);
-    g.setFont (uiFont(11.8f * fs));
-    g.drawText ("MUSICAL REVERB  /  STUDIO EDITION",
-                scaled (26, 59, 310, 19, sx, sy),
-                juce::Justification::centredLeft);
-    g.setColour (ink.withAlpha (0.25f));
-    g.drawLine (24.0f * sx, 97.0f * sy,
-                (referenceWidth - 24.0f) * sx, 97.0f * sy, 1.0f);
+    g.setColour (juce::Colour (0xff47303a));
+    g.setFont (uiHeavy (13.6f * fs));
+    g.drawText ("MUSICAL VINTAGE REVERB",
+        scaled (26, 63, 310, 20, sx, sy),
+        juce::Justification::centredLeft);
 
-    // Optical groups, intentionally separated instead of 7x2 debug grid.
-    const auto group = [&] (float left, float right, const juce::String& name) {
-        g.setColour (mutedInk.withAlpha (0.85f));
-        g.setFont (uiFont(11.8f * fs));
-        g.drawText (name, scaled (left, 114, right - left, 19, sx, sy),
-                    juce::Justification::centred);
-        g.setColour (ink.withAlpha (0.42f));
-        g.drawLine ((left + 6.0f) * sx, 138.0f * sy,
-                    (right - 6.0f) * sx, 138.0f * sy, 1.0f);
-    };
-    group (450, 689, "TONE / CONTROL");
-    group (725, 821, "SHAPE");
-    group (850, 1052, "SPACE / MOTION");
-
-    // Thin spatial dividers echo studio hardware panel printing.
-    for (const float x : {436.0f, 710.0f, 838.0f}) {
-        g.setColour (juce::Colour(0xff46242d).withAlpha(0.63f));
-        g.drawLine(x*sx,159*sy,x*sx,432*sy,1.3f);
-        g.setColour(juce::Colour(0xffffcebc).withAlpha(0.40f));
-        g.drawLine(x*sx+1.5f,159*sy,x*sx+1.5f,432*sy,0.9f);
+    // Printed machine-engraved group captions inside the framed modules.
+    // None of these are extra JUCE components or click targets.
+    for (const auto& m : groupPanels) {
+        g.setColour (juce::Colour (0xff301d22));
+        g.setFont (uiHeavy (15.7f * fs));
+        g.drawText (m.title,
+            scaled (m.x+7, m.y+8, m.w-14, 24, sx, sy),
+            juce::Justification::centred);
     }
 
     // Green hardware-style decay readout, not a general-purpose text box.
@@ -425,7 +427,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
                                 2.0f * fs);
     g.setColour (juce::Colour (0xffffdcce).withAlpha (0.37f));
     g.setFont (uiFont(10.0f * fs));
-    g.drawText ("VINTAGE REVERB  /  ORIGINAL DSP", scaled (838, 469, 218, 22, sx, sy),
+    g.drawText ("ArSonVerb  /  ORIGINAL DSP", scaled (838, 469, 218, 22, sx, sy),
                 juce::Justification::centredRight);
 }
 
@@ -442,16 +444,16 @@ void ReverbEditor::resized() {
         sliders[i].setBounds (juce::roundToInt (dial.centreX * sx - side * 0.5f),
                               juce::roundToInt (dial.centreY * sy - side * 0.5f),
                               juce::roundToInt (side), juce::roundToInt (side));
-        const float captionTop = dial.centreY * sy + side * 0.5f + 5.0f * s;
+        const float captionTop = dial.centreY * sy + side * 0.5f + 7.0f * s;
         labels[i].setBounds (juce::roundToInt (dial.centreX * sx - 55.0f * sx),
                              juce::roundToInt (captionTop),
                              juce::roundToInt (110.0f * sx), juce::roundToInt (21.0f * s));
         labels[i].setFont (uiHeavy (17.6f * s));
     }
     decayReadout.setBounds (scaled (207, 424, 120, 44, sx, sy));
-    decayReadout.setFont (uiFont (23.0f * s));
+    decayReadout.setFont (uiHeavy (23.0f * s));
     parameterReadout.setBounds (scaled (370, 25, 325, 34, sx, sy));
-    parameterReadout.setFont (uiFont (14.5f * s));
+    parameterReadout.setFont (uiHeavy (14.5f * s));
     rebuildFaceplateCache();
 }
 } // namespace arplugin
