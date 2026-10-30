@@ -14,6 +14,17 @@ namespace arplugin {
 inline float vintageRotaryAngle (float position, float start, float end) noexcept {
     return start + juce::jlimit (0.0f, 1.0f, position) * (end - start);
 }
+// Hardware-size optical corrections: small dials need more visible black
+// socket, without changing the large Decay dial's successful proportions.
+inline float vintageFaceRatio (float side) noexcept {
+    return side < 100.0f ? 0.316f : 0.355f;
+}
+inline float vintageGrooveRatio (float side) noexcept {
+    return side < 100.0f ? 0.480f : 0.465f;
+}
+inline float vintageArcRatio (float side) noexcept {
+    return side < 100.0f ? 0.409f : 0.419f;
+}
 
 class HardwareLookAndFeel final : public juce::LookAndFeel_V4 {
 public:
@@ -26,6 +37,7 @@ public:
     void drawPopupMenuBackground (juce::Graphics&, int, int) override;
     void drawTooltip (juce::Graphics&, const juce::String&, int, int) override;
     juce::Font getComboBoxFont (juce::ComboBox&) override;
+    void positionComboBoxText (juce::ComboBox&, juce::Label&) override;
     juce::Font getPopupMenuFont() override;
 
 private:

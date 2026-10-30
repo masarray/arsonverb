@@ -6,13 +6,26 @@
 
 namespace arplugin {
 namespace {
-const juce::Colour ink (0xff26191d);
-const juce::Colour mutedInk (0xff57323a);
-const juce::Colour highlight (0xfff3afb7);
-const juce::Colour displayGreen (0xffb3f1b9);
-const juce::Colour ice (0xffd9faff);
-const juce::Colour amber (0xffffac52);
-const juce::Colour volumeGreen (0xff2fe46d);
+// Single premium palette: satin bronze chassis, champagne typography,
+// subdued jade metering, and dark Bakelite hardware. No pink/neon mix.
+namespace palette {
+const juce::Colour chassisTop (0xff584840);
+const juce::Colour chassisBottom (0xff30292a);
+const juce::Colour moduleTop (0xff675851);
+const juce::Colour moduleBottom (0xff4a403c);
+const juce::Colour moduleBorder (0xffaa8d72);
+const juce::Colour mainText (0xfff6ebdb);
+const juce::Colour secondaryText (0xffd6c6b3);
+const juce::Colour lcd (0xff111719);
+const juce::Colour lcdBorder (0xff9a8871);
+const juce::Colour jade (0xff73c59e);
+const juce::Colour amber (0xffe6b978);
+const juce::Colour meterText (0xffc5efcf);
+}
+const juce::Colour ice = palette::mainText;
+const juce::Colour amber = palette::amber;
+const juce::Colour volumeGreen = palette::jade;
+const juce::Colour displayGreen = palette::meterText;
 juce::Typeface::Ptr interTypeface() {
     static const auto face = juce::Typeface::createSystemTypefaceFor (
         BinaryData::InterVariable_ttf, BinaryData::InterVariable_ttfSize);
@@ -36,16 +49,16 @@ constexpr std::array<Dial, arverb::parameterCount> dials {{
     {arverb::Parameter::Mix,          92, 214, 74, "MIX"},
     {arverb::Parameter::PreDelayMs,   92, 369, 74, "PRE-DELAY"},
     {arverb::Parameter::DecaySeconds, 266, 248, 172, "DECAY"},
-    {arverb::Parameter::Size,         768, 214, 74, "SIZE"},
-    {arverb::Parameter::Diffusion,    768, 369, 74, "DIFFUSION"},
-    {arverb::Parameter::DampingHz,    514, 214, 74, "HF DAMP"},
-    {arverb::Parameter::LowCutHz,     514, 369, 74, "LOW CUT"},
-    {arverb::Parameter::HighCutHz,    622, 214, 74, "HIGH CUT"},
+    {arverb::Parameter::Size,         767, 214, 74, "SIZE"},
+    {arverb::Parameter::Diffusion,    767, 369, 74, "DIFFUSION"},
+    {arverb::Parameter::DampingHz,    511, 214, 74, "HF DAMP"},
+    {arverb::Parameter::LowCutHz,     511, 369, 74, "LOW CUT"},
+    {arverb::Parameter::HighCutHz,    621, 214, 74, "HIGH CUT"},
     {arverb::Parameter::ModDepthMs,  1016, 369, 74, "DEPTH"},
-    {arverb::Parameter::ModRateHz,    904, 369, 74, "RATE"},
+    {arverb::Parameter::ModRateHz,    906, 369, 74, "RATE"},
     {arverb::Parameter::Width,       1016, 214, 74, "WIDTH"},
-    {arverb::Parameter::EarlyLevel,   904, 214, 74, "EARLY"},
-    {arverb::Parameter::DuckAmount,   622, 369, 74, "DUCK"}
+    {arverb::Parameter::EarlyLevel,   906, 214, 74, "EARLY"},
+    {arverb::Parameter::DuckAmount,   621, 369, 74, "DUCK"}
 }};
 struct GroupPanel { float x, y, w, h; const char* title; };
 constexpr std::array<GroupPanel, 4> groupPanels {{
@@ -96,19 +109,19 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
     const float cx = x + width * 0.5f;
     const float cy = y + height * 0.5f;
     const float angle = vintageRotaryAngle (position, rotaryStartAngle, rotaryEndAngle);
-    const float grooveR = side * 0.465f;
-    const float faceR = side * 0.355f;
-    const float progressR = side * 0.419f;
+    const float grooveR = side * vintageGrooveRatio (side);
+    const float faceR = side * vintageFaceRatio (side);
+    const float progressR = side * vintageArcRatio (side);
 
     // Static outer machined socket; it leaves an actual dark gap between
     // the panel and the brushed metal knob, not a translucent neon overlay.
     const auto socket = juce::Rectangle<float> (
         cx - grooveR, cy - grooveR, grooveR * 2.0f, grooveR * 2.0f);
-    g.setColour (juce::Colour (0xff6c6061));
+    g.setColour (juce::Colour (0xff8b827a));
     g.fillEllipse (socket);
-    g.setColour (juce::Colour (0xff141519));
+    g.setColour (juce::Colour (0xff101214));
     g.fillEllipse (socket.reduced (1.2f));
-    g.setColour (juce::Colour (0xffbab4b0).withAlpha (0.49f));
+    g.setColour (juce::Colour (0xffd1c2af).withAlpha (0.44f));
     g.drawEllipse (socket.reduced (0.6f), 0.95f);
     g.setColour (juce::Colours::black.withAlpha (0.80f));
     g.drawEllipse (socket.reduced (2.0f), 1.15f);
@@ -121,7 +134,7 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
     juce::Path track;
     track.addCentredArc (cx, cy, progressR, progressR, 0.0f,
                          rotaryStartAngle, rotaryEndAngle, true);
-    g.setColour (juce::Colour (0xff292a2b));
+    g.setColour (juce::Colour (0xff292d2e));
     g.strokePath (track, juce::PathStrokeType (
         arcWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     if (slider.isEnabled() && position > 0.0001f) {
@@ -145,7 +158,7 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
         auto image = juce::Image (juce::Image::ARGB, imageSide, imageSide, true);
         juce::Graphics metal (image);
         const float c = imageSide * 0.5f;
-        const float radius = imageSide * 0.355f;
+        const float radius = imageSide * vintageFaceRatio (float (imageSide));
         const auto disk = juce::Rectangle<float> (
             c - radius, c - radius, radius * 2.0f, radius * 2.0f);
 
@@ -157,8 +170,8 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
         metal.setColour (juce::Colour (0xff111215));
         metal.fillEllipse (disk.expanded (0.2f));
         metal.setGradientFill (juce::ColourGradient (
-            juce::Colour (0xff67696b), c - radius * 0.70f, c - radius * 0.74f,
-            juce::Colour (0xff292a2d), c + radius * 0.75f,
+            juce::Colour (0xff646466), c - radius * 0.70f, c - radius * 0.74f,
+            juce::Colour (0xff292b2d), c + radius * 0.75f,
             c + radius * 0.85f, false));
         metal.fillEllipse (disk.reduced (1.05f));
 
@@ -190,75 +203,110 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
     const float x0 = cx + sine * inner, y0 = cy - cosine * inner;
     const float x1 = cx + sine * outer, y1 = cy - cosine * outer;
     if (slider.isEnabled()) {
-        g.setColour (juce::Colour (0xffffe1b5).withAlpha (0.20f));
+        g.setColour (palette::mainText.withAlpha (0.18f));
         g.drawLine (x0, y0, x1, y1, 4.2f);
     }
-    g.setColour (slider.isEnabled() ? juce::Colour (0xffffead3)
+    g.setColour (slider.isEnabled() ? palette::mainText
                                     : juce::Colour (0xff98928e));
     g.drawLine (x0, y0, x1, y1, 1.85f);
 }
 
-void HardwareLookAndFeel::drawComboBox (juce::Graphics& g, int w, int h,
-                                         bool, int, int, int, int, juce::ComboBox&) {
-    const auto rect = juce::Rectangle<float>(0,0,float(w),float(h));
-    g.setColour (juce::Colour(0xff04090d)); g.fillRoundedRectangle(rect,4.0f);
-    g.setGradientFill (juce::ColourGradient(juce::Colour(0xff233039),0,0,
-                                            juce::Colour(0xff090e13),0,float(h),false));
-    g.fillRoundedRectangle(rect.reduced(1.1f),3.5f);
-    g.setColour(amber.withAlpha(0.35f)); g.drawRoundedRectangle(rect.reduced(0.6f),3.6f,1.0f);
-    g.setColour(ice);
-    const float cx=w-15.0f,cy=h*0.5f;
-    g.drawLine(cx-4,cy-2,cx,cy+2,1.3f);g.drawLine(cx,cy+2,cx+4,cy-2,1.3f);
+void HardwareLookAndFeel::drawComboBox (juce::Graphics& g,
+                                         int width, int height, bool,
+                                         int, int, int, int, juce::ComboBox&) {
+    // Solid, pixel-aligned LCD, with no translucent gradient behind text.
+    // The native ComboBox Label is positioned explicitly below.
+    const auto frame = juce::Rectangle<float> (
+        0.5f, 0.5f, float (width - 1), float (height - 1));
+    g.setColour (palette::lcd);
+    g.fillRoundedRectangle (frame, 3.5f);
+    g.setColour (palette::lcdBorder);
+    g.drawRoundedRectangle (frame, 3.5f, 1.0f);
+    g.setColour (juce::Colour (0xffd8c1a3).withAlpha (0.24f));
+    g.drawHorizontalLine (2, 4.0f, float (width - 5));
+
+    const float x = float (width - 15);
+    const float y = float (height / 2);
+    g.setColour (palette::mainText);
+    juce::Path chevron;
+    chevron.startNewSubPath (x - 3.5f, y - 1.5f);
+    chevron.lineTo (x, y + 2.0f);
+    chevron.lineTo (x + 3.5f, y - 1.5f);
+    g.strokePath (chevron, juce::PathStrokeType (
+        1.35f, juce::PathStrokeType::curved,
+        juce::PathStrokeType::rounded));
 }
 juce::Font HardwareLookAndFeel::getComboBoxFont (juce::ComboBox&) {
-    return uiHeavy(14.0f);
+    return uiHeavy (13.2f);
+}
+void HardwareLookAndFeel::positionComboBoxText (
+    juce::ComboBox& box, juce::Label& label) {
+    label.setBounds (9, 1, juce::jmax (0, box.getWidth() - 35),
+                     juce::jmax (0, box.getHeight() - 2));
+    label.setFont (getComboBoxFont (box));
+    label.setJustificationType (juce::Justification::centredLeft);
+    label.setColour (juce::Label::textColourId, palette::mainText);
 }
 juce::Font HardwareLookAndFeel::getPopupMenuFont() {
-    return uiHeavy(14.0f);
+    return uiHeavy (13.2f);
 }
-void HardwareLookAndFeel::drawPopupMenuBackground(juce::Graphics& g,int w,int h) {
-    g.fillAll(juce::Colour(0xff080e13));
-    g.setColour(amber.withAlpha(0.50f));g.drawRect(0,0,w,h,1);
+void HardwareLookAndFeel::drawPopupMenuBackground (
+    juce::Graphics& g, int width, int height) {
+    g.fillAll (palette::lcd);
+    g.setColour (palette::lcdBorder);
+    g.drawRect (0, 0, width, height, 1);
 }
-void HardwareLookAndFeel::drawTooltip(juce::Graphics& g,const juce::String& value,
-                                     int w,int h) {
-    g.fillAll(juce::Colour(0xff090f14));
-    g.setColour(amber);g.drawRect(0,0,w,h,1);
-    g.setColour(ice);g.setFont(uiHeavy(13.0f));
-    g.drawFittedText(value,7,4,w-14,h-8,juce::Justification::centredLeft,2);
+void HardwareLookAndFeel::drawTooltip (juce::Graphics& g,
+                                       const juce::String& text,
+                                       int width, int height) {
+    g.fillAll (palette::lcd);
+    g.setColour (palette::lcdBorder);
+    g.drawRect (0, 0, width, height, 1);
+    g.setColour (palette::mainText);
+    g.setFont (uiHeavy (13.0f));
+    g.drawFittedText (text, 8, 4, width - 16, height - 8,
+                      juce::Justification::centredLeft, 2);
 }
 void HardwareLookAndFeel::drawToggleButton (
-    juce::Graphics& g,juce::ToggleButton& button,bool hovered,bool pressed) {
-    const bool on=!button.getToggleState(); // APVTS bypass=true -> power off
-    const auto shell=button.getLocalBounds().toFloat().reduced(1.0f);
-    const auto cap=shell.reduced(1.5f).translated(0.0f,pressed?1.0f:0.0f);
-    g.setColour(juce::Colour(0xff181619));g.fillRoundedRectangle(shell,5.0f);
-    g.setColour(juce::Colour(0xffb09d90).withAlpha(0.70f));
-    g.drawRoundedRectangle(shell.reduced(0.6f),4.7f,1.0f);
-    g.setGradientFill(juce::ColourGradient(
-         juce::Colour(0xff53484a),cap.getX(),cap.getY(),
-         juce::Colour(0xff1b1b1d),cap.getRight(),cap.getBottom(),false));
-    g.fillRoundedRectangle(cap,3.5f);
-    g.setColour(juce::Colours::white.withAlpha(hovered?0.24f:0.13f));
-    g.drawLine(cap.getX()+4,cap.getY()+1.3f,cap.getRight()-4,cap.getY()+1.3f,0.85f);
-    // Classic illuminated physical power key, not a generic light-green switch.
-    const float cx=cap.getX()+18.0f,cy=cap.getCentreY();
-    const float radius=std::min(8.7f,cap.getHeight()*0.29f);
-    juce::Path power;
-    power.addCentredArc(cx,cy,radius,radius,0.0f,0.62f,5.66f,true);
-    power.startNewSubPath(cx,cy-radius*1.12f);
-    power.lineTo(cx,cy-radius*0.10f);
-    if(on) {
-        g.setColour(amber.withAlpha(0.25f));
-        g.strokePath(power,juce::PathStrokeType(4.5f));
+    juce::Graphics& g, juce::ToggleButton& button,
+    bool hovered, bool pressed) {
+    const bool active = ! button.getToggleState(); // APVTS bypass=true -> off
+    const auto outer = button.getLocalBounds().toFloat().reduced (0.5f);
+    const auto cap = outer.reduced (1.8f).translated (0.0f, pressed ? 1.0f : 0.0f);
+    // One crisp classic switch with a machined rim and solid dark cap.
+    g.setColour (juce::Colour (0xff131515));
+    g.fillRoundedRectangle (outer, 4.0f);
+    g.setColour (palette::lcdBorder);
+    g.drawRoundedRectangle (outer, 4.0f, 1.0f);
+    g.setColour (pressed ? juce::Colour (0xff2a2725)
+                         : juce::Colour (0xff33302d));
+    g.fillRoundedRectangle (cap, 3.0f);
+    g.setColour (juce::Colours::white.withAlpha (hovered ? 0.27f : 0.13f));
+    g.drawLine (cap.getX() + 4.0f, cap.getY() + 1.5f,
+                cap.getRight() - 4.0f, cap.getY() + 1.5f, 0.85f);
+
+    const float cx = cap.getX() + 17.5f, cy = cap.getCentreY();
+    const float radius = std::min (8.2f, cap.getHeight() * 0.30f);
+    juce::Path powerIcon;
+    powerIcon.addCentredArc (cx, cy, radius, radius, 0.0f,
+                              0.62f, 5.66f, true);
+    powerIcon.startNewSubPath (cx, cy - radius * 1.13f);
+    powerIcon.lineTo (cx, cy - radius * 0.11f);
+    if (active) {
+        g.setColour (palette::amber.withAlpha (0.22f));
+        g.strokePath (powerIcon, juce::PathStrokeType (4.1f));
     }
-    g.setColour(on?juce::Colour(0xffffd8a2):juce::Colour(0xff877c79));
-    g.strokePath(power,juce::PathStrokeType(1.9f));
-    g.setColour(on?juce::Colour(0xffffe7cb):juce::Colour(0xffc7bbba));
-    g.setFont(uiHeavy(13.0f));
-    g.drawFittedText(on?"ACTIVE":"BYPASSED",
-        button.getLocalBounds().withTrimmedLeft(36).withTrimmedRight(5),
-        juce::Justification::centred,1);
+    g.setColour (active ? palette::amber : juce::Colour (0xff938b83));
+    g.strokePath (powerIcon, juce::PathStrokeType (1.9f));
+
+    // No drawFittedText auto-compression: it caused fuzzy, undersized labels.
+    // Fixed-size Inter Bold, integer text bounds, full-opacity ivory.
+    const juce::String caption = active ? "ACTIVE" : "BYPASSED";
+    const auto textBounds = button.getLocalBounds()
+        .withTrimmedLeft (33).withTrimmedRight (4);
+    g.setFont (uiHeavy (11.7f));
+    g.setColour (active ? palette::mainText : palette::secondaryText);
+    g.drawText (caption, textBounds, juce::Justification::centred, false);
 }
 
 ReverbEditor::ReverbEditor (ReverbProcessor& p)
@@ -266,11 +314,11 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     setLookAndFeel (&theme);
     theme.setDefaultSansSerifTypeface (interTypeface());
     theme.setColour (juce::ComboBox::textColourId, ice);
-    theme.setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff080e13));
+    theme.setColour (juce::PopupMenu::backgroundColourId, palette::lcd);
     theme.setColour (juce::PopupMenu::textColourId, ice);
     theme.setColour (juce::PopupMenu::highlightedBackgroundColourId,
-                     juce::Colour (0xff55412e));
-    theme.setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
+                     juce::Colour (0xff514637));
+    theme.setColour (juce::PopupMenu::highlightedTextColourId, palette::mainText);
 
     presetBox.setTextWhenNothingSelected ("PRESETS");
     presetBox.addItem ("Vocal Plate", 1);
@@ -309,7 +357,7 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
         auto& label = labels[i];
         label.setText (dial.caption, juce::dontSendNotification);
         label.setJustificationType (juce::Justification::centred);
-        label.setColour (juce::Label::textColourId, juce::Colour(0xff1e1518));
+        label.setColour (juce::Label::textColourId, palette::mainText);
         addAndMakeVisible (label);
         sliderAttachments[i] = std::make_unique<
             juce::AudioProcessorValueTreeState::SliderAttachment> (
@@ -337,8 +385,8 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     decayReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (decayReadout);
     refreshDecayReadout();
-    parameterReadout.setColour (juce::Label::backgroundColourId, juce::Colour (0xff091319));
-    parameterReadout.setColour (juce::Label::textColourId, ice);
+    parameterReadout.setColour (juce::Label::backgroundColourId, palette::lcd);
+    parameterReadout.setColour (juce::Label::textColourId, palette::mainText);
     parameterReadout.setJustificationType (juce::Justification::centred);
     parameterReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (parameterReadout);
@@ -373,63 +421,58 @@ void ReverbEditor::refreshParameterReadout (std::size_t index) {
 void ReverbEditor::rebuildFaceplateCache() {
     const int w = getWidth(), h = getHeight();
     if (w <= 0 || h <= 0) return;
+
+    // One cached background for all four milled modules; never repaint its
+    // brushed texture on parameter automation or the audio callback.
     faceplateCache = juce::Image (juce::Image::ARGB, w, h, true);
     juce::Graphics g (faceplateCache);
-    g.fillAll (juce::Colour (0xff241d20));
-    const auto panel = juce::Rectangle<float> (5.0f, 5.0f, float (w-10), float (h-10));
-    juce::ColourGradient alloy (juce::Colour (0xffec8985), 0.0f, 5.0f,
-                                juce::Colour (0xffa44953), 0.0f, float (h-5), false);
-    alloy.addColour (0.22, juce::Colour (0xffde7777));
-    alloy.addColour (0.57, juce::Colour (0xffcd686b));
-    alloy.addColour (0.82, juce::Colour (0xffba5861));
-    g.setGradientFill (alloy);
-    g.fillRoundedRectangle (panel, 7.0f);
+    g.fillAll (juce::Colour (0xff1c1b1c));
+    const auto chassis = juce::Rectangle<float> (
+        5.0f, 5.0f, float (w - 10), float (h - 10));
+    juce::ColourGradient bronze (
+        palette::chassisTop, 0.0f, 5.0f,
+        palette::chassisBottom, 0.0f, float (h - 5), false);
+    bronze.addColour (0.38, juce::Colour (0xff493b36));
+    bronze.addColour (0.74, juce::Colour (0xff382f2e));
+    g.setGradientFill (bronze);
+    g.fillRoundedRectangle (chassis, 7.0f);
 
-    // Micro-brushing is deterministic and cached only on resize; no bitmap asset
-    // or audio-callback work. Irregular strokes break up the striped appearance.
+    // Subtle deterministic satin metal brushing, not coarse horizontal bands.
     std::uint32_t seed = 0x61e3a597U;
     const auto next = [&seed]() noexcept {
         seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
         return seed;
     };
-    for (int y = 9; y < h-9; ++y) {
+    for (int y = 9; y < h - 9; ++y) {
         const float n = float (next() & 255U) / 255.0f;
-        g.setColour (n > 0.50f
-          ? juce::Colours::white.withAlpha (0.005f + (n-0.5f)*0.027f)
-          : juce::Colours::black.withAlpha (0.004f + (0.5f-n)*0.025f));
-        g.drawHorizontalLine (y, 9.0f, float (w-9));
-        if ((y % 4) == 0) for (int k = 0; k < 2; ++k) {
-            const float x = 9.0f + float (next() % std::uint32_t (std::max (1, w-75)));
-            const float len = 15.0f + float (next() % 65U);
-            g.setColour (juce::Colours::white.withAlpha (0.010f));
-            g.drawLine (x, float (y), std::min (x+len,float (w-9)), float (y), 0.5f);
-        }
+        g.setColour (n > 0.5f
+            ? juce::Colours::white.withAlpha (0.003f + (n - 0.5f) * 0.015f)
+            : juce::Colours::black.withAlpha (0.002f + (0.5f - n) * 0.015f));
+        g.drawHorizontalLine (y, 9.0f, float (w - 9));
     }
-    juce::ColourGradient darkFoot (juce::Colours::transparentBlack, 0.0f, float (h)*0.58f,
-                                    juce::Colour (0xff4e222e).withAlpha (0.40f),
-                                    0.0f, float (h-6), false);
-    g.setGradientFill (darkFoot);
-    g.fillRoundedRectangle (panel, 7.0f);
-    g.setColour (juce::Colour (0xffffd0c7).withAlpha (0.55f));
-    g.drawRoundedRectangle (panel.reduced (0.5f), 7.0f, 1.0f);
+    g.setColour (juce::Colour (0xffc9af95).withAlpha (0.58f));
+    g.drawRoundedRectangle (chassis.reduced (0.5f), 7.0f, 0.95f);
 
-    // Framed modular sections, mirroring the clean grouped hardware grammar
-    // of the reference rather than the previous awkward vertical dividers.
-    // Static geometry is rendered into the faceplate cache only upon resize.
-    const float sx=w/referenceWidth, sy=h/referenceHeight;
-    for (const auto& m : groupPanels) {
-        const auto box=scaled(m.x,m.y,m.w,m.h,sx,sy).toFloat();
-        g.setColour (juce::Colour (0xff38242b).withAlpha (0.26f));
-        g.fillRoundedRectangle(box.translated(0.0f,1.5f),4.0f);
-        g.setColour (juce::Colour (0xffffe2d4).withAlpha (0.52f));
-        g.fillRoundedRectangle(box.reduced(1.2f),3.5f);
-        g.setColour (juce::Colour (0xff422029).withAlpha (0.84f));
-        g.drawRoundedRectangle(box.reduced(0.5f),4.0f,1.2f);
-        g.setColour (juce::Colour (0xffffdfca).withAlpha (0.42f));
-        g.drawRoundedRectangle(box.reduced(1.7f),3.2f,0.8f);
-        const float header=(m.y+39.0f)*sy;
-        g.setColour (juce::Colour (0xff482c34).withAlpha (0.40f));
-        g.drawLine(box.getX()+3.8f,header,box.getRight()-3.8f,header,0.95f);
+    const float sx = w / referenceWidth, sy = h / referenceHeight;
+    for (const auto& module : groupPanels) {
+        const auto rect = scaled (module.x, module.y, module.w, module.h,
+                                  sx, sy).toFloat();
+        g.setColour (juce::Colours::black.withAlpha (0.35f));
+        g.fillRoundedRectangle (rect.translated (0.0f, 1.3f), 4.4f);
+        juce::ColourGradient satin (
+            palette::moduleTop, rect.getX(), rect.getY(),
+            palette::moduleBottom, rect.getX(), rect.getBottom(), false);
+        satin.addColour (0.50, juce::Colour (0xff5b4d46));
+        g.setGradientFill (satin);
+        g.fillRoundedRectangle (rect.reduced (1.2f), 3.7f);
+        g.setColour (palette::moduleBorder.withAlpha (0.92f));
+        g.drawRoundedRectangle (rect.reduced (0.6f), 4.0f, 1.0f);
+        g.setColour (juce::Colour (0xffecd3b4).withAlpha (0.15f));
+        g.drawRoundedRectangle (rect.reduced (1.9f), 3.2f, 0.75f);
+        const float titleRuleY = (module.y + 39.0f) * sy;
+        g.setColour (palette::moduleBorder.withAlpha (0.56f));
+        g.drawLine (rect.getX() + 6, titleRuleY,
+                    rect.getRight() - 6, titleRuleY, 0.9f);
     }
 }
 
@@ -437,16 +480,16 @@ void ReverbEditor::paint (juce::Graphics& g) {
     const float sx = getWidth() / referenceWidth;
     const float sy = getHeight() / referenceHeight;
     const float fs = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
-    g.fillAll (juce::Colour (0xff241d20));
+    g.fillAll (juce::Colour (0xff1c1b1c));
     if (faceplateCache.isValid()) g.drawImageAt (faceplateCache, 0, 0);
 
     // Inter typography with deliberate weight and contrast at the compact size.
     // A single wordmark prevents accidental spacing between ArSon / Verb.
-    g.setColour (juce::Colour (0xff26191d));
-    g.setFont (uiHeavy (33.0f * fs));
+    g.setColour (palette::mainText);
+    g.setFont (uiHeavy (31.5f * fs));
     g.drawText ("ArSonVerb", scaled (25, 20, 270, 38, sx, sy),
                 juce::Justification::centredLeft);
-    g.setColour (juce::Colour (0xff47303a));
+    g.setColour (palette::secondaryText);
     g.setFont (uiHeavy (13.6f * fs));
     g.drawText ("MUSICAL VINTAGE REVERB",
         scaled (26, 63, 310, 20, sx, sy),
@@ -455,7 +498,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
     // Printed machine-engraved group captions inside the framed modules.
     // None of these are extra JUCE components or click targets.
     for (const auto& m : groupPanels) {
-        g.setColour (juce::Colour (0xff301d22));
+        g.setColour (palette::mainText);
         g.setFont (uiHeavy (15.7f * fs));
         g.drawText (m.title,
             scaled (m.x+7, m.y+8, m.w-14, 24, sx, sy),
@@ -464,14 +507,14 @@ void ReverbEditor::paint (juce::Graphics& g) {
 
     // Green hardware-style decay readout, not a general-purpose text box.
     const auto display = scaled (206, 425, 122, 44, sx, sy).toFloat();
-    g.setColour (juce::Colour (0xff263529));
+    g.setColour (juce::Colour (0xff1e2622));
     g.fillRoundedRectangle (display, 5.0f * fs);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1e6943),
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff263e32),
             display.getX(), display.getY(),
-            juce::Colour (0xff17442e), display.getRight(),
+            juce::Colour (0xff15271f), display.getRight(),
             display.getBottom(), false));
     g.fillRoundedRectangle (display.reduced (2.0f * fs), 4.0f * fs);
-    g.setColour (juce::Colour (0xffa1d5a8).withAlpha (0.42f));
+    g.setColour (palette::jade.withAlpha (0.56f));
     g.drawRoundedRectangle (display.reduced (2.0f * fs), 4.0f * fs, 0.9f);
 
     // The reference uses framed modules without ornament at their base;
@@ -483,8 +526,10 @@ void ReverbEditor::resized() {
     const float sx = getWidth() / referenceWidth;
     const float sy = getHeight() / referenceHeight;
     const float s = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
-    presetBox.setBounds (scaled (754, 26, 174, 33, sx, sy));
-    bypassButton.setBounds (scaled (938, 26, 138, 33, sx, sy));
+    // One shared optical baseline for LCD preset and physical power button.
+    // Integer-pixel snapping prevents blurred half-pixel text and frames.
+    presetBox.setBounds (scaled (750, 27, 175, 34, sx, sy));
+    bypassButton.setBounds (scaled (935, 27, 141, 34, sx, sy));
 
     for (const auto& dial : dials) {
         const auto i = static_cast<std::size_t> (dial.parameter);
@@ -500,7 +545,7 @@ void ReverbEditor::resized() {
     }
     decayReadout.setBounds (scaled (207, 424, 120, 44, sx, sy));
     decayReadout.setFont (uiHeavy (23.0f * s));
-    parameterReadout.setBounds (scaled (370, 25, 325, 34, sx, sy));
+    parameterReadout.setBounds (scaled (369, 27, 330, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (14.5f * s));
     rebuildFaceplateCache();
 }

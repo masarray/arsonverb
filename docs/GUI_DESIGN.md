@@ -1,3 +1,39 @@
+# Premium Vintage Color & Control Surface — 2026-10-31
+
+Authoritative milestone after PR #9. Preserve the original 13 automatable DSP parameters and JUCE-independent C++ engine.
+
+## Visual tokens (original ArSonVerb artwork)
+- Chassis: satin dark bronze `#584840` → cocoa `#493B36` → graphite `#30292A`.
+- Module face: warm taupe `#675851` → `#4A403C`, champagne border `#AA8D72`.
+- Text: main ivory `#F6EBDB`, secondary champagne `#D6C6B3`, embedded Inter heavy.
+- Hardware: charcoal metal `#101214` with brushed gunmetal center.
+- Meter: restrained jade `#73C59E`, replacing neon green; power only: amber `#E6B978`.
+- Preset + tooltip: deep LCD charcoal `#111719`, fully opaque text, pixel-aligned solid fill.
+- Text contrast on darker panels targets W3C WCAG 2.2 AA minimum (4.5:1 for ordinary text) as a visual accessibility benchmark.
+
+## Mechanical proportions
+- Small knob faceRadius = 0.316×control side; grooveRadius = 0.480×control side, increasing visible black metal ring.
+- Large Decay knob retains faceRadius = 0.355×side and grooveRadius = 0.465×side.
+- One 2.9-unit smooth arc line thickness for both sizes; green changes to softened jade.
+- Milled metal face cached in two dimensions only. All 12 small knobs share one cache slot; large Decay another.
+- Group positions follow consistent 155-reference-unit vertical row separation, with 110-reference-unit horizontal spacing in two-column panels.
+- Boxed modules and compact 842×394 default retained. Preset/power share same y baseline and pixel-aligned bounds.
+
+## Crisp labels and controls
+- Native JUCE ComboBox has explicit positionComboBoxText with safe side padding and Inter Bold 13.2px.
+- Black LCD avoids translucent/shadowed type; preset arrow is one thin clear chevron.
+- Power is solid Bakelite/metal with one warm lit power glyph when ACTIVE; status uses direct drawText, never auto-squeezed drawFittedText.
+- All important text uses full-opacity warm ivory and sufficient contrast on bronze.
+- No new image assets, WebView, UI timers, worker thread, GPU shader or audio callback work.
+
+## Validation
+- PR-scope Windows VST3 + Standalone CI once on completed commit, 6/6 CTest including strict host controls/geometry/state and pointer behavior.
+- Core Release and sanitizer green required; no change to DSP/C ABI.
+- Manual screenshots at min/default/full and 125/150% DPI remain open for visual approval; do not claim UI perfection on CI alone.
+
+
+---
+
 # ArSonVerb — Vintage Modular Control Surface (2026-10-31)
 
 **Latest verified design:** moving cream pointer + smooth green continuous level arc, cached concentric metal face (PR #9, 6/6 Windows CI PASS): https://github.com/masarray/arsonverb/actions/runs/41140089146 . Previous amber segmented LEDs and fixed 12-o'clock pointer are obsolete. Keep framed modules and classic power button.
