@@ -1,3 +1,16 @@
+# ArSonVerb GUI visual milestone — 2026-10-30 (VERIFIED)
+
+- [PR #5](https://github.com/masarray/arsonverb/pull/5) merged into main, squash commit `465876fa0064f8b3857046c58f8dd947386ea614`.
+- [GitHub Actions Windows JUCE run #41063910932](https://github.com/masarray/arsonverb/actions/runs/41063910932): **SUCCESS**. Windows MSVC VST3 + Standalone built, **6/6 CTest PASS** including real JUCE host contract and layout bounds checks at 830x390, 860x460, 1100x510, 1440x680. Raw unsigned artifact #12981532508.
+- Fast PR core CI (Linux Release and sanitizer) also **SUCCESS**: https://github.com/masarray/arsonverb/actions/runs/41063910926
+- GUI changed from 7x2 regular grid to original hardware-inspired copper/coral horizontal faceplate, dominant Decay, charcoal knobs, green numeric readout, and Tone/Shape/Space groups. **All 13 DSP parameter IDs** remain attached. Four presets and host bypass remain available.
+- No modifications to realtime DSP, presets, core ABI, processor serialization, or parameter IDs. Native JUCE vector painting, no large bitmap, WebView, animation timers, or added library dependencies.
+- **Still unverified:** actual screenshot / manual visual acceptance in a DAW, pluginval, high-DPI scaling on multiple displays. Do not say visually pixel-identical to Valhalla. Reference is for layout only; original ArSonVerb art.
+- For future GUI changes see `docs/GUI_DESIGN.md`. Do not introduce fake controls or change automation IDs for purely visual alignment.
+- Note: main may run additional Windows CI after PR merge; the successful **PR head** run above is authoritative evidence for this GUI source, while main status must be checked separately.
+
+---
+
 # ArSonVerb hardware-inspired GUI milestone — 2026-10-30
 
 - Target image supplied by user: warm brushed hardware faceplate, large Decay knob, small tactile black controls, compact green readout, spatial Tone/Shape/Space groups.
