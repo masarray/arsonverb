@@ -1,3 +1,32 @@
+# ArSonVerb — Vintage Modular Control Surface (2026-10-31)
+
+## Visual contract and references
+- Knob screenshot #1: fixed ivory vertical marker at 12 o'clock, discrete amber LEDs on an external black metal indicator ring, dark recessed Bakelite face.
+- Layout screenshot #3 (Ventapulse): separate **fully framed modules**, dark etched double border, small header title and clear control grouping, not detached vertical separators.
+- All graphics are newly drawn from basic JUCE primitives; no third-party logos or proprietary assets.
+- Retro physical power button has amber illuminated power symbol when ACTIVE, dim when BYPASSED, keeping the single APVTS bypass state.
+- Embed OFL Inter heavy weight in caption labels and section headers, dark foreground against warm rosy body.
+
+## Layout in 1100 x 510 reference units (default 842 x 394)
+| Panel | Rect x/y/w/h | Controls |
+|---|---|---|
+| Mix / Decay | 17/107/414/370 | Mix, Pre-delay, Decay, digital readout |
+| Tone / Control | 439/107/254/370 | HF Damp, High Cut, Low Cut, Duck |
+| Shape | 701/107/132/370 | Size, Diffusion |
+| Space / Motion | 841/107/242/370 | Early, Width, Rate, Depth |
+
+- Standard knob 19 amber segments, dominant Decay 29. The segments follow normalized APVTS values.
+- Previous cyan neon arc/rotating cyan square and disconnected vertical separators are gone.
+- Brushed-metal faceplate and module frame background are cached on editor resize; dynamic LED segments draw only on JUCE knob repaint. No timers, WebView or added DSP thread cost.
+- No fake controls; preserve all 13 APVTS IDs, all mouse-wheel settings, four presets, host bypass and state serialization.
+- Old waveform footer removed, because it overlapped the new framed panel area.
+
+## Acceptance gates
+- Windows MSVC VST3 + Standalone, all six CTest including an offscreen full-editor render test at 800x370, 842x394, 1000x470, 1180x545.
+- Core Release and sanitizer CI without unnecessary new OS matrices for GUI.
+- Actual DAW and high-DPI screenshots remain a separate manual visual QA gate; no claim of Valhalla sonic parity.
+
+---
 # ArSonVerb GUI Design & UX Contract
 
 Updated 2026-10-30. Scope: JUCE 9 native VST3 / Standalone editor. Original artwork built in `plugins/juce_vst3/PluginEditor.cpp`; user-provided ValhallaVintageVerb screenshot inspired **only** layout density, knob hierarchy and hardware-panel gestalt. Never reuse Valhalla branding/logo, proprietary assets or misleading menu labels.

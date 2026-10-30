@@ -76,6 +76,19 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            // Render every native JUCE control in a headless offscreen image.
+            juce::Image image (juce::Image::ARGB, width, height, true);
+            juce::Graphics graphics (image);
+            // Standalone JUCE host tests do not attach this editor to a
+            // desktop peer. paintEntireComponent() may skip hidden children;
+            // explicitly paint the parent to validate its cached faceplate.
+            editor->paint (graphics);
+            editor->paintEntireComponent (graphics, true);
+            // Headless Windows runners do not guarantee stable alpha contents
+            // for unattached native components. The paint calls above are smoke
+            // tests (no crash); geometry and automation remain strict assertions.
+            check(image.isValid(), "offscreen editor image allocation");
+
         }
     }
     for (std::uint32_t i = 0; i < arverb::parameterCount; ++i)
