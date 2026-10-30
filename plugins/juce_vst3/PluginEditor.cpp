@@ -1,12 +1,13 @@
 #include "PluginEditor.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace arplugin {
 namespace {
 const juce::Colour ink (0xff292225);
-const juce::Colour mutedInk (0xff563b40);
-const juce::Colour highlight (0xfff0a1a3);
+const juce::Colour mutedInk (0xff57323a);
+const juce::Colour highlight (0xfff3afb7);
 const juce::Colour displayGreen (0xffb3f1b9);
 constexpr float referenceWidth = 1100.0f;
 constexpr float referenceHeight = 510.0f;
@@ -34,6 +35,30 @@ constexpr std::array<Dial, arverb::parameterCount> dials {{
     {arverb::Parameter::DuckAmount,   620, 354, 70, "DUCK"}
 }};
 static_assert (dials.size() == arverb::parameterCount, "All DSP parameters need controls");
+constexpr bool dialOrderIsStable() noexcept {
+    for (std::size_t i = 0; i < dials.size(); ++i)
+        if (static_cast<std::size_t> (dials[i].parameter) != i) return false;
+    return true;
+}
+static_assert (dialOrderIsStable(), "Faceplate controls must match stable DSP IDs");
+
+juce::String humanValue (arverb::Parameter param, float value) {
+    using P = arverb::Parameter;
+    switch (param) {
+        case P::Mix: case P::Diffusion: case P::Width:
+        case P::EarlyLevel: case P::DuckAmount:
+            return juce::String (value * 100.0f, 0) + " %";
+        case P::DecaySeconds: return juce::String (value, 2) + " s";
+        case P::PreDelayMs: return juce::String (value, 0) + " ms";
+        case P::ModDepthMs: return juce::String (value, 2) + " ms";
+        case P::ModRateHz: return juce::String (value, 2) + " Hz";
+        case P::DampingHz: case P::LowCutHz: case P::HighCutHz:
+            return value >= 1000.0f ? juce::String (value / 1000.0f, 1) + " kHz"
+                                    : juce::String (value, 0) + " Hz";
+        case P::Size: return juce::String (value, 2) + " x";
+        default: return juce::String (value, 2);
+    }
+}
 
 juce::Rectangle<int> scaled (float x, float y, float w, float h,
                               float sx, float sy) {
@@ -149,9 +174,10 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
         slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.25f,
                                     juce::MathConstants<float>::pi * 2.75f, true);
         slider.setScrollWheelEnabled (false);
-        slider.setPopupDisplayEnabled (true, true, this);
+        // Avoid JUCE's full-precision floating bubble (e.g. 10000.000000).
+        slider.setPopupDisplayEnabled (false, false, this);
         slider.setDoubleClickReturnValue (true, meta.defaultValue);
-        slider.setTooltip (juce::String (meta.name) + "  (" + meta.unit + ")");
+        slider.setTooltip (juce::String (meta.name));
         addAndMakeVisible (slider);
         auto& label = labels[i];
         label.setText (dial.caption, juce::dontSendNotification);
@@ -161,9 +187,21 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
         sliderAttachments[i] = std::make_unique<
             juce::AudioProcessorValueTreeState::SliderAttachment> (
                 processor.parameters, meta.id, slider);
-        slider.onDragStart = [this] {
-            // A tweaked preset is custom; do not display a misleading preset name.
+        slider.onDragStart = [this, i] {
             presetBox.setSelectedId (0, juce::dontSendNotification);
+            activeParameter = static_cast<int> (i);
+            refreshParameterReadout (i);
+            parameterReadout.setVisible (true);
+        };
+        slider.onDragEnd = [this] {
+            activeParameter = -1;
+            parameterReadout.setVisible (false);
+        };
+        slider.onValueChange = [this, i] {
+            if (i == static_cast<std::size_t> (arverb::Parameter::DecaySeconds))
+                refreshDecayReadout();
+            if (activeParameter == static_cast<int> (i))
+                refreshParameterReadout (i);
         };
     }
 
@@ -171,13 +209,17 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     decayReadout.setColour (juce::Label::textColourId, displayGreen);
     decayReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (decayReadout);
-    sliders[static_cast<std::size_t> (arverb::Parameter::DecaySeconds)].onValueChange =
-        [this] { refreshDecayReadout(); };
     refreshDecayReadout();
+    parameterReadout.setColour (juce::Label::backgroundColourId, juce::Colour (0xff483038));
+    parameterReadout.setColour (juce::Label::textColourId, juce::Colour (0xffffe7dc));
+    parameterReadout.setJustificationType (juce::Justification::centred);
+    parameterReadout.setInterceptsMouseClicks (false, false);
+    addAndMakeVisible (parameterReadout);
+    parameterReadout.setVisible (false);
 
     setResizable (true, true);
-    setResizeLimits (830, 390, 1440, 680);
-    setSize (1100, 510);
+    setResizeLimits (800, 370, 1180, 545);
+    setSize (842, 394);
 }
 
 ReverbEditor::~ReverbEditor() {
@@ -193,27 +235,64 @@ void ReverbEditor::refreshDecayReadout() {
     decayReadout.setText (juce::String (seconds, 2) + " s", juce::dontSendNotification);
 }
 
+void ReverbEditor::refreshParameterReadout (std::size_t index) {
+    const auto parameter = static_cast<arverb::Parameter> (index);
+    parameterReadout.setText (
+        juce::String (arverb::parameterInfo (parameter).name) + "   " +
+        humanValue (parameter, static_cast<float> (sliders[index].getValue())),
+        juce::dontSendNotification);
+}
+
+void ReverbEditor::rebuildFaceplateCache() {
+    const int w = getWidth(), h = getHeight();
+    if (w <= 0 || h <= 0) return;
+    faceplateCache = juce::Image (juce::Image::ARGB, w, h, true);
+    juce::Graphics g (faceplateCache);
+    g.fillAll (juce::Colour (0xff241d20));
+    const auto panel = juce::Rectangle<float> (5.0f, 5.0f, float (w-10), float (h-10));
+    juce::ColourGradient alloy (juce::Colour (0xffec8985), 0.0f, 5.0f,
+                                juce::Colour (0xffa44953), 0.0f, float (h-5), false);
+    alloy.addColour (0.22, juce::Colour (0xffde7777));
+    alloy.addColour (0.57, juce::Colour (0xffcd686b));
+    alloy.addColour (0.82, juce::Colour (0xffba5861));
+    g.setGradientFill (alloy);
+    g.fillRoundedRectangle (panel, 7.0f);
+
+    // Micro-brushing is deterministic and cached only on resize; no bitmap asset
+    // or audio-callback work. Irregular strokes break up the striped appearance.
+    std::uint32_t seed = 0x61e3a597U;
+    const auto next = [&seed]() noexcept {
+        seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+        return seed;
+    };
+    for (int y = 9; y < h-9; ++y) {
+        const float n = float (next() & 255U) / 255.0f;
+        g.setColour (n > 0.50f
+          ? juce::Colours::white.withAlpha (0.012f + (n-0.5f)*0.12f)
+          : juce::Colours::black.withAlpha (0.007f + (0.5f-n)*0.11f));
+        g.drawHorizontalLine (y, 9.0f, float (w-9));
+        for (int k = 0; k < 3; ++k) {
+            const float x = 9.0f + float (next() % std::uint32_t (std::max (1, w-75)));
+            const float len = 15.0f + float (next() % 65U);
+            g.setColour (juce::Colours::white.withAlpha (0.020f));
+            g.drawLine (x, float (y), std::min (x+len,float (w-9)), float (y), 0.5f);
+        }
+    }
+    juce::ColourGradient darkFoot (juce::Colours::transparentBlack, 0.0f, float (h)*0.58f,
+                                    juce::Colour (0xff4e222e).withAlpha (0.40f),
+                                    0.0f, float (h-6), false);
+    g.setGradientFill (darkFoot);
+    g.fillRoundedRectangle (panel, 7.0f);
+    g.setColour (juce::Colour (0xffffd0c7).withAlpha (0.55f));
+    g.drawRoundedRectangle (panel.reduced (0.5f), 7.0f, 1.0f);
+}
+
 void ReverbEditor::paint (juce::Graphics& g) {
     const float sx = getWidth() / referenceWidth;
     const float sy = getHeight() / referenceHeight;
     const float fs = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
-    const auto w = static_cast<float> (getWidth());
-    const auto h = static_cast<float> (getHeight());
-    g.fillAll (juce::Colour (0xff241f22));
-
-    auto face = juce::Rectangle<float> (5, 5, w - 10, h - 10);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffd87977),
-                      0, 5, juce::Colour (0xffba585e), 0, h, false));
-    g.fillRoundedRectangle (face, 7.0f);
-
-    // Very light deterministic horizontal brushing. No image assets or animation.
-    for (int y = 12; y < getHeight() - 12; y += 5) {
-        const auto alpha = 0.018f + 0.014f * static_cast<float> ((y * 17) % 7) / 6.0f;
-        g.setColour (juce::Colours::white.withAlpha (alpha));
-        g.drawHorizontalLine (y, 10.0f, w - 10.0f);
-    }
-    g.setColour (juce::Colour (0xfff1adad).withAlpha (0.53f));
-    g.drawRoundedRectangle (face.reduced (0.5f), 7.0f, 1.0f);
+    g.fillAll (juce::Colour (0xff241d20));
+    if (faceplateCache.isValid()) g.drawImageAt (faceplateCache, 0, 0);
 
     // Original ArSonVerb faceplate identity (no reference-brand logos or marks).
     g.setColour (ink);
@@ -271,7 +350,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
                                 2.0f * fs);
     g.setColour (juce::Colour (0xffffdcce).withAlpha (0.37f));
     g.setFont (juce::Font (juce::FontOptions (9.0f * fs)));
-    g.drawText ("ORIGINAL DSP  •  C++ CORE", scaled (838, 469, 218, 22, sx, sy),
+    g.drawText ("VINTAGE REVERB  /  ORIGINAL DSP", scaled (838, 469, 218, 22, sx, sy),
                 juce::Justification::centredRight);
 }
 
@@ -296,5 +375,8 @@ void ReverbEditor::resized() {
     }
     decayReadout.setBounds (scaled (207, 424, 120, 44, sx, sy));
     decayReadout.setFont (juce::Font (juce::FontOptions (23.0f * s)));
+    parameterReadout.setBounds (scaled (370, 25, 325, 34, sx, sy));
+    parameterReadout.setFont (juce::Font (juce::FontOptions (13.5f * s)));
+    rebuildFaceplateCache();
 }
 } // namespace arplugin

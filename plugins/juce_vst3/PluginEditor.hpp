@@ -28,11 +28,16 @@ public:
 
 private:
     void refreshDecayReadout();
+    void refreshParameterReadout (std::size_t index);
+    void rebuildFaceplateCache();
     ReverbProcessor& processor;
     HardwareLookAndFeel theme;
     juce::ComboBox presetBox;
     juce::ToggleButton bypassButton;
     juce::Label decayReadout;
+    juce::Label parameterReadout;
+    juce::Image faceplateCache;
+    int activeParameter = -1;
     std::array<juce::Slider, arverb::parameterCount> sliders;
     std::array<juce::Label, arverb::parameterCount> labels;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,
