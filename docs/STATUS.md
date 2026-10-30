@@ -1,4 +1,14 @@
-# Pending GUI visual polish milestone
+# Verified GUI refinement — 2026-10-30
+
+- [PR #6](https://github.com/masarray/arsonverb/pull/6) merged into main as commit `9469ce48b3e374cf4772d345f368b32fb2f300db`.
+- [Windows JUCE VST3 + Standalone CI run](https://github.com/masarray/arsonverb/actions/runs/41069403126) **SUCCESS**, with **6/6 CTest passed**; unsigned GitHub Actions artifact #12984048469.
+- [Core PR CI](https://github.com/masarray/arsonverb/actions/runs/41069403270) **SUCCESS** including sanitizer.
+- Default compact editor 842×394; cached richer brushed-alloy finish with subtle dark lower panel. Short live slider values avoid JUCE default raw floating-point popup. Stable 13 parameter IDs and DSP untouched.
+- Manual DAW screenshot visual QA / high-DPI and pluginval remain open. Do not infer sonic parity with Valhalla.
+
+---
+
+# Historical GUI planning note
 
 ## 2026-10-30 premium compact brushed alloy GUI
 - Original user screenshot feedback: flat stripes, washed-out coral, oversized default, full-precision JUCE tooltip.
