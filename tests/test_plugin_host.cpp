@@ -79,6 +79,10 @@ int main() {
             // Render every native JUCE control in a headless offscreen image.
             juce::Image image (juce::Image::ARGB, width, height, true);
             juce::Graphics graphics (image);
+            // Standalone JUCE host tests do not attach this editor to a
+            // desktop peer. paintEntireComponent() may skip hidden children;
+            // explicitly paint the parent to validate its cached faceplate.
+            editor->paint (graphics);
             editor->paintEntireComponent (graphics, true);
             check(image.isValid() && image.getPixelAt(width/2, height/2)
                   .getAlpha() > 0, "modular faceplate must render");
