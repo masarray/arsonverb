@@ -55,6 +55,11 @@ if(ARVERB_BUILD_TESTS)
     endif()
     add_executable(arverb_benchmark tests/benchmark.cpp)
     target_link_libraries(arverb_benchmark PRIVATE arverb_core)
+    # Golden audio fingerprints compared to the pre-optimization DSP on the
+    # same Linux CI compiler. This is a test tool, never a plugin dependency.
+    add_executable(arverb_audio_signature tests/audio_signature.cpp)
+    target_link_libraries(arverb_audio_signature PRIVATE arverb_core)
+    add_test(NAME arverb_audio_signature COMMAND arverb_audio_signature)
     add_executable(arverb_demo examples/impulse_wav.cpp)
     target_link_libraries(arverb_demo PRIVATE arverb_core)
 endif()
