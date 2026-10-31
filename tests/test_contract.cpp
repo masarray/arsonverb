@@ -35,6 +35,13 @@ int main() {
     for (std::size_t i = 0; i < stableIds.size(); ++i)
         require(std::strcmp(stableIds[i], arverb::parameterInfo(static_cast<arverb::Parameter>(i)).id) == 0, "automation ID changed");
     static_assert (arverb::presetCount == 32, "32 original factory presets required");
+    require (arverb::algorithmCount == 4, "P4 four algorithm choices");
+    require (arverb::presetAlgorithm(arverb::Preset::VocalPlate) == arverb::Algorithm::Plate,
+             "Plate program should have genuine Plate algorithm");
+    require (arverb::presetAlgorithm(arverb::Preset::VocalChamber) == arverb::Algorithm::Chamber,
+             "Chamber program should have genuine Chamber algorithm");
+    require (arverb::presetAlgorithm(arverb::Preset::MusicHall) == arverb::Algorithm::Hall,
+             "Hall program should have genuine Hall algorithm");
     std::set<std::string> names;
     arverb::Engine engine;
     engine.prepare (48000.0); // Single prep for all programs, economizes CI.
