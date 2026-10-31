@@ -139,10 +139,12 @@ struct Engine::State {
     float wetHighSlope = 0.0f, targetHighSlope = 0.0f;
     float airLift = 0.0f, targetAirLift = 0.0f;
     float hfDampingBlend = 1.0f, targetHFDampingBlend = 1.0f;
-    // True sine/cosine equal-power gains precomputed on prepare(), not
-    // sin/cos per sample in the real-time process loop.
-    std::array<float, 513> dryMixLut {};
-    std::array<float, 513> wetMixLut {};
+    // Sine/cosine gain targets calculated only when the host Mix changes.
+    // Two native gain smoothers keep the audio callback free of any trig,
+    // lookup or interpolation per sample.
+    float currentDryGain=1.0f, currentWetGain=0.0f;
+    float targetDryGain=1.0f, targetWetGain=0.0f;
+    float cachedMix=-1.0f;
     detail::PresenceDucker presence;
     std::array<float, parameterCount> smooth{};
     float gains[kLines]{};
@@ -225,20 +227,18 @@ void Engine::prepare(double sampleRate) {
     s.envelopeAttack = 1.0f - std::exp(-1.0f / (0.012f * fs));
     s.envelopeRelease = 1.0f - std::exp(-1.0f / (0.34f * fs));
     s.presence.prepare(fs);
-    constexpr float halfPi = 1.57079632679489661923f;
-    for (std::size_t i = 0; i < s.dryMixLut.size(); ++i) {
-        const float angle = halfPi * (static_cast<float>(i) / 512.0f);
-        s.dryMixLut[i] = std::cos(angle);
-        s.wetMixLut[i] = std::sin(angle);
-    }
-    s.dryMixLut.back() = 0.0f; // exact 100% wet
-    s.wetMixLut.front() = 0.0f; // exact 0% wet
     s.airCoeff = lowPassCoeff(6500.0f, fs);
     s.algorithmStep = 1.0f / std::max(1.0f, fs * 0.100f); // 100ms morph
     s.fromAlgorithm = s.toAlgorithm = algorithm_.load(std::memory_order_relaxed);
     s.algorithmBlend=1.0f;
     for (std::size_t i = 0; i < parameterCount; ++i)
         s.smooth[i] = parameters_[i].load(std::memory_order_relaxed);
+    constexpr float halfPi=1.57079632679489661923f;
+    s.cachedMix = s.smooth[static_cast<unsigned>(Parameter::Mix)];
+    s.currentDryGain = s.targetDryGain =
+        s.cachedMix>=1.0f ? 0.0f : std::cos(halfPi*s.cachedMix);
+    s.currentWetGain = s.targetWetGain =
+        s.cachedMix<=0.0f ? 0.0f : std::sin(halfPi*s.cachedMix);
 
     const float decay = s.smooth[static_cast<unsigned>(Parameter::DecaySeconds)];
     const float size = s.smooth[static_cast<unsigned>(Parameter::Size)];
@@ -317,6 +317,15 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     const auto idx = [](Parameter p) -> unsigned { return static_cast<unsigned>(p); };
     // Atomic host target captured once per block. The entire 100ms
     // transition uses the SAME tank; no two-engine tail CPU/memory cost.
+    const float requestedMix = target[idx(Parameter::Mix)];
+    if (requestedMix != s.cachedMix) {
+        s.cachedMix = requestedMix;
+        constexpr float halfPi=1.57079632679489661923f;
+        s.targetDryGain = requestedMix>=1.0f ? 0.0f
+                            : std::cos(halfPi*requestedMix);
+        s.targetWetGain = requestedMix<=0.0f ? 0.0f
+                            : std::sin(halfPi*requestedMix);
+    }
     const unsigned requested = algorithm_.load(std::memory_order_relaxed);
     if (requested != s.toAlgorithm) {
         s.fromAlgorithm = (s.algorithmBlend < 0.5f)
@@ -366,13 +375,13 @@ void Engine::process(const float* inputLeft, const float* inputRight,
             (s.cachedHighCut - 6500.0f) / 13500.0f, 0.0f, 1.0f);
     }
 
-    // Eight smoothed scalars are actually consumed in process().
+    // Seven smoothed scalar controls remain: Mix is smoothed directly in
+    // gain space, avoiding LUT/index/lerp arithmetic on every sample.
     // Decay, modulation rate and the three EQ frequency parameters instead
     // drive independent, correctly smoothed feedback/filter coefficients.
     // Integrating those five unused sample histories cost CPU but had no
     // influence on the audio output. Keep the original audible update order.
-    constexpr std::array<unsigned, 8> kSmoothedAudioControls {{
-        static_cast<unsigned>(Parameter::Mix),
+    constexpr std::array<unsigned, 7> kSmoothedAudioControls {{
         static_cast<unsigned>(Parameter::PreDelayMs),
         static_cast<unsigned>(Parameter::Size),
         static_cast<unsigned>(Parameter::Diffusion),
@@ -384,7 +393,10 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     for (std::size_t frame = 0; frame < frames; ++frame) {
         for (const unsigned p : kSmoothedAudioControls)
             s.smooth[p] += s.smoother * (target[p] - s.smooth[p]);
-        const float mix = s.smooth[idx(Parameter::Mix)];
+        s.currentDryGain += s.smoother*(s.targetDryGain-s.currentDryGain);
+        s.currentWetGain += s.smoother*(s.targetWetGain-s.currentWetGain);
+        const float dryGain=s.currentDryGain;
+        const float wetGain=s.currentWetGain;
         const float preSamples = s.smooth[idx(Parameter::PreDelayMs)] * s.millisecondsToSamples;
         const float size = s.smooth[idx(Parameter::Size)];
         const float diffusion = s.smooth[idx(Parameter::Diffusion)];
@@ -523,18 +535,9 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         const float envCoef = loudness > s.duckEnvelope ? s.envelopeAttack : s.envelopeRelease;
         s.duckEnvelope += envCoef * (loudness - s.duckEnvelope);
         const float duckGain = 1.0f / (1.0f + 6.0f * duckAmount * s.duckEnvelope);
-        // Actual Valhalla-style equal-power sine/cos law without calling
-        // trigonometric functions inside the audio callback. Crucial:
-        // a 50% Mix no longer throws away -6dB of direct signal before the
-        // delayed wet tail arrives. 0% is exactly dry; 100% remains wet-only.
-        const float slot = clamp(mix, 0.0f, 1.0f) * 512.0f;
-        const unsigned index = static_cast<unsigned>(slot);
-        const unsigned next = std::min(index + 1u, 512u);
-        const float fraction = slot - static_cast<float>(index);
-        const float dryGain = s.dryMixLut[index] +
-            fraction * (s.dryMixLut[next] - s.dryMixLut[index]);
-        const float wetGain = s.wetMixLut[index] +
-            fraction * (s.wetMixLut[next] - s.wetMixLut[index]);
+        // Exact sine/cos gain law at stable settings. No sample-loop
+        // trigonometry, LUT, indirection or branch; both gains are smoothed.
+        // 50% retains ~-3dB of direct signal; 100% is pure wet/send.
         outputLeft[frame] = dryGain * inL + wetGain * duckGain * (mid + side);
         outputRight[frame] = dryGain * inR + wetGain * duckGain * (mid - side);
     }
