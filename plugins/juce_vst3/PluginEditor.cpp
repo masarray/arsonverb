@@ -663,15 +663,10 @@ void ReverbEditor::rebuildFaceplateCache() {
         g.drawLine (rect.getX() + 6, titleRuleY,
                     rect.getRight() - 6, titleRuleY, 0.9f);
     }
-}
-
-void ReverbEditor::paint (juce::Graphics& g) {
-    const float sx = getWidth() / referenceWidth;
-    const float sy = getHeight() / referenceHeight;
+    // P2: composite immutable champagne logo and engraved panel captions once
+    // on resize. Their exact pixel geometry and drawing order are preserved;
+    // animation continues in native child controls, not the parent faceplate.
     const float fs = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
-    g.fillAll (juce::Colour (0xff1c1b1c));
-    if (faceplateCache.isValid()) g.drawImageAt (faceplateCache, 0, 0);
-
     // Transparent champagne-gold product asset. Aspect ratio remains exact,
     // and the image is decoded once, never during mouse/automation updates.
     const auto logoBox = scaled (25, 12, 315, 61, sx, sy);
@@ -702,6 +697,19 @@ void ReverbEditor::paint (juce::Graphics& g) {
             scaled (m.x+7, m.y+8, m.w-14, 24, sx, sy),
             juce::Justification::centred);
     }
+
+
+}
+
+void ReverbEditor::paint (juce::Graphics& g) {
+    const float sx = getWidth() / referenceWidth;
+    const float sy = getHeight() / referenceHeight;
+    const float fs = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
+    // Faceplate now contains all static art, typography and opaque chassis.
+    if (faceplateCache.isValid())
+        g.drawImageAt (faceplateCache, 0, 0);
+    else
+        g.fillAll (juce::Colour (0xff1c1b1c));
 
     // Green hardware-style decay readout, not a general-purpose text box.
     const auto display = decayDisplayBounds().toFloat();
