@@ -12,13 +12,13 @@ Status: **implemented, not yet production performance-certified**. This mileston
 
 Run the existing native core target (no external benchmark framework and no new thread created by the plugin):
 
-\`\`\`sh
+```sh
 cmake -S . -B build-perf -DCMAKE_BUILD_TYPE=Release -DARVERB_BUILD_TESTS=ON
 cmake --build build-perf --config Release --target arverb_benchmark
 ./build-perf/arverb_benchmark --seconds 2 > p1-my-computer.csv
-\`\`\`
+```
 
-Available flags: \`--quick\` (0.14 s of audio per case, CI smoke only), \`--seconds 0.1..30\`, \`--help\`. Always choose the same computer, CPU power state, Release compiler/configuration and block size for before/after comparisons. The profiler prints 54 CSV rows covering:
+Available flags: `--quick` (0.14 s of audio per case, CI smoke only), `--seconds 0.1..30`, `--help`. Always choose the same computer, CPU power state, Release compiler/configuration and block size for before/after comparisons. The profiler prints 54 CSV rows covering:
 
 | Dimension | Values |
 |---|---|
@@ -33,20 +33,20 @@ The benchmark times a **serial stack of instances** per callback, not 16 concurr
 
 A future optimization can compare two machine-matched CSVs with:
 
-\`\`\`sh
+```sh
 python scripts/compare_perf.py baseline.csv candidate.csv
-\`\`\`
+```
 
 The comparator reports worst p99 regressions and best improvements, without imposing arbitrary noisy CI speed thresholds.
 
 ## GUI paint/resize probe (Windows JUCE host)
 
-With a real JUCE build, set \`ARVERB_GUI_PROFILE_CSV=p1-gui-profile.csv\` before running \`arverb_plugin_host_tests\`. This runs the *existing* JUCE host/editor integration test and writes two rows for 842×394 and 1180×545. It measures a full editor paint including children (16 repetitions, after cache warmup), plus resize cost. The benchmark runs on the message thread of the standalone host test, **never** in the audio callback. Offscreen JUCE software painting is not evidence of actual GPU composition, HiDPI smoothness, host scheduling, FPS or mouse interaction performance. There are no CPU speed assertions.
+With a real JUCE build, set `ARVERB_GUI_PROFILE_CSV=p1-gui-profile.csv` before running `arverb_plugin_host_tests`. This runs the *existing* JUCE host/editor integration test and writes two rows for 842×394 and 1180×545. It measures a full editor paint including children (16 repetitions, after cache warmup), plus resize cost. The benchmark runs on the message thread of the standalone host test, **never** in the audio callback. Offscreen JUCE software painting is not evidence of actual GPU composition, HiDPI smoothness, host scheduling, FPS or mouse interaction performance. There are no CPU speed assertions.
 
 ## CI economy and deliverables
 
-- Reuse existing Core C++ CI matrix. Only Linux Release runs \`arverb_benchmark --quick\` once, uploads \`ArSonVerb-P1-Core-Callback-Profile-Linux\` for seven days. Sanitizer, Windows and macOS jobs do not repeat a timing probe.
-- Reuse existing JUCE Windows pipeline; now the VST3 test workflow also activates for **tests/**-only PR changes. Full Windows 6/6 CTest remains required. The host test writes \`p1-gui-profile.csv\` next to the unsigned Windows VST3+Standalone artifact.
+- Reuse existing Core C++ CI matrix. Only Linux Release runs `arverb_benchmark --quick` once, uploads `ArSonVerb-P1-Core-Callback-Profile-Linux` for seven days. Sanitizer, Windows and macOS jobs do not repeat a timing probe.
+- Reuse existing JUCE Windows pipeline; now the VST3 test workflow also activates for **tests/**-only PR changes. Full Windows 6/6 CTest remains required. The host test writes `p1-gui-profile.csv` next to the unsigned Windows VST3+Standalone artifact.
 - **Do not compare CI absolute microseconds to Windows field performance.** Do not tune DSP based on one random CI run. Prefer fixed-machine p99 plus regression spectra and level-matched listening before changing sonic math.
 - No added allocations/locks/timers/FFT to Engine::process. No modification of the actual reverb engine, smoothing, presence ducking, 13 APVTS IDs, 32 programs, C ABI, 98/200 gold assets, or GUI thread model.
 
