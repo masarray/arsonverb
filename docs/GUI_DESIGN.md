@@ -1,3 +1,9 @@
+# P4 premium mode selector — candidate
+
+The new 110-reference-unit CLASSIC/PLATE/CHAMBER/HALL capsule occupies x=554 y=27, centered with no chevron. Active parameter text/value reposition within x=371..550. Original x=672 full-width factory preset LCD, x=935 physical Active switch, all 13 gold knobs, four modules, dark satin/bronze palette and native JUCE scaling stay in place. Physical 100/125/150% Windows screenshots still required.
+
+---
+
 # P2 candidate — static faceplate render caching (2026-10-31)
 
 At window resize, composite gold product logo, MUSICAL VINTAGE REVERB subtitle and four milled-module captions once into the existing ARGB chassis cache. Parent editor paint draws cached surface and live Decay LCD surround; native slider components paint live arc/LED themselves. Retain exact original geometry, fonts and draw order. Avoid a second texture cache, timers, background rendering or audio callback UI dependencies. Benchmark offscreen paint at two sizes; real host screenshot at 100/125/150% remains mandatory for optical approval.
