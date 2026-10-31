@@ -1,3 +1,11 @@
+# P9 VERIFIED CI AND MERGE — 2026-11-01
+
+**MERGED** [PR #30](https://github.com/masarray/arsonverb/pull/30) as commit [`f9dd6fa`](https://github.com/masarray/arsonverb/commit/f9dd6fa6cd729fbf574775fbbb0675e16fe120e3). Latest PR head `accc691590fe6794c1042fdbbbee74f84030ba5f`. [Windows JUCE VST3+Standalone run 41224651946](https://github.com/masarray/arsonverb/actions/runs/41224651946): **12/12 CTests PASS**, including real JUCE host, preset transitions and RT stress. Windows P9 unsigned VST3/Standalone artifact **13051102273**; companion measured 8-WAV audition artifact **13050917721** (historical P6 artifact label, P9 code). [Linux run 41224651922](https://github.com/masarray/arsonverb/actions/runs/41224651922): **Release 11/11 CTests PASS and ASan+UBSan PASS**. Library is `AGPL-3.0-only`, with full `LICENSE`, JUCE 9 AGPL path, and Inter SIL OFL file. CMake version remains 1.0.0.
+
+**PUBLIC STABLE RELEASE NOT PUBLISHED**. Initial P8 physical report says intermittent audible crackles on plugin opening and preset switches. P9 design mitigates these, but P9 has **not yet been physically confirmed free of glitches**. Owner/DAW/ASIO must test P9 on actual device at 48kHz and 64/128 samples, repeated first load, preset switching under sustained audio and multiple instances, before accepting the physical QA gate. No claims of hardware zero xruns.
+
+---
+
 # P9 — AGPL-3.0-only + realtime startup and preset-change crackle mitigation (2026-11-01)
 
 [PR #30](https://github.com/masarray/arsonverb/pull/30) addresses physical user feedback: P8 still crackles at opening and sporadically on presets. No public stable release before physical confirmation. Project copyright owner expressly chose **AGPL-3.0-only**, full text in `LICENSE` and Inter OFL in `assets/fonts/OFL.txt`; JUCE 9 AGPL option. P9 implementation prewarms the DSP graph in `prepareToPlay`, makes the 14-parameter GUI preset transaction nonblocking and coherent to the callback, skips unchanged host notifications, replaces callback libm coefficient spikes with bounded polynomials and crossfades fixed delay taps on large Pre-delay/Size changes. Rapid preset numerical/continuity regression is part of Linux and Windows CI. Maintain stable IDs and C ABI. **Hardware ASIO xrun proof and audible crackle elimination remain unverified; no green CI can certify them.**
