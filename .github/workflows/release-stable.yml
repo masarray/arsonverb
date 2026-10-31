@@ -71,7 +71,7 @@ jobs:
           -DARVERB_BUILD_TESTS=ON
           -DARVERB_BUILD_SHARED=ON
       - name: Build all tested release targets
-        run: cmake --build build-public --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests arverb_rt60_tail_tests
+        run: cmake --build build-public --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests arverb_rt60_tail_tests arverb_preset_transition_tests
       - name: Enforce full CTest gate
         run: ctest --test-dir build-public -C Release --output-on-failure
       - name: Bundle redistributables, provenance and checksum
