@@ -81,6 +81,7 @@ struct Engine::State {
     LowPass feedbackLP[kLines];
     HighPass wetHP[2][2];
     LowPass wetLP[2][2];
+    detail::PresenceDucker presence;
     std::array<float, parameterCount> smooth{};
     float gains[kLines]{};
     float targetGains[kLines]{};
@@ -106,6 +107,7 @@ struct Engine::State {
         for (auto& f : feedbackLP) f.reset();
         for (auto& ch : wetHP) for (auto& f : ch) f.reset();
         for (auto& ch : wetLP) for (auto& f : ch) f.reset();
+        presence.reset();
         for (std::size_t i = 0; i < kLines; ++i) {
             lfo[i].reset(static_cast<float>(i) * 1.7718f + 0.39f);
         }
@@ -152,6 +154,7 @@ void Engine::prepare(double sampleRate) {
     s.smoother = 1.0f - std::exp(-1.0f / (0.025f * fs));
     s.envelopeAttack = 1.0f - std::exp(-1.0f / (0.012f * fs));
     s.envelopeRelease = 1.0f - std::exp(-1.0f / (0.34f * fs));
+    s.presence.prepare(fs);
     for (std::size_t i = 0; i < parameterCount; ++i)
         s.smooth[i] = parameters_[i].load(std::memory_order_relaxed);
 
@@ -309,6 +312,10 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         wetR = s.wetHP[1][1].process(s.wetHP[1][0].process(wetR, s.wetLowCoeff), s.wetLowCoeff);
         wetL = s.wetLP[0][1].process(s.wetLP[0][0].process(wetL, s.wetHighCoeff), s.wetHighCoeff);
         wetR = s.wetLP[1][1].process(s.wetLP[1][0].process(wetR, s.wetHighCoeff), s.wetHighCoeff);
+
+        // Presence shaping is a wet-only complement to existing broadband
+        // ducking; no lookahead, new parameter, or FDN topology change.
+        s.presence.process(inL, inR, wetL, wetR, duckAmount);
 
         const float mid = 0.5f * (wetL + wetR);
         const float side = 0.5f * (wetL - wetR) * width;
