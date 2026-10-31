@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
-project(arsonverb VERSION 1.0.0 LANGUAGES C CXX)
+project(arsonverb VERSION 1.0.1 LANGUAGES C CXX)
+# v1.0.1 changes distribution only; stable P9 DSP and host IDs are unchanged.
+# Native binaries/archives are built by release-native-v1.0.1.yml, not this project.
 option(ARVERB_BUILD_TESTS "Build DSP unit tests and benchmarks" ON)
 option(ARVERB_BUILD_SHARED "Build C ABI shared library for C#/other hosts" OFF)
 option(ARVERB_BUILD_PLUGIN "Build JUCE 9 VST3 + standalone plugin" OFF)
