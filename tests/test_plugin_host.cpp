@@ -43,6 +43,29 @@ int main() {
     // JUCE editor/value attachments require a valid message manager on the
     // test thread; no actual DAW window is necessary.
     juce::ScopedJuceInitialiser_GUI juceGui;
+    // P8 real JUCE host regression: an APVTS preset restored *before*
+    // prepareToPlay must be the coefficient baseline of the first callback,
+    // not the Engine's hardcoded defaults smoothed toward it during playback.
+    {
+        arplugin::ReverbProcessor presetStartup;
+        setParameter(presetStartup, "mix", 0.5f);
+        setParameter(presetStartup, "predelay", 60.0f);
+        setParameter(presetStartup, "decay", 4.2f);
+        setParameter(presetStartup, "damping", 16000.0f);
+        setParameter(presetStartup, "highcut", 15500.0f);
+        setParameter(presetStartup, "modrate", 0.93f);
+        presetStartup.prepareToPlay(48000.0, 32);
+        juce::AudioBuffer<float> first(2, 1);
+        juce::MidiBuffer noMidi;
+        first.setSample(0, 0, 0.5f);
+        first.setSample(1, 0, -0.3f);
+        presetStartup.processBlock(first, noMidi);
+        constexpr float equalPowerAtHalf = 0.70710678118f;
+        check(std::abs(first.getSample(0,0) - 0.5f*equalPowerAtHalf) < 2.0e-4f &&
+              std::abs(first.getSample(1,0) + 0.3f*equalPowerAtHalf) < 2.0e-4f,
+              "host-restored Mix must be primed BEFORE first audio callback");
+        presetStartup.releaseResources();
+    }
     // The actual approved transparent PNG is embedded in both plugin + test.
     const auto logo = juce::ImageFileFormat::loadFrom (
         BinaryData::ArSonVerbLogo_png,
