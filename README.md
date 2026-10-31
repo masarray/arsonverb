@@ -2,21 +2,23 @@
 
 **ArSonVerb: original, portable C++17 algorithmic reverb foundation for vocals and music.**
 
-Historical local baseline: **v0.4.0 source prototype — 5/5 GCC and Clang Release tests, 4/4 core sanitizer tests; JUCE VST3/Standalone wrapper and host smoke test are source-only and NOT yet Windows-built/DAW-validated**.
+**Current integrated milestone (2026-10-31): P5 / v0.4.1.** P1–P5 merged, including four distinct feedback-matrix modes (Classic, Plate, Chamber, Hall), 32 factory programs, and the equal-power Mix + wet-air corrections from [PR #24](https://github.com/masarray/arsonverb/pull/24). Post-merge [cross-platform core CI](https://github.com/masarray/arsonverb/actions/runs/41205502461) and [Windows JUCE VST3 + Standalone CI](https://github.com/masarray/arsonverb/actions/runs/41205502513) passed; 10/10 Windows CTests on P5. Main source: `8da785b`, followed only by documentation changes through `24c1f95`. **This is an unsigned test build, not a licensed public release or certified musical comparison.** Real host listening, actual send/insert routing, mono phase and ASIO/WASAPI xrun tests remain open.
+
+Historical v0.2–v0.4 notes later in this README are retained for traceability; any at-the-time "not yet Windows-built" or "one algorithm" statements there are superseded by this current P5 baseline.
 No code or private algorithms from Valhalla DSP have been copied. The implementation uses established, independently implementable DSP techniques and publicly documented design goals. It is **not** presented as a sonic match to any third-party commercial plugin.
 
 ## Intent
 
 A vocal-oriented reverb should make the singer feel seated *inside* the music rather than putting a wash over the words. The first core provides:
 
-- 8-channel Feedback Delay Network (FDN), using an **O(N) Householder reflection** instead of a dense feedback matrix.
+- 8-line Feedback Delay Network (FDN) with four selectable orthogonal feedback matrices: Classic (Householder), Plate (Hadamard), Chamber (Givens rotations) and Hall (alternate Householder); one efficient tank, not four separately running processors.
 - Four-stage, stereo **allpass diffusion** before the network.
 - Six early-energy taps per channel and smoothly adjustable **pre-delay**.
-- RT60-derived feedback control, **frequency-dependent damping**, and cascaded wet low/high cuts.
+- RT60-derived feedback control, **frequency-dependent damping**, adjustable wet low/high cuts, and P5 bounded high-frequency feedback damping + wet-air shelf.
 - Independent slow modulation oscillators for the feedback delays; `sin/cos` are not recomputed on every sample.
 - Wet stereo width control, **input-envelope ducking**, and parameter smoothing.
 - Separate **C ABI** for C#, Unity, other language runtimes, or a separate VST3 wrapper.
-- Four parameter presets: Vocal Plate, Vocal Chamber, Music Hall, Airy Ballad. **They currently share one topology**, not four different algorithms.
+- **32 factory programs** (including the original four) mapped to mode and parameter settings in the JUCE UI; four selectable algorithm families have distinct feedback matrices, but global commercial sound-quality parity is unproven.
 - No heap allocations, logging, blocking calls or mutexes in `process()`.
 
 ## Build (Windows / Visual Studio 2022)
@@ -69,31 +71,26 @@ For a DAW **send/aux**, set `Mix=1` and use the host send return fader. For a di
 - `setParameter()` uses atomic float targets; host/UI thread changes are picked up on the next process call. A multi-parameter preset is not an atomic transaction.
 - Planar audio buffers must be valid for `frames` samples. Same-channel in-place input/output is supported; arbitrary cross-channel aliasing is not.
 
-## Current validation
+## Current validation (P5, 2026-10-31)
 
-`arverb_tests`: block partition invariance, mono-to-stereo wet tail, finite output, reset-to-silence, in-place equivalence, supported sample-rate range 8–192 kHz, parameter bounds and the C ABI.
+- **Core:** Linux/Windows/macOS release tests plus Linux ASan/UBSan passed on the post-merge `main` source [run 41205502461](https://github.com/masarray/arsonverb/actions/runs/41205502461).
+- **Plugin:** JUCE 9.0.4 Windows VST3 and Standalone succeeded with 10/10 CTests, including genuine JUCE host and Mix/Air/mono regressions [run 41205502513](https://github.com/masarray/arsonverb/actions/runs/41205502513). Unsigned Windows test artifact ID `13044660087`, subject to the workflow's seven-day retention.
+- **P5 audio:** equal-power gain targets and bounded wet-tail air improvements passed automated signal checks. This proves neither subjective Valhalla-class quality nor absence of all phase cancellation in a real DAW routing setup.
+- **Realtime:** reported additional algorithmic plugin latency is 0 samples, **not** device or DAW zero latency. Shared-runner offline profiling does not establish physical ASIO/WASAPI xrun-free operation.
+- **Distribution:** no outbound license has been approved; see [LICENSE-STATUS.md](LICENSE-STATUS.md). Do not package as a public ArSonMix Factory FX release yet.
 
-`arverb_benchmark`: deterministic offline throughput at 48 kHz, stereo, 256-sample blocks on the machine where it is run. **An offline benchmark is not a measured DAW CPU percentage or a sonic-quality guarantee.**
+## Next meaningful gates
 
-## Next development gates
+1. **Physical musical acceptance:** dry vocal, acoustic guitar, piano and full-mix, P4↔P5 and commercial reference level-matched A/B, wet 0/25/50/75/100% and DUCK 0% diagnostic.
+2. **Measure the actual sound:** stereo/mono correlation, decay RT60 per octave, echo-density buildup, metallic ringing, high-frequency tail retention, and true phase cancellation under real insert and aux/send routing.
+3. **Real device:** ASIO/WASAPI 32/64-sample p95/p99 CPU, xruns, host scan/state recall, pluginval or a second host, mono/stereo cases and DPI rendering.
+4. **Release gate:** verify distribution license/JUCE obligations, provenance, signed/versioned packaging and download workflow before external distribution. Implement another DSP milestone only against reproducible failed sonic gates.
 
-1. **Listening + measurements:** level-matched comparisons with trusted reverb references on real dry vocals, acoustic guitar, piano, full mix; waterfall / spectrogram, echo-density, RT60-vs-frequency, mono collapse.
-2. **Topology design:** introduce genuinely separate Plate, Chamber and Hall processors with consistent parameter semantics, rather than treating preset bundles as distinct modes.
-3. **DSP refinements:** better decorrelation / modulation, time-varying diffusion, improved early-to-late envelope, multi-band RT60, subjective calibration.
-4. **Host:** JUCE 9 wrapper is now drafted; validation of VST3 build, state/preset serialization, host automation and smooth bypass remains required.
-5. **Production:** Windows/macOS DAW tests, denormal/FPU behavior, sanitizers, CPU profiling, audio stress tests, end-user UI and installer.
+See [docs/STATUS.md](docs/STATUS.md), [P5 engineering audit](docs/P5_MUSICAL_ENGINE_AUDIT.md) and [docs/PERFORMANCE_P1.md](docs/PERFORMANCE_P1.md).
 
-See `docs/ARCHITECTURE.md` and `docs/RESEARCH.md` for signal flow and references.
+## Historical engineering notes (superseded by P5 current state above)
 
-## IP and attribution
-
-This project is an original starter created for its user, not a copy of the Valhalla products or a fork of the linked open-source reverb libraries. Their references are used for public technical background, **not** source code. Before distributing a public repository, choose its copyright notice and license. Product naming and branding should remain distinct from other plugin developers.
-
-## Architecture decision and contribution workflow
-
-See [`docs/ARD.md`](docs/ARD.md) for the JUCE VST3 direction, DSP boundary and release requirements; [`AGENTS.md`](AGENTS.md) for coding/AI rules; [`docs/STATUS.md`](docs/STATUS.md) for verified implementation status; and [`.github/workflows/core-ci.yml`](.github/workflows/core-ci.yml) for **core-only** cross-platform CI (not VST3 validation).
-
-## v0.2: JUCE 9 VST3 + standalone wrapper (unverified build)
+## Historical v0.2: JUCE 9 VST3 + standalone wrapper (unverified at that time)
 
 The plugin uses **JUCE 9.0.4**, C++17, CMake and **the same JUCE-free `arverb_core`**. No third-party audio DSP source is vendored.
 
@@ -132,7 +129,7 @@ ctest --test-dir build-plugin -C Release --output-on-failure
 
 For complete validation gates and real status, use [`docs/STATUS.md`](docs/STATUS.md). Existing `v0.2` headings above describe the historical milestone rather than the current state.
 
-## v0.4 reliability and C ABI (2026-10-29)
+## Historical v0.4 reliability and C ABI (2026-10-29)
 
 - Product version now originates from `project(VERSION)` in CMake and is exported by `arverb_version()`; this eliminates stale library version strings.
 - API compatibility has independent `ARVERB_ABI_VERSION` and parameter-count checks. New public C functions `arverb_abi_version()` and `arverb_parameter_count()` are additive; existing ABI function signatures are unchanged.
