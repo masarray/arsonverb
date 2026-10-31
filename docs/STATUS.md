@@ -1,3 +1,11 @@
+# v1.0.0 — GUI CREDIT + MANUAL STABLE RELEASE GATE, MERGED (2026-10-31)
+
+[PR #29](https://github.com/masarray/arsonverb/pull/29) merged into `main` as `488c51e6fe960c684bfea570b965e7f10665c67f`. **Windows JUCE [run 41222071166](https://github.com/masarray/arsonverb/actions/runs/41222071166) SUCCESS 11/11 CTests**, including responsive footer hyperlink exact URL and text tests; Windows VST3 + Standalone unsigned artifact `13049869119`, audition artifact `13050328503`. **Linux [run 41222071197](https://github.com/masarray/arsonverb/actions/runs/41222071197) SUCCESS** Release and ASan/UBSan. P8 DSP is unchanged: 13 automatable scalar IDs, four modes, 32 presets and C ABI intact. GUI displays clickable `Created by Mas Ari - SonKuPik (c) 2026` at the chassis bottom without changing editor dimensions or audio runtime. CMake version now 1.0.0.
+
+**DO NOT CLAIM PUBLIC RELEASE**: GitHub Releases collection was empty at PR audit. Stable publication is explicitly gated by `.github/workflows/release-stable.yml` requiring owner declaration of JUCE licence path, project/font/image rights, and real physical audio QA. Source licence not yet formally chosen, per `LICENSE-STATUS.md`; do not unilaterally select AGPLv3. The manual workflow builds, tests, packages, hashes, then uses `gh release create` when those gates are satisfied. No stable public release/tag issued by this PR. See `docs/RELEASE_V1.0.0.md`.
+
+---
+
 # P8 v0.7.0 — MERGED, PR CI PASSED — physical ASIO validation pending (2026-10-31)
 
 **Verified:** [PR #28](https://github.com/masarray/arsonverb/pull/28) merged to `main` as `aef6cbc1115f94055e2c8bd42639fcefd209c54b`. [Core PR CI 41219722061](https://github.com/masarray/arsonverb/actions/runs/41219722061) SUCCESS, Linux Release 10/10 + ASan/UBSan. [Windows JUCE PR CI 41219722058](https://github.com/masarray/arsonverb/actions/runs/41219722058) SUCCESS, **11/11 CTests including actual pre-playback-restored-APVTS startup regression**, VST3 + Standalone and current-engine 8-WAV physical audition pack. Unsigned Windows plugin artifact **13049931087**; 8-WAV audition artifact **13049981061** (workflow name still P6, content is P8 source). GitHub artifacts retained seven days.
