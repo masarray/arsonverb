@@ -42,7 +42,7 @@ double tailEnergy(unsigned mode,float decay,float size,float damping, int block)
     engine.setParameter(arverb::Parameter::ModDepthMs,0.1f);
     engine.prepare(fs);
     std::array<float,257> inL{},inR{},outL{},outR{};
-    SpectralBand band(float(fs));
+    SpectralBand band{static_cast<float>(fs)};
     double energy=0.0;
     for(int pos=0;pos<total;pos+=block) {
         const auto n=static_cast<std::size_t>(std::min(block,total-pos));
