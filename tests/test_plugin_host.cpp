@@ -301,6 +301,17 @@ int main() {
             for (int n = 0; n < editor->getNumChildComponents(); ++n)
                 if (auto* combo = dynamic_cast<juce::ComboBox*> (
                         editor->getChildComponent (n))) {
+                    if (combo->getComponentID() == "algorithm-mode") {
+                        check (combo->getNumItems() == 4, "four real mode choices visible");
+                        combo->setSelectedId (2, juce::sendNotificationSync); // Plate
+                        check (juce::roundToInt (
+                            p.parameters.getRawParameterValue ("algorithm")->load()) == 1,
+                            "native mode selector must automate algorithm parameter");
+                        // Restore Classic before the user chooses a factory
+                        // program. The preset must subsequently choose Hall.
+                        combo->setSelectedId (1, juce::sendNotificationSync);
+                        continue;
+                    }
                     factoryCount += combo->getNumItems();
                     // Test actual menu wiring, not merely Processor::applyPreset.
                     combo->setSelectedId (static_cast<int> (arverb::presetCount),
