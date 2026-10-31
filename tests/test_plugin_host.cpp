@@ -105,8 +105,18 @@ int main() {
             int factoryCount = 0;
             for (int n = 0; n < editor->getNumChildComponents(); ++n)
                 if (auto* combo = dynamic_cast<juce::ComboBox*> (
-                        editor->getChildComponent (n)))
+                        editor->getChildComponent (n))) {
                     factoryCount += combo->getNumItems();
+                    // Test actual menu wiring, not merely Processor::applyPreset.
+                    combo->setSelectedId (static_cast<int> (arverb::presetCount),
+                                          juce::sendNotificationSync);
+                    check (combo->getSelectedId() == static_cast<int> (arverb::presetCount),
+                           "last factory program must be selectable in GUI");
+                    const auto actualDecay =
+                        p.parameters.getRawParameterValue ("decay")->load();
+                    check (std::fabs (actualDecay - 10.8f) < 0.03f,
+                           "dropdown selection must apply actual parameter values");
+                }
             check (factoryCount == static_cast<int> (arverb::presetCount),
                    "all 32 real factory programs must be selectable");
             // Render every native JUCE control in a headless offscreen image.
