@@ -1,12 +1,36 @@
-# Distribution license status
+# ArSonVerb copyright and distribution
 
-This repository contains original experimental code from the AR Studio Reverb project. A project-level outbound license has **not yet been chosen**; do not assume this source package is MIT-licensed or approved for redistribution.
+ArSonVerb — Copyright (c) 2026 Mas Ari / SonKuPik.
 
-JUCE is a separate third-party framework fetched at build time; **JUCE source is not included** in this archive. Comply with the current JUCE license and any applicable commercial terms before distributing a proprietary binary. VST3 SDK licensing does not replace JUCE licensing. The DSP implementation here must not contain Valhalla proprietary source code.
+**Chosen by the project owner on 2026-11-01: free/open-source AGPL-3.0-only.**
+See the complete GNU Affero General Public License Version 3 in [LICENSE](LICENSE).
+SPDX identifier: `AGPL-3.0-only`. Source is offered under this licence;
+there is no proprietary relicensing or closed-source exception in this repository.
 
-Before a public GitHub repository/release: select the intended project source license, review provenance, set long-term plugin identifiers, and review third-party licenses.
+## Third-party rights and corresponding source
+- **JUCE 9.0.4** (downloaded at build time, not copied into this repo):
+  used under its AGPLv3 option. Preserve JUCE ownership and comply with the
+  framework's AGPLv3 terms; see https://github.com/juce-framework/JUCE/blob/9.0.4/LICENSE.md
+  and https://www.gnu.org/licenses/agpl-3.0.en.html.
+- **Inter Variable font:** embedded in the GUI under the SIL Open Font
+  License 1.1; original copyright, terms and redistribution notice preserved
+  at [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
+- **Logo / gold knob:** project GUI artwork, credited to ArSonVerb. Confirm
+  ownership/redistribution rights to any externally contributed derivatives
+  before publishing official installer binaries.
+- **VST3 SDK:** downstream redistribution must retain and comply with any
+  applicable SDK notices. This repository builds using JUCE, not a vendored
+  proprietary Valhalla implementation.
 
-## Public stable release gate (2026-10-31)
-The owner requested a public stable release following the v0.7.0 P8 milestone and adding a SonKuPik YouTube footer. **No public release must be labeled compliant until the copyright owner selects and documents an outbound source license or a proprietary-distribution policy, and establishes an appropriate JUCE 9 licensing basis (AGPLv3 with corresponding source obligations OR the applicable commercial JUCE licence).** Do not unilaterally choose AGPLv3: that is a rights grant by the copyright holder. The repository being public does not itself grant an outbound open-source licence.
+The tagged public GitHub source archive must remain available with the exact
+released binary and build instructions. Do not publish AGPL binaries lacking
+the corresponding source/required upstream notices.
 
-The CI's unsigned VST3 + standalone artifacts are engineering outputs, not a signed installer, pluginval certificate, driver xrun certification or a compliant distribution by themselves. Public stable must also confirm physical host startup/ASIO validation, embedded font/PNG redistribution, and third-party notices. GitHub-release creation can only proceed after these explicit gates.
+## Physical quality gate still OPEN
+The user reports audible crackles on plug-in opening and preset switching in
+the 2026-10-31 v1.0.0 candidate. P9 attempts to fix them via bounded callback
+math, coherent preset transactions and smooth delay-tap switching. Automated
+CI tests cannot certify ASIO underrun-free operation on the user's actual
+audio interface/DAW. **Do not publish a stable release until the user has
+physically verified the exact P9 build and accepted it.** The manual workflow
+must enforce device QA confirmation for this reason.
