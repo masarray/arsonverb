@@ -1,3 +1,12 @@
+# P4 IN VALIDATION — Genuine Plate/Chamber/Hall Reverb Algorithms (2026-10-31)
+
+- Three genuinely different orthogonal feedback matrices in the existing eight-line tank: Hadamard Plate, four paired rotations Chamber, alternate Householder Hall. Classic defaults to the prior P3 path; topology switching morphs over 100ms with no second engine or added latency.
+- Added one automatable JUCE algorithm choice after original 13 IDs and bypass. Legacy sessions missing the new choice explicitly restore Classic; all 32 factory numeric values and the old C ABI preserved.
+- Premium 110-unit header mode capsule, without changing the gold assets, 13 knob geometry, full-size factory browser or original window dimensions.
+- New algorithm stability, identity and host state regression, with expected Windows 9/9 CTests plus Linux sanitizers. P4 not yet validated or merged; physical ASIO, listening and GUI DPI acceptance remain pending.
+
+---
+
 # VERIFIED — P3 Musical Early-to-Late + Modal Bass Decay (2026-10-31)
 
 - [PR #22](https://github.com/masarray/arsonverb/pull/22) **MERGED** to main, commit `36f4538619e1dee92cc25ddc6e1a9768bf0f1eca`.
