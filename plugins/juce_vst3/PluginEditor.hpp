@@ -90,7 +90,8 @@ private:
     std::array<int, 2> goldFaceSizes {{0, 0}};
 };
 
-class ReverbEditor final : public juce::AudioProcessorEditor {
+class ReverbEditor final : public juce::AudioProcessorEditor,
+                           private juce::ComboBox::Listener {
 public:
     explicit ReverbEditor (ReverbProcessor&);
     ~ReverbEditor() override;
@@ -98,6 +99,7 @@ public:
     void resized() override;
 
 private:
+    void comboBoxChanged (juce::ComboBox* combo) override;
     void synchronisePresetSelection (int editedSlider = -1);
     void refreshDecayReadout();
     void refreshParameterReadout (std::size_t index);
@@ -107,6 +109,7 @@ private:
     ReverbProcessor& processor;
     HardwareLookAndFeel theme;
     juce::ComboBox presetBox;
+    juce::ComboBox modeBox;
     juce::ToggleButton bypassButton;
     juce::Label decayReadout;
     juce::Label parameterReadout;
@@ -119,6 +122,7 @@ private:
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,
                arverb::parameterCount> sliderAttachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> modeAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbEditor)
 };
