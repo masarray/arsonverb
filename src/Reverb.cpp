@@ -83,6 +83,31 @@ constexpr float kDiffuseMs[2][4] = {
 constexpr float kEarlyMs[6] = {14.9f, 23.3f, 37.7f, 55.1f, 83.3f, 126.1f};
 constexpr float kEarlyGain[6] = {0.34f, 0.29f, 0.23f, 0.18f, 0.14f, 0.12f};
 
+// P7: derive the representative tank traversal from the ORIGINAL FDN
+// geometry. All four matrices share these 8 delay lengths; this must not
+// introduce another tank or another feedback filter.
+constexpr float representativeDelayMs() noexcept {
+    float total=0.0f;
+    for (float ms : kDelayMs) total += ms;
+    return total / static_cast<float>(kLines);
+}
+
+// High-band feedback attenuation is calculated from a target *relative*
+// RT60, not a fixed loss per feedback iteration. This avoids over-damping
+// long decays and under-damping short rooms. A single expm1 is computed
+// only when size/decay/damping changes (never per audio sample).
+// The existing 8 feedback LPs perform the actual spectral shaping.
+inline float calibratedHFLoss(float decaySeconds, float roomSize,
+                              float dampingHz) noexcept {
+    const float bright = detail::clamp((dampingHz - 800.0f) / 17200.0f, 0.0f, 1.0f);
+    const float highRT60Fraction = 0.58f + 0.40f * bright; // 58%-98% of mid RT60
+    const float traversalSeconds = representativeDelayMs() * 0.001f * roomSize;
+    const float excessLogLoss = -kLn001 * traversalSeconds / decaySeconds *
+                                (1.0f / highRT60Fraction - 1.0f);
+    // expm1 retains precision when Decay is long and damping is bright.
+    return detail::clamp(-std::expm1(excessLogLoss), 0.0f, 0.92f);
+}
+
 // Additional low-amplitude, irregularly spaced *early energy* taps. This is
 // one original density layer, not a ray-traced room model or Valhalla code.
 // The old 6-tap sound remains untouched below Diffusion=0.62. Delay storage
@@ -263,8 +288,8 @@ void Engine::prepare(double sampleRate) {
     s.airLift = s.targetAirLift =
         0.55f * clamp((highCut - 6500.0f) / 13500.0f, 0.0f, 1.0f);
     const float dampingCut = s.smooth[static_cast<unsigned>(Parameter::DampingHz)];
-    s.hfDampingBlend = s.targetHFDampingBlend =
-        clamp(0.05f + 0.000020f * (18000.0f - dampingCut), 0.05f, 0.43f);
+    s.hfDampingBlend = s.targetHFDampingBlend = calibratedHFLoss(
+        decay, size, dampingCut);
     const float initialLowCut = s.smooth[static_cast<unsigned>(Parameter::LowCutHz)];
     s.bassCoeff = s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(initialLowCut), fs);
     s.bassDepth = s.targetBassDepth = bassDecayDepth(initialLowCut);
@@ -337,8 +362,9 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     // Constant work per block: expensive transcendental operations are never per sample.
     // Cache expensive math until the controlling parameter changes. Hosts are free to
     // call process() with tiny blocks; unchanged settings cost no transcendental ops.
-    if (target[idx(Parameter::Size)] != s.cachedSize ||
-        target[idx(Parameter::DecaySeconds)] != s.cachedDecay) {
+    const bool roomChanged = target[idx(Parameter::Size)] != s.cachedSize ||
+                             target[idx(Parameter::DecaySeconds)] != s.cachedDecay;
+    if (roomChanged) {
         s.cachedSize = target[idx(Parameter::Size)];
         s.cachedDecay = target[idx(Parameter::DecaySeconds)];
         for (std::size_t i = 0; i < kLines; ++i) {
@@ -351,14 +377,16 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         for (std::size_t i = 0; i < kLines; ++i)
             s.lfo[i].setFrequency(s.cachedRate * kLfoRatio[i], s.sampleRate);
     }
-    if (target[idx(Parameter::DampingHz)] != s.cachedDamping) {
+    const bool dampingChanged = target[idx(Parameter::DampingHz)] != s.cachedDamping;
+    if (dampingChanged) {
         s.cachedDamping = target[idx(Parameter::DampingHz)];
         s.targetHF = lowPassCoeff(s.cachedDamping, s.sampleRate);
-        // High frequencies should still decay, but one full 1-pole LP on
-        // *each* tank recurrence causes an excessively dark, dead tail.
-        // A convex high-frequency damping shelf limits that repeated loss.
-        s.targetHFDampingBlend = clamp(
-            0.05f + 0.000020f * (18000.0f - s.cachedDamping), 0.05f, 0.43f);
+    }
+    if (roomChanged || dampingChanged) {
+        // One block-rate expm1 for all 8 lines; existing scalar smoother and
+        // eight feedback lowpasses are reused. No per-sample math or new state.
+        s.targetHFDampingBlend = calibratedHFLoss(
+            s.cachedDecay, s.cachedSize, s.cachedDamping);
     }
     if (target[idx(Parameter::LowCutHz)] != s.cachedLowCut) {
         s.cachedLowCut = target[idx(Parameter::LowCutHz)];
@@ -503,6 +531,9 @@ void Engine::process(const float* inputLeft, const float* inputRight,
             s.gains[i] += s.smoother * (s.targetGains[i] - s.gains[i]);
             const float mixed = feedback[i];
             const float filtered = s.feedbackLP[i].process(mixed, s.hfFeedbackCoeff);
+            // P7 calibrated, smoothed, convex high-frequency absorption.
+            // Stable 0..1 loss, preserving midband FDN decay gain and all
+            // orthogonal algorithm matrices without new DSP primitives.
             const float damped = mixed + s.hfDampingBlend * (filtered - mixed);
             const float injected = 0.30f * (kInjectL[i] * diffL + kInjectR[i] * diffR);
             s.lines[i].push(killDenormal(s.gains[i] * damped + injected));
