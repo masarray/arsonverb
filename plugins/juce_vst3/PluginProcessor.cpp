@@ -105,6 +105,13 @@ void ReverbProcessor::prepareToPlay (double sampleRate, int) {
         // Prime from the actual DAW/APVTS state, not internal defaults.
         syncEngineParameters (false);
         engine.prepare (sampleRate);  // May allocate, only in prepareToPlay.
+        // Prewarm all DSP branches and data pages before the first ASIO
+        // callback. Fixed stack buffers; no host audio, worker or latency.
+        // Reset restores empty delay/filter and oscillator state.
+        std::array<float, 256> silence{}, warmL{}, warmR{};
+        engine.process (silence.data(), silence.data(),
+                        warmL.data(), warmR.data(), silence.size());
+        engine.reset();
         ready = true;
     } catch (const std::exception&) {
         // Unsupported sample rate: safe dry pass-through until re-prepared.
