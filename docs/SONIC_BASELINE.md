@@ -1,6 +1,6 @@
 # P3 candidate — dense early energy + frequency-dependent bass recurrence
 
-The formerly six isolated early taps now have a sparse+diffuse morph controlled by the existing Diffusion knob. When Diffusion <= 0.62, no extra reads or early-layer change occurs. Above threshold, six low-amplitude taps form additional stereo early energy, using existing sample-rate-allocated early delay buffers and smoothly varying a ~10% blend. This is intentionally original DSP, not reimplementation of ValhallaRoom.
+The formerly six isolated early taps now have a sparse+diffuse morph controlled by the existing Diffusion knob. When Diffusion <= 0.62, no no extra delay reads or early-layer change occurs. Above threshold, six existing taps gain increased stereo crossfeed and early-to-late send, using existing sample-rate-allocated early delay buffers and smoothly varying a ~10% blend. This is intentionally original DSP, not reimplementation of ValhallaRoom.
 
 The eight-line FDN now absorbs very low frequencies in its *shared Householder reflection eigenmode* as well as using independent wet HPF at output. Bass absorption is controlled by existing Wet Low Cut: cutoff 85+0.14×cutoff Hz, mild 3%-10% low-band reduction per recirculation. This differentiates low-band decay, while preserving upper midband decay and the dry path. Each filter state advances continuously for automation, with coefficient calculation only at control changes and sample-wise smoothing. Audio callback is still lock-free, allocation-free, O(8); there is no lookahead or added latency sample.
 

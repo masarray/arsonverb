@@ -2,7 +2,7 @@
 
 ## P3 musical early-energy and bass decay design — CI pending
 
-P3 changes the actual sound; the first 8-filter variant was rejected for ~31% overhead, and the lean modal variant must be rebenchmarked: three additional subtle early-energy taps are blended above Diffusion 0.62; the shared Householder projection gains a single one-pole low-bass absorption contour driven by existing Wet Low Cut control. Preserve original sample rates, controls, factory values, GUI, zero added plugin latency and all real-time no-allocation invariants. Avoid claims that numeric DSP stability proves musical beauty or Valhalla/FabFilter parity. Require Windows JUCE VST3+Standalone, all CTests and Linux sanitizers plus manually level-matched hearing/CPU acceptance. References in docs/SONIC_BASELINE.md.
+P3 changes the actual sound; the first 8-filter variant was rejected for ~31% overhead, and the lean modal variant must be rebenchmarked: a continuous early-to-late energy and stereo-crossfeed morph using the 6 existing taps are blended above Diffusion 0.62; the shared Householder projection gains a single one-pole low-bass absorption contour driven by existing Wet Low Cut control. Preserve original sample rates, controls, factory values, GUI, zero added plugin latency and all real-time no-allocation invariants. Avoid claims that numeric DSP stability proves musical beauty or Valhalla/FabFilter parity. Require Windows JUCE VST3+Standalone, all CTests and Linux sanitizers plus manually level-matched hearing/CPU acceptance. References in docs/SONIC_BASELINE.md.
 
 ## P2 measured optimization — merged, CI verified
 

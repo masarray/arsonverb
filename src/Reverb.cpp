@@ -50,10 +50,6 @@ constexpr float kEarlyGain[6] = {0.34f, 0.29f, 0.23f, 0.18f, 0.14f, 0.12f};
 // one original density layer, not a ray-traced room model or Valhalla code.
 // The old 6-tap sound remains untouched below Diffusion=0.62. Delay storage
 // stays inside the existing 132ms early buffers; no new allocations.
-// Three extra taps/channel, keeping density useful without doubling tap CPU.
-constexpr float kDenseEarlyMs[3]   = {21.7f, 55.3f, 109.7f};
-constexpr float kDenseEarlyGain[3] = {0.18f,-0.14f, 0.11f};
-
 constexpr float bassDecayCutoff(float lowCutHz) noexcept {
     // Subtle recirculating low-frequency absorption, NOT an extra wet HPF.
     return 85.0f + 0.14f * lowCutHz;
@@ -92,8 +88,6 @@ struct Engine::State {
     // in the sample loop without introducing per-parameter cache invalidation.
     float earlySampleL[6]{};
     float earlySampleR[6]{};
-    float denseEarlySampleL[3]{};
-    float denseEarlySampleR[3]{};
     float fdnBaseSamples[kLines]{};
     float millisecondsToSamples = 0.0f;
     Oscillator lfo[kLines];
@@ -163,10 +157,6 @@ void Engine::prepare(double sampleRate) {
     for (int t = 0; t < 6; ++t) {
         s.earlySampleL[t] = kEarlyMs[t] * s.millisecondsToSamples;
         s.earlySampleR[t] = s.earlySampleL[t] * (1.0f + 0.019f * (t % 3));
-    }
-    for (int t = 0; t < 3; ++t) {
-        s.denseEarlySampleL[t] = kDenseEarlyMs[t] * s.millisecondsToSamples;
-        s.denseEarlySampleR[t] = s.denseEarlySampleL[t] * (1.0f + 0.014f * (t % 3));
     }
     for (std::size_t i = 0; i < kLines; ++i)
         s.fdnBaseSamples[i] = kDelayMs[i] * s.millisecondsToSamples;
@@ -319,33 +309,26 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         s.pre[0].push(inL);
         s.pre[1].push(inR);
 
+        // A musical, continuous Early Send morph: increase spatial early
+        // crossfeed and feed its already-computed energy into the diffuser
+        // at high Diffusion. Six existing taps only, zero extra Delay::read.
+        // Diffusion <=0.62 preserves the original early stereo/coupling.
+        const float density = clamp((diffusion - 0.62f) / 0.38f, 0.0f, 1.0f);
+        const float earlyCrossfeed = 0.10f + density * 0.08f;
         float earlyL = 0.0f, earlyR = 0.0f;
         for (int t = 0; t < 6; ++t) {
             const float a = s.early[0].read(s.earlySampleL[t]);
             const float b = s.early[1].read(s.earlySampleR[t]);
-            earlyL += kEarlyGain[t] * (a + 0.10f * b);
-            earlyR += kEarlyGain[t] * (b + 0.10f * a);
-        }
-        // Extend early energy only at high Diffusion. The original first
-        // six reflections remain exact for Diffusion <= 0.62. Density rises
-        // continuously, avoiding a hard mode switch or added DSP latency.
-        const float density = clamp((diffusion - 0.62f) / 0.38f, 0.0f, 1.0f);
-        if (density > 0.0f) {
-            float extraL = 0.0f, extraR = 0.0f;
-            for (int t = 0; t < 3; ++t) {
-                const float a = s.early[0].read(s.denseEarlySampleL[t]);
-                const float b = s.early[1].read(s.denseEarlySampleR[t]);
-                extraL += kDenseEarlyGain[t] * (a + 0.10f * b);
-                extraR += kDenseEarlyGain[t] * (b + 0.10f * a);
-            }
-            earlyL += density * (0.23f * extraL - 0.10f * earlyL);
-            earlyR += density * (0.23f * extraR - 0.10f * earlyR);
+            earlyL += kEarlyGain[t] * (a + earlyCrossfeed * b);
+            earlyR += kEarlyGain[t] * (b + earlyCrossfeed * a);
         }
         s.early[0].push(preL);
         s.early[1].push(preR);
 
-        float diffL = preL * 0.72f + earlyL * 0.28f;
-        float diffR = preR * 0.72f + earlyR * 0.28f;
+        const float earlySend = 0.28f + 0.12f * density;
+        const float directSend = 1.0f - earlySend;
+        float diffL = preL * directSend + earlyL * earlySend;
+        float diffR = preR * directSend + earlyR * earlySend;
         for (int i = 0; i < 4; ++i) {
             diffL = s.diffuser[0][i].process(diffL, g);
             diffR = s.diffuser[1][i].process(diffR, g);

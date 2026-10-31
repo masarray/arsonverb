@@ -37,7 +37,7 @@ int main() {
     check(std::abs(sineGain(95.0f, 0.0f, fs) - 1.0) < 1e-12,
           "zero-depth contour mathematically transparent");
 
-    // Compare low and high diffusion impulse energy. New dense path must
+    // Compare low and high diffusion impulse energy. New early-send morph must
     // be finite, deterministic, and neither mute nor explode the wet signal.
     for (auto rate : {8000.0, 48000.0, 96000.0, 192000.0}) {
         std::array<float, 257> inL{}, inR{}, outL{}, outR{};
