@@ -1,11 +1,15 @@
-# P4 IN VALIDATION — Genuine Plate/Chamber/Hall Reverb Algorithms (2026-10-31)
+# VERIFIED — P4 Four Real Reverb Families, Windows VST3 + Standalone (2026-10-31)
 
-- Three genuinely different orthogonal feedback matrices in the existing eight-line tank: Hadamard Plate, four paired rotations Chamber, alternate Householder Hall. Classic defaults to the prior P3 path; topology switching morphs over 100ms with no second engine or added latency.
-- Added one automatable JUCE algorithm choice after original 13 IDs and bypass. Legacy sessions missing the new choice explicitly restore Classic; all 32 factory numeric values and the old C ABI preserved.
-- Premium 110-unit header mode capsule, without changing the gold assets, 13 knob geometry, full-size factory browser or original window dimensions.
-- New algorithm stability, identity and host state regression, with expected Windows 9/9 CTests plus Linux sanitizers. P4 not yet validated or merged; physical ASIO, listening and GUI DPI acceptance remain pending.
+- [PR #23](https://github.com/masarray/arsonverb/pull/23) **MERGED** to main, feature commit `ded771991cd69f26e254e365f5b50e9c0dfc95dd`.
+- [Linux Core CI](https://github.com/masarray/arsonverb/actions/runs/41201652786) **SUCCESS** on Release tests and Linux ASan/UBSan. [Windows JUCE VST3 + Standalone CI](https://github.com/masarray/arsonverb/actions/runs/41201652777) **SUCCESS: 9/9 CTests passed**, including algorithm output difference and rapid switching, old-state migration, real-JUCE host and previous RT allocation/C ABI tests. Windows artifact ID 13042913022.
+- **Four genuine matrices in one existing FDN tank:** Classic retains P3 signed Householder feedback + P3 bass contour; Plate is normalized 8-line Hadamard butterfly; Chamber is four interleaved 2x2 orthogonal rotations; Hall uses an alternate Householder reflection eigenvector. A 100ms feedback-matrix blend avoids immediate hard switches without starting a second reverb engine.
+- Old 13 automation IDs, bypass, legacy C API and original 32 numeric factory values preserved. New host `algorithm` AudioParameterChoice was **appended**, with Classic 0 as default. Pre-P4 saved XML lacking this parameter explicitly restores Classic. Native named JUCE factory presets map to appropriate Plate/Chamber/Hall modes.
+- GUI uses a compact x554 dark LCD mode selector, no chevron, original preset field and gold hardware left intact. No new delay buffers, extra plugin sample latency, DSP heap allocation, FFT or GUI timer. Physical screen at 100/125/150% still requires acceptance.
+- Windows CI offscreen paint mean 3.073ms at 842x394 and 3.165ms at 1180x545 on 16 sampled paints. Not evidence of device GPU framerate; no claimed speed improvement versus earlier runner.
+- **Open limitations:** CPU p99 per Plate/Chamber/Hall mode on a *physical* ASIO machine, DAW underrun counts, auditioned vocal/music sonic preference, true mono compatibility and commercial parity. Tests prove behavior and numerical stability, **not** Valhalla/FabFilter quality. A versioned rollback to P3 can be retained for A/B.
 
 ---
+
 
 # VERIFIED — P3 Musical Early-to-Late + Modal Bass Decay (2026-10-31)
 

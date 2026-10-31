@@ -1,4 +1,4 @@
-# P4 premium mode selector — candidate
+# P4 premium mode selector — merged; Windows host tests passed
 
 The new 110-reference-unit CLASSIC/PLATE/CHAMBER/HALL capsule occupies x=554 y=27, centered with no chevron. Active parameter text/value reposition within x=371..550. Original x=672 full-width factory preset LCD, x=935 physical Active switch, all 13 gold knobs, four modules, dark satin/bronze palette and native JUCE scaling stay in place. Physical 100/125/150% Windows screenshots still required.
 
