@@ -192,7 +192,10 @@ jobs:
           # Validate the actual user download files, not just nonzero size.
           unzip -t ArSonVerb-Windows-x64-VST3-v1.0.1.zip
           unzip -t ArSonVerb-macOS-universal-VST3-v1.0.1.zip
-          tar -tzf ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz | grep -q 'ArSonVerb.vst3/'
+          # With pipefail, grep -q can close stdout early and send tar SIGPIPE.
+          # Materialize the listing, then verify without a broken pipeline.
+          tar -tzf ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz > linux-vst3-entries.txt
+          grep -q 'ArSonVerb.vst3/' linux-vst3-entries.txt
           test "$(wc -l < SHA256SUMS.txt)" -eq 7
       - name: Publish public v1.0.1 with seven distinct choices
         shell: bash
