@@ -18,7 +18,18 @@ inline float vintageRotaryAngle (float position, float start, float end) noexcep
 // socket, without changing the large Decay dial's successful proportions.
 // Larger face in both sizes matches the approved 2026-10-31 mockup.
 inline float vintageFaceRatio (float side) noexcept {
-    return side < 125.0f ? 0.422f : 0.416f;
+    // The embedded PNG has ~15% transparent radius beyond the actual metal.
+    // Enlarging only Decay makes the PHYSICAL gold-to-arc clearance match the
+    // small knobs without changing their 98px/200px control hitboxes.
+    return side < 125.0f ? 0.422f : 0.468f;
+}
+inline float vintageGoldVisibleRatio (float side) noexcept {
+    constexpr float pngGoldRadiusFraction = 0.85f; // 160px PNG alpha extent
+    return vintageFaceRatio (side) * pngGoldRadiusFraction;
+}
+inline float vintageLedPositionRatio (float side) noexcept {
+    // A jewel seated on the metal surface, not hanging off its outer bezel.
+    return vintageGoldVisibleRatio (side) * 0.77f;
 }
 inline float vintageGrooveRatio (float) noexcept { return 0.490f; }
 inline float vintageArcRatio (float) noexcept { return 0.435f; }
