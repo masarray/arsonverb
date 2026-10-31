@@ -1,5 +1,9 @@
 # ArSonVerb — repository rules for coding assistants
 
+## P1 performance instrumentation — 2026-10-31
+
+P1 profiling source is now in progress: `tests/benchmark.cpp` measures 54 audio-callback workload cases, `tests/test_plugin_host.cpp` optionally measures real-JUCE editor paint/resize, and `docs/PERFORMANCE_P1.md` defines how to repeat and interpret CPU p99. No current results are proof of real DAW glitch-free operation or real-machine p99. Do not tune DSP arithmetic, claim CPU improvements or change approved gold GUI until reproducible baseline and sonic regression evidence. CI quick profiling is informational, not a speed gate. Avoid new CI matrix jobs and do not add profiling overhead to the audio path.
+
 ## Pre-P1 reconciliation — 2026-10-31
 
 PR #18 is the latest merged feature and **all 16 PRs in repository history are merged, 0 open**. The 16 remaining named feature branches are historical, not unmerged work. Post-merge CI on `main` passed: core Linux/Windows/macOS plus Linux ASan/UBSan (run 41174229314), and Windows JUCE VST3 + Standalone (run 41174229390). Latest feature source commit: `cb6cfa0aa7f27904a7ef43916099d74d329a2a32`. Keep original gold GUI, 13 IDs, 32 factory presets, DSP ABI, and bounded wet presence ducking. **P1 is not started**. Before optimizing, measure real callback p95/p99, CPU multi-instance scale, GUI redraw and audio-device underruns. Zero reported plugin latency does not prove zero end-to-end latency. See top of `docs/STATUS.md`.

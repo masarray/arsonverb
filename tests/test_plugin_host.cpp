@@ -4,6 +4,10 @@
 #include "PluginEditor.hpp"
 #include <BinaryData.h>
 #include <array>
+#include <algorithm>
+#include <chrono>
+#include <numeric>
+#include <vector>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -174,6 +178,44 @@ int main() {
         editor->setSize(860, 460);
         check(editor->getWidth() == 860 && editor->getHeight() == 460,
               "editor resize without host window");
+        // Optional *off-audio-thread* GUI profiling in the existing real-JUCE
+        // host test. Exercises the complete editor/13 children at two window
+        // sizes, not just the static gold PNG. No assertion on elapsed time:
+        // CI runner scheduling and software rasterization are not controlled.
+        if (const char* csvPath = std::getenv("ARVERB_GUI_PROFILE_CSV")) {
+            std::FILE* report = std::fopen(csvPath, "w");
+            check(report != nullptr, "GUI performance report must be writable");
+            std::fprintf(report, "width,height,resize_us,paint_mean_us,"
+                                 "paint_p95_us,paint_max_us,iterations\n");
+            using Clock = std::chrono::steady_clock;
+            const auto us = [](Clock::time_point a, Clock::time_point b) {
+                return std::chrono::duration<double, std::micro>(b - a).count();
+            };
+            for (const auto [w, h] : {std::pair<int,int>{842, 394},
+                                      {1180, 545}}) {
+                const auto resizeStart = Clock::now();
+                editor->setSize(w, h);
+                const double resizeTime = us(resizeStart, Clock::now());
+                juce::Image surface (juce::Image::ARGB, w, h, true);
+                juce::Graphics canvas(surface);
+                editor->paintEntireComponent(canvas, true); // warm the caches
+                std::vector<double> paints;
+                paints.reserve(16);
+                for (int pass = 0; pass < 16; ++pass) {
+                    const auto start = Clock::now();
+                    editor->paintEntireComponent(canvas, true);
+                    paints.push_back(us(start, Clock::now()));
+                }
+                const double sum = std::accumulate(paints.begin(), paints.end(), 0.0);
+                std::sort(paints.begin(), paints.end());
+                std::fprintf(report, "%d,%d,%.3f,%.3f,%.3f,%.3f,%zu\n",
+                    w, h, resizeTime, sum / paints.size(),
+                    paints[15], paints.back(), paints.size());
+            }
+            std::fclose(report);
+            editor->setSize(860, 460);
+        }
+
         // GUI regression: all interactive controls stay on the visible panel
         // at minimum, default, and DAW-resized dimensions.
         for (const auto [width, height] : {std::pair<int,int>{800, 370},

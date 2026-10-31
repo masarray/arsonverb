@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'tests/**'
       - 'plugins/**'
       - 'CMakeLists.txt'
       - '.github/workflows/plugin-ci.yml'
@@ -42,6 +43,9 @@ jobs:
         run: cmake --build build-plugin --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests
       - name: Run DSP and real AudioProcessor host-contract tests
         run: ctest --test-dir build-plugin -C Release --output-on-failure
+        env:
+          # GUI paint measurements execute only in the host test's GUI thread.
+          ARVERB_GUI_PROFILE_CSV: p1-gui-profile.csv
       - name: Upload unsigned test artifact (not a validated release)
         uses: actions/upload-artifact@v4
         with:
@@ -49,5 +53,6 @@ jobs:
           path: |
             build-plugin/ARStudioReverb_artefacts/Release/VST3/**
             build-plugin/ARStudioReverb_artefacts/Release/Standalone/**
+            build-plugin/p1-gui-profile.csv
           if-no-files-found: error
           retention-days: 7
