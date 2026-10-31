@@ -1,3 +1,11 @@
+# In validation — GUI preset truth / always-visible parameter feedback (2026-10-31)
+
+The next GUI PR is scoped to reliable 32-preset selection after knob/wheel/host automation changes, a persistent native-unit parameter header readout, and the recessed LED halo render order. All mechanical PR #15 geometry, embedded gold/logo assets, DSP, ABI, host IDs and audio callback are unchanged. The new host regression tests verify a factory-to-CUSTOM-to-factory round trip after direct GUI editing at four window sizes.
+
+**Verification gate:** Windows VST3 + Standalone plus six CTests, Linux core Release and sanitizers; check actual GitHub Actions results before marking VERIFIED. User's 100/125/150% real runtime screenshots and listening remain outstanding.
+
+---
+
 # VERIFIED — PR #15 Decay gold gap / inset LED (2026-10-31)
 
 - [PR #15](https://github.com/masarray/arsonverb/pull/15) **MERGED** at `b356a053faf6a6550506e9b4f65dfc071fe880d5`.

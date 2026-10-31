@@ -1,3 +1,14 @@
+# 2026-10-31 — Premium GUI interaction integrity (PR milestone)
+
+- Preserve PR #15's approved physical knob geometry, inset green LED, gold PNG, 13 automation IDs, original engine and 32 factory programs.
+- Keep the existing compact header parameter readout visible after drag; wheel and host-driven slider changes update its native-unit number. This avoids guessing values for any of the 12 smaller controls.
+- The preset ComboBox displays **CUSTOM** unless the actual 13 APVTS parameter values match one of the 32 published programs. Detection works for knob drag, wheel, double click, host automation delivered through attachments, and restored editor state. Merely grabbing a knob without changing its value does not incorrectly clear the preset.
+- Selection detection uses a bounded stack-only snapshot and a maximum of 32×13 approximate scalar comparisons **on JUCE GUI notifications only**. It does not poll, schedule a timer, allocate into the audio callback or modify DSP.
+- Applying a program suppresses transient intermediate selection changes, then reconciles against the actual final parameter state. The LED bloom is drawn behind the bezel to look like a seated physical jewel.
+- Windows VST3+Standalone CI plus all six CTests and real DAW screenshot remain acceptance gates. No visual parity claim from headless rendering.
+
+---
+
 # 2026-10-31 — Optical gold radius and recessed LED pointer correction
 
 **Verified in PR #15:** Windows VST3 + Standalone build and 6/6 CTest PASSED (https://github.com/masarray/arsonverb/actions/runs/41162733041); manual DAW screenshot comparison remains open.

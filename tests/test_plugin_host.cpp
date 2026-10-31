@@ -209,6 +209,26 @@ int main() {
                         p.parameters.getRawParameterValue ("decay")->load();
                     check (std::fabs (actualDecay - 10.8f) < 0.03f,
                            "dropdown selection must apply actual parameter values");
+                    // A real edit via the GUI (including wheel/double-click)
+                    // must turn the preset display to CUSTOM, then correctly
+                    // re-select the factory program if all 13 values match.
+                    juce::Slider* mixControl = nullptr;
+                    for (int childIndex = 0; childIndex < editor->getNumChildComponents(); ++childIndex)
+                        if (auto* s = dynamic_cast<juce::Slider*> (
+                                editor->getChildComponent (childIndex)))
+                            if (s->getTooltip() == arverb::parameterInfo (
+                                    arverb::Parameter::Mix).name)
+                                mixControl = s;
+                    check (mixControl != nullptr, "mix GUI control remains addressable");
+                    const double originalMix = mixControl->getValue();
+                    mixControl->setValue (originalMix < 0.75 ? originalMix + 0.14 :
+                                                               originalMix - 0.14,
+                                          juce::sendNotificationSync);
+                    check (combo->getSelectedId() == 0,
+                           "knob changes must not leave a stale factory preset selected");
+                    mixControl->setValue (originalMix, juce::sendNotificationSync);
+                    check (combo->getSelectedId() == static_cast<int> (arverb::presetCount),
+                           "preset recognition must recover after value restoration");
                 }
             check (factoryCount == static_cast<int> (arverb::presetCount),
                    "all 32 real factory programs must be selectable");
