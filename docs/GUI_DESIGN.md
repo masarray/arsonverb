@@ -1,5 +1,7 @@
 # Gold Knob GUI — Verified Asset Integration Milestone (2026-10-31)
 
+**Verified:** PR #13 merged, Windows VST3+Standalone and 6/6 CTest PASS: https://github.com/masarray/arsonverb/actions/runs/41158987236. Full rendered host screenshots still require manual approval.
+
 The user-selected premium champagne/brushed-gold physical knob is the source for **one** optimized native PNG: `assets/gui/ArSonVerbGoldKnob.png` (160×160, 6,256 bytes, original rgba transparent). PNG alpha on outer corners, physical metal only: NO pointer, NO level arc or ticks, NO rotation/animation in the asset.
 
 - Single image decoded once per process on JUCE GUI thread via `BinaryData::ArSonVerbGoldKnob_png`.

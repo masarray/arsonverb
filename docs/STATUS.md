@@ -1,4 +1,16 @@
-# Gold Knob Asset Integration — pending Windows CI
+# VERIFIED — Luxury Gold Knob Native UI (2026-10-31)
+
+- [PR #13](https://github.com/masarray/arsonverb/pull/13) **MERGED** as `d91d9381c6ae42e20ecd9bff1f4e52b93749ecf0`.
+- [Windows VST3 + Standalone CI #41158987236](https://github.com/masarray/arsonverb/actions/runs/41158987236) **SUCCESS**: MSVC plugin/standalone compiled and **6/6 CTest passed**. Unsigned GitHub Actions artifact `ARStudioReverb-Windows-x64-unsigned` ID `13026661341`.
+- [Core Release + sanitizer CI #41158987166](https://github.com/masarray/arsonverb/actions/runs/41158987166) **SUCCESS**; DSP core, C ABI, 13 APVTS IDs and 32 original factory programs unchanged.
+- Official gold physical knob asset `assets/gui/ArSonVerbGoldKnob.png`: **160×160, 6256 bytes, transparent PNG** (Git blob SHA `5f1ed9233364bdef86a7eb271a72e4bdd5bcc294`). Exactly one BinaryData image across all 13 rotary controls.
+- Native GUIs keep **real movable ivory pointer and jade level arc** drawn by JUCE. The gold physical texture stays stationary. Two pre-scaled image caches cover 12 small knobs + one large Decay. No new worker, animation timer, audio-thread allocation, or filesystem dependency.
+- First Windows run failed only the unreliable pixel-sampling of an offscreen headless JUCE surface, **not compilation/DSP**. Final host regression checks the **decoded original PNG's transparent border and gold centre**, then calls LookAndFeel painting at 74/172 px without comparing peerless framebuffer pixels. `RectanglePlacement::stretchToFit` explicitly scales the PNG onto each physical face.
+- **Remaining user QA**: check actual Windows Standalone and DAW screenshots at 100/125/150% DPI and audio listening. CI success does not prove pixel-perfect appearance or Valhalla sonic equivalence. For a direct test, download the unsigned Windows CI artifact or clean test ZIP.
+
+---
+
+# Historical Gold Knob Plan — CI verified by PR #13
 
 # Gold Knob GUI — Verified Asset Integration Milestone (2026-10-31)
 
