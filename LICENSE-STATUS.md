@@ -26,11 +26,11 @@ The tagged public GitHub source archive must remain available with the exact
 released binary and build instructions. Do not publish AGPL binaries lacking
 the corresponding source/required upstream notices.
 
-## Physical quality gate still OPEN
-The user reports audible crackles on plug-in opening and preset switching in
-the 2026-10-31 v1.0.0 candidate. P9 attempts to fix them via bounded callback
-math, coherent preset transactions and smooth delay-tap switching. Automated
-CI tests cannot certify ASIO underrun-free operation on the user's actual
-audio interface/DAW. **Do not publish a stable release until the user has
-physically verified the exact P9 build and accepted it.** The manual workflow
-must enforce device QA confirmation for this reason.
+## P9 physical acceptance and public publication
+On 2026-11-01, the owner accepted the P9 build following its startup and
+preset-switch remediation and explicitly approved **public stable v1.0.0**.
+Windows VST3/Standalone JUCE 12/12 CTests and Linux 11/11 plus ASan/UBSan
+passed. The one-shot protected release branch ensures binary and tagged
+source come from current `main`, with a full Windows rebuild/test before
+publishing. This acceptance does not certify every ASIO/audio-driver or host
+combination, nor claim a universal zero-xrun guarantee.
