@@ -1,5 +1,6 @@
 // Broad measurable audio invariants. These are NOT subjective listening tests.
 #include <arverb/Reverb.hpp>
+#include "../src/dsp/Primitives.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -72,5 +73,38 @@ int main() {
             require(std::isfinite(outL[i]) && std::isfinite(outR[i]), "host corruption recovery");
         inL.fill(0); inR.fill(0);
     }
-    std::puts("PASS: impulse onset, wet stereo, decay stability, finite hostile input");
+
+    // Deterministic frequency-selective Duck regression independent of the
+    // FDN topology: wet presence must recede more than low-frequency energy.
+    // An identical stereo excitation must preserve stereo symmetry.
+    const auto shaperGain = [](float hz, float amount) {
+        arverb::detail::PresenceDucker shaper;
+        shaper.prepare(48000.0f);
+        double inputSq = 0.0, wetSq = 0.0;
+        for (int i = 0; i < 48000; ++i) {
+            const float signal = 0.35f * std::sin(
+                6.283185307179586f * hz * static_cast<float>(i) / 48000.0f);
+            float wetL = signal, wetR = signal;
+            shaper.process(signal, signal, wetL, wetR, amount);
+            require(std::isfinite(wetL) && std::isfinite(wetR)
+                    && std::abs(wetL - wetR) < 1e-6f,
+                    "presence-shaper must be finite, stereo-linked");
+            if (amount == 0.0f)
+                require(wetL == signal, "zero Duck leaves wet signal unchanged");
+            if (i >= 24000) {
+                inputSq += static_cast<double>(signal) * signal;
+                wetSq += static_cast<double>(wetL) * wetL;
+            }
+        }
+        return std::sqrt(wetSq / inputSq);
+    };
+    const double presenceGain = shaperGain(2500.0f, 1.0f);
+    const double lowGain = shaperGain(230.0f, 1.0f);
+    require(presenceGain < lowGain - 0.07 && lowGain > 0.83,
+            "voice presence should be attenuated more than low band");
+    require(std::abs(shaperGain(2500.0f, 0.0f) - 1.0) < 1e-10,
+            "zero Duck must be exactly spectrally transparent");
+    std::printf("presence shaping gains 2.5k=%.3f, 230Hz=%.3f\\n",
+                presenceGain, lowGain);
+    std::puts("PASS: impulse onset, wet stereo, decay stability, finite hostile input, selective presence duck");
 }
