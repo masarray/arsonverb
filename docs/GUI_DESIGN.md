@@ -7,7 +7,7 @@ The user-selected premium champagne/brushed-gold physical knob is the source for
 - Old generated graphite disk/concentric ring-render loops replaced with actual champagne/brushed-gold metal, while the dark recessed socket, jade progress arc and moving ivory pointer remain separate JUCE vectors.
 - Same parameter-controlled angle for the pointer and arc endpoint as before. The physical gold surface stays stationary, so texture highlights do not orbit during automation.
 - No change to 13 APVTS host automation identifiers, 32 preset profiles, bypass, DSP engine, or C ABI.
-- Regression host test validates embedded PNG decode/alpha and physically warm metal center color when rendering real LookAndFeel at 74 & 172 GUI reference units.
+- Regression host test validates PNG decode, exterior alpha, warm source-center RGB and successful real LookAndFeel draw calls for 74 & 172 reference units. Peerless offscreen framebuffer pixel assertions are intentionally excluded after confirmed Windows false failures; manual visual QA still required.
 - Windows VST3 + Standalone CI + six CTests must pass before merge. Visual match at actual DAW and 125/150% DPI remains for user inspection.
 
 

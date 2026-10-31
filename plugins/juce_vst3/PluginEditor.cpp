@@ -206,7 +206,7 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
             metal.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
             metal.drawImageWithin (asset, physical.getX(), physical.getY(),
                                    physical.getWidth(), physical.getHeight(),
-                                   juce::RectanglePlacement::centred);
+                                   juce::RectanglePlacement::stretchToFit);
         } else {
             // Graceful degraded renderer if the embedded asset fails decoding.
             const auto fallback = juce::Rectangle<float> (
