@@ -395,7 +395,9 @@ void HardwareLookAndFeel::drawToggleButton (
 }
 
 ReverbEditor::ReverbEditor (ReverbProcessor& p)
-    : juce::AudioProcessorEditor (&p), processor (p) {
+    : juce::AudioProcessorEditor (&p), processor (p),
+      creatorCredit ("Created by Mas Ari - SonKuPik (c) 2026",
+                     juce::URL ("https://www.youtube.com/@sonkupik")) {
     setLookAndFeel (&theme);
     theme.setDefaultSansSerifTypeface (interTypeface());
     theme.setColour (juce::ComboBox::textColourId, ice);
@@ -404,6 +406,16 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     theme.setColour (juce::PopupMenu::highlightedBackgroundColourId,
                      juce::Colour (0xff514637));
     theme.setColour (juce::PopupMenu::highlightedTextColourId, palette::mainText);
+
+    // Native hyperlink in the existing 33-unit bottom chassis gutter.
+    // Its text is rendered by JUCE and clickable without a URL timer,
+    // web view, polling, extra window height or any audio-thread work.
+    creatorCredit.setComponentID ("creator-credit");
+    creatorCredit.setTooltip ("Visit SonKuPik on YouTube");
+    creatorCredit.setColour (juce::HyperlinkButton::textColourId,
+                             palette::secondaryText);
+    creatorCredit.setJustificationType (juce::Justification::centred);
+    addAndMakeVisible (creatorCredit);
 
     presetBox.setTextWhenNothingSelected ("CUSTOM");
     // No placeholder rows: the immutable core catalog supplies every label
@@ -793,6 +805,11 @@ void ReverbEditor::resized() {
     parameterValueLabel.setBounds (scaled (461, 27, 89, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (std::max (11.4f, 13.5f * s)));
     parameterValueLabel.setFont (uiHeavy (std::max (12.0f, 15.1f * s)));
+    // Keep the credit fully BELOW all four modules (their bottoms=477),
+    // centered and readable at both supported window sizes.
+    creatorCredit.setBounds (scaled (325, 481, 450, 22, sx, sy));
+    creatorCredit.setFont (uiFont (std::max (9.0f, 12.2f * s)),
+                           false, juce::Justification::centred);
     rebuildFaceplateCache();
 }
 } // namespace arplugin
