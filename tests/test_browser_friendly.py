@@ -3,6 +3,9 @@ import hashlib
 from pathlib import Path
 import tempfile
 import zipfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.package_browser_friendly import build_package, SETUP_NAME, ZIP_NAME
 
@@ -28,7 +31,7 @@ def run() -> None:
             assert archive.read("SHA256-INSTALLER-EXE.txt").decode().strip() == (
                 f"{checksum}  {SETUP_NAME}"
             )
-            assert "AGPL" in archive.read("LICENSE.txt").decode()
+            assert "GNU AFFERO GENERAL PUBLIC LICENSE" in archive.read("LICENSE.txt").decode()
             assert "Extract this ZIP" in archive.read("INSTALL-FIRST.txt").decode()
         try:
             build_package(source, folder / "duplicate.zip", "0" * 64, project)
