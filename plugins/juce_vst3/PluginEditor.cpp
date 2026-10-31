@@ -320,7 +320,7 @@ juce::Font HardwareLookAndFeel::getComboBoxFont (juce::ComboBox&) {
 }
 void HardwareLookAndFeel::positionComboBoxText (
     juce::ComboBox& box, juce::Label& label) {
-    label.setBounds (9, 1, juce::jmax (0, box.getWidth() - 35),
+    label.setBounds (16, 1, juce::jmax (0, box.getWidth() - 42),
                      juce::jmax (0, box.getHeight() - 2));
     label.setFont (getComboBoxFont (box));
     label.setJustificationType (juce::Justification::centredLeft);
@@ -744,7 +744,9 @@ void ReverbEditor::resized() {
     decayReadout.setBounds (decayDisplayBounds().withTrimmedLeft (2)
                                                 .withTrimmedRight (2));
     decayReadout.setFont (uiHeavy (23.8f * s));
-    parameterReadout.setBounds (scaled (355, 27, 171, 34, sx, sy));
+    // Inner padding: the dark LCD recess begins at x=355; inset the text
+    // while retaining the original right edge and numeric-edit region.
+    parameterReadout.setBounds (scaled (371, 27, 155, 34, sx, sy));
     parameterValueLabel.setBounds (scaled (526, 27, 134, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (std::max (11.4f, 13.5f * s)));
     parameterValueLabel.setFont (uiHeavy (std::max (12.0f, 15.1f * s)));
