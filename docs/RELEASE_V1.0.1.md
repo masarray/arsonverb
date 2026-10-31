@@ -4,12 +4,25 @@
 This release adds installer and distribution formats; the DSP, preset IDs and
 premium GUI remain unchanged from the stable P9 v1.0.0 milestone.
 
+## Download Windows — START HERE
+
+**1. Recommended for DAW users: [VST3-only ZIP (3.75 MB)](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Windows-x64-VST3-v1.0.1.zip).**
+Download, extract, and copy the `ArSonVerb.vst3` folder to the Windows VST3 location. **No installer EXE needs to be downloaded or run.**
+
+**2. Easy setup: [Installer inside regular ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Windows-x64-Installer-v1.0.1.zip).**
+Extract the ZIP, double-click `ArSonVerb-Windows-x64-Setup-v1.0.1.exe`, then choose VST3, Standalone, or both. Per-user install, no administrator needed. The original standalone `.exe` asset is kept for users who specifically want direct installer download, but is **not** the default download route.
+
+**3. [Portable Standalone ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Windows-x64-Standalone-v1.0.1.zip)** for users who only need the desktop app.
+
+These are standard ZIP archives with ordinary file names and no passwords, renaming tricks or scripts. Browsers can still inspect downloaded archives. The [original package checksums](https://github.com/masarray/arsonverb/releases/download/v1.0.1/SHA256SUMS.txt) cover the seven original binaries; the additional [installer ZIP checksum](https://github.com/masarray/arsonverb/releases/download/v1.0.1/SHA256SUMS-Installer-ZIP.txt) covers the new supplementary download. The installer inside the new ZIP is **byte-for-byte identical** to the previously tested published Inno Setup EXE.
+
+
 ## Pick just what you need
 
 | System | Package | Content |
 |---|---|---|
 | Windows x64 | `ArSonVerb-Windows-x64-VST3-v1.0.1.zip` | VST3 only, manual copy |
-| Windows x64 | `ArSonVerb-Windows-x64-Setup-v1.0.1.exe` | Inno Setup, optional VST3 + standalone, uninstall |
+| Windows x64 | `ArSonVerb-Windows-x64-Installer-v1.0.1.zip` | Inno Setup EXE inside standard ZIP; optional VST3 + standalone, uninstall |
 | Windows x64 | `ArSonVerb-Windows-x64-Standalone-v1.0.1.zip` | Portable standalone |
 | Linux x86_64 | `ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz` | VST3 only |
 | Linux x86_64 | `ArSonVerb-Linux-x86_64-Standalone-v1.0.1.tar.gz` | Standalone (requires system desktop/audio libraries) |
@@ -23,7 +36,7 @@ premium GUI remain unchanged from the stable P9 v1.0.0 milestone.
 `C:\\Program Files\\Common Files\\VST3\\` (all users, administrator).
 Close the DAW before replacing an existing VST3 plugin, then rescan plugins.
 
-**Windows smart installer:** run the Inno Setup EXE, select VST3 and/or Standalone;
+**Windows smart installer:** download the Installer ZIP, extract it, then run the included Inno Setup EXE; select VST3 and/or Standalone;
 the default per-user installation does not require administrator elevation.
 It installs the user VST3 into the standard location, provides an optional
 Start Menu shortcut and uninstaller, and retains licence files.
