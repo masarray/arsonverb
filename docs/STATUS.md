@@ -1,3 +1,14 @@
+# P1 — IN VALIDATION: 54-scenario DSP + real-JUCE GUI performance profiling (2026-10-31)
+
+- Baseline feature source remains merged PR #18. This PR only changes offline benchmark/test instrumentation, CI evidence collection, docs and standard-library-only CSV comparison tooling. **No production audio engine, JUCE editor, preset, parameter ABI or runtime CPU behavior changes.**
+- Expanded `arverb_benchmark`: all 54 combinations of 48/96/192 kHz, 32/64/256 sample blocks, 1/8/16 serial instances, steady vs worst-case block-rate automation. CSV stores observed mean/p50/p95/p99/max, callback budget percentage, and offline deadline crossings (NOT actual xrun).
+- Optional JUCE full editor paint/resize profiling for 842×394 and 1180×545, behind `ARVERB_GUI_PROFILE_CSV` in the existing host regression; zero profiling code runs in production plugin.
+- CI: reuse existing Release Linux job for one quick CSV artifact; use existing Windows plugin workflow to upload offscreen GUI profile together with unsigned VST3+Standalone; future tests-only PRs now trigger Windows CI.
+- New standalone `scripts/compare_perf.py` for machine-matched before/after deltas; core `docs/PERFORMANCE_P1.md` is reproducibility and interpretation reference.
+- **Do not claim improvement or verified completion until Linux/macOS/Windows Core CI, Linux sanitizers, Windows JUCE 6/6 CTest and both perf CSV artifacts are confirmed.** Real ASIO/WASAPI xrun, clock jitter, GPU drawing, and level-matched listening remain manual validation.
+
+---
+
 # RECONCILED — Pre-P1 performance baseline (2026-10-31)
 
 - Canonical repository: `masarray/arsonverb` `main`. Last feature merge **PR #18** at `cb6cfa0aa7f27904a7ef43916099d74d329a2a32`; thereafter exactly two commits changed **only** `AGENTS.md` and `docs/STATUS.md`. Feature source and plugin build inputs were not changed after the verified merge.
