@@ -55,6 +55,7 @@ jobs:
             test "${{ inputs.juce_rights_confirmed }}" = "true"
             test "${{ inputs.project_rights_confirmed }}" = "true"
             test "${{ inputs.device_qa_confirmed }}" = "true"
+            test "v1.0.0" = "v1.0.0"
           else
             # The owner authorised stable release after testing P9, in chat.
             # The only automatic trigger is this immutable named branch.
@@ -66,7 +67,6 @@ jobs:
             test -n "$main_sha"
             test "$main_sha" = "${{ github.sha }}"
           fi
-          test "${{ inputs.version }}" = "v1.0.0"
           grep -q 'project(arsonverb VERSION 1.0.0 LANGUAGES C CXX)' CMakeLists.txt
           test -s LICENSE
           grep -q "GNU AFFERO GENERAL PUBLIC LICENSE" LICENSE
@@ -110,11 +110,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view "${{ inputs.version }}" >/dev/null 2>&1; then
+          if gh release view "v1.0.0" >/dev/null 2>&1; then
             echo "Release already exists: refuse to replace immutable public artifacts." >&2
             exit 1
           fi
-          gh release create "${{ inputs.version }}" \
+          gh release create "v1.0.0" \
             "ArSonVerb-Windows-x64-v1.0.0.zip" "SHA256SUMS.txt" \
             --repo "${{ github.repository }}" \
             --target "${{ github.sha }}" \
