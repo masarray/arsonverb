@@ -35,6 +35,19 @@ jobs:
         run: cmake --build build-ci --config Release --parallel 2
       - name: Run CTest
         run: ctest --test-dir build-ci -C Release --output-on-failure
+      # One informational offline baseline, only on Linux Release; no new
+      # jobs and no flaky time-budget assertions on shared GitHub runners.
+      - name: P1 DSP callback profiler (54 scenarios, quick CI sample)
+        if: matrix.os == 'ubuntu-24.04'
+        run: ./build-ci/arverb_benchmark --quick > build-ci/p1-dsp-callbacks.csv
+      - name: Publish P1 DSP profiler CSV
+        if: matrix.os == 'ubuntu-24.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-P1-Core-Callback-Profile-Linux
+          path: build-ci/p1-dsp-callbacks.csv
+          if-no-files-found: error
+          retention-days: 7
 
   linux-sanitizers:
     name: Linux / ASan + UBSan
