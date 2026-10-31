@@ -101,6 +101,30 @@ jobs:
             build-ci/p3-dense-AB.txt
           if-no-files-found: error
           retention-days: 7
+      # P7: compare old P6 vs P7 CPU under identical runner/flags.
+      # No extra job; event-scoped to avoid repeated CI quota on main.
+      - name: P7 same-runner P6 vs P7 callback CPU
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p7-')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show HEAD^1:src/Reverb.cpp > build-ci/p7-P6-Reverb.cpp
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p7-P6-Reverb.cpp src/Presets.cpp tests/benchmark.cpp -o build-ci/p7-P6-benchmark
+          ./build-ci/p7-P6-benchmark --quick > build-ci/p7-P6-54.csv
+          ./build-ci/arverb_benchmark --quick > build-ci/p7-P7-54.csv
+          python3 scripts/compare_perf.py build-ci/p7-P6-54.csv build-ci/p7-P7-54.csv > build-ci/p7-AB.txt
+          cat build-ci/p7-AB.txt
+      - name: Publish P7 measured callback AB (same Linux runner)
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p7-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-P7-P6-vs-P7-Linux-CPU
+          path: |
+            build-ci/p7-P6-54.csv
+            build-ci/p7-P7-54.csv
+            build-ci/p7-AB.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish P1 DSP profiler CSV
         if: matrix.os == 'ubuntu-24.04'
         uses: actions/upload-artifact@v4
