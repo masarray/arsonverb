@@ -1,3 +1,13 @@
+# Public Stable v1.0.0 — PUBLISHED on 2026-11-01
+
+**Official public GitHub Release:** https://github.com/masarray/arsonverb/releases/tag/v1.0.0. Tag points to `4d4499bc664353a2c6f35e7c9ec3b26de9a372e0`, the reviewed and approved main commit at publication. Release asset `ArSonVerb-Windows-x64-v1.0.0.zip` (8,663,550 bytes) and `SHA256SUMS.txt` were uploaded, along with GitHub's canonical tagged source archives. **Not a prerelease, not a draft.** Original project licensed `AGPL-3.0-only`; JUCE 9 used via AGPL and Inter font via its separate SIL OFL 1.1.
+
+**Release pipeline:** https://github.com/masarray/arsonverb/actions/runs/41245558417 — SUCCESS. Windows VST3 + Standalone rebuilt at tag SHA, full JUCE host/core regression 12/12 PASS; release ZIP, provenance, AGPL/OFL notices and SHA256 generated before successful publication. Prior P9 Linux Release/ASan+UBSan also passed. The owner accepted physical P9 behavior and explicitly requested public stable on 2026-11-01. Note the hardware-dependent buffering and xrun constraints still apply to users' ASIO, DAWs, and audio interfaces; avoid universal zero-latency/xrun-free claims.
+
+**Release assets:** https://github.com/masarray/arsonverb/releases/download/v1.0.0/ArSonVerb-Windows-x64-v1.0.0.zip. The package is unsigned Windows x64 VST3 and Standalone; Linux/macOS VST3 binaries are not published in this release.
+
+---
+
 # P9 VERIFIED CI AND MERGE — 2026-11-01
 
 **MERGED** [PR #30](https://github.com/masarray/arsonverb/pull/30) as commit [`f9dd6fa`](https://github.com/masarray/arsonverb/commit/f9dd6fa6cd729fbf574775fbbb0675e16fe120e3). Latest PR head `accc691590fe6794c1042fdbbbee74f84030ba5f`. [Windows JUCE VST3+Standalone run 41224651946](https://github.com/masarray/arsonverb/actions/runs/41224651946): **12/12 CTests PASS**, including real JUCE host, preset transitions and RT stress. Windows P9 unsigned VST3/Standalone artifact **13051102273**; companion measured 8-WAV audition artifact **13050917721** (historical P6 artifact label, P9 code). [Linux run 41224651922](https://github.com/masarray/arsonverb/actions/runs/41224651922): **Release 11/11 CTests PASS and ASan+UBSan PASS**. Library is `AGPL-3.0-only`, with full `LICENSE`, JUCE 9 AGPL path, and Inter SIL OFL file. CMake version remains 1.0.0.
