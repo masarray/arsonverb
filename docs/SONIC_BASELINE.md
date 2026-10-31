@@ -1,3 +1,13 @@
+# P5 Musical Clarity Recovery — verified CI, listening acceptance pending (2026-10-31)
+
+Prior linear crossfade cut dry by −6 dB at 50% Mix even while the delayed/ducked wet was too weak to fill in. The verified P5 DSP computes exact sine/cosine gain targets only when Mix changes, then smooths dry and wet gains separately sample by sample. No per-sample LUT/trigonometry; steady 50% dry is −3.01dB and Mix 100% remains wet-only for sends. Two highpass stages on the wet low end remain, but high-cut lowpass now morphs smoothly from two stages at dark settings toward a single stage at bright settings, followed by a small wet-only 6.5kHz air shelf. HF feedback loss is limited with a bounded lowpass shelf blend; late/early return has modest fixed level normalization. No noise/shimmer/FFT/new delay lines/latency; dry at Mix 0% passes unchanged.
+
+The original 8-line FDN, native 13 scalar parameters, four algorithm modes, 32 preset parameter arrays, gold JUCE GUI and C ABI remain. This changes sound across existing sessions, so recorded P4 mixes should be reviewed with level matching. New tests check dry onset and equal-power 50% law, 100% wet-only, non-silent stereo/mono wet Mix sweeps, air high-vs-low response, finiteness and previous C ABI/regression. This is not a guarantee against signal-specific phase cancellation in DAW sends.
+
+See `docs/P5_MUSICAL_ENGINE_AUDIT.md` for research, measurements, limitations and the next direction.
+
+---
+
 # P3 verified — lighter early-to-late energy and modal bass decay
 
 The final P3 design adds **no extra delay taps or buffer reads**. At Diffusion <=0.62, the original early crossfeed and early-send formula remain; at higher Diffusion, the six existing stereo taps smoothly increase their crossfeed from 0.10 to 0.18 and their share of the signal sent to the existing four-stage diffusers from 0.28 to 0.40. This is a modest original early-energy *mixing* innovation, **not a new Plate/Hall/Chamber mode** and not an increase in the number of reflection taps.

@@ -1,14 +1,17 @@
-# P5 IN VALIDATION — CRITICAL Mix Gain-Dip & Airless Reverb Repair (2026-10-31)
+# VERIFIED CI — P5 Musical Mix & Air Correction (2026-10-31)
 
-- User hardware audition reported severe loss of dry when turning Mix and no airy quality compared with Valhalla. Existing P4 9/9 tests did **not** test perceived dry/wet loudness or spectral energy; they therefore cannot certify Mix quality. Treat this as a blocking sound defect, not a visual issue.
-- Confirmed source cause: linear crossfade reduced dry to −6dB at 50% Mix, followed by input-triggered ducking of the delayed, comparatively weak wet. Corrected to normalized **sine/cosine equal-power law** using precomputed cached sine/cosine target gains calculated only on Mix changes, then smoothly interpolated in gain space per sample (no audio-thread trigonometry/LUT).
-- Wet high cut had two stacked LP stages even at bright settings, and all eight feedback paths each used full LP every return, reducing HF tail. P5 uses a bounded, smoothed feedback-shelf damping blend, a high-cut-dependent 12→6dB/oct wet post-filter morph, and a subtle 6.5kHz air shelf on **wet only**. No oscillator/noise shimmer or indiscriminate sibilance gain; High Cut continues to set darkness.
-- Slightly rebalances late and early wet returns to avoid disappearing at wet-heavy mix. 0% Mix returns bit-exact dry, 100% is intentionally wet-only; users on DAW send should use Mix=100% per Valhalla/FabFilter guidance.
-- Original 13 scalar controls, algorithm choice, 32 presets, C ABI, gold GUI and 0 additional reported sample latency unchanged. Tonality DOES change by design; claims of bit-identical P4 audio must NOT be made.
-- The initial LUT-per-sample implementation produced 12 *offline* deadline crossings at 192kHz/32-frame/16 serial instances; it was rejected, NOT merged. The revised gain-space smoother is an explicit measured optimization with no per-sample index+lookup/interpolation, and requires fresh CI evidence before merge.
-- NEW tests cover 0/50/100 Mix dry onset, smooth mix sweep, wet/mono viability, frequency-dependent air shelf and non-finite output. Existing all CTest/sanitizers/Windows JUCE remain gates. Manual real vocal/music listening, actual ASIO CPU p99, Mono compatibility/DAW send topology must still be checked. **DO NOT MERGE before verified results.**
+- [PR #24](https://github.com/masarray/arsonverb/pull/24) **MERGED** to `main` at `8da785b48a785fa17ad9f19583feea9e2799d52b`.
+- User physical audition of P4 revealed a **disappearing Mix and dark/unmusical wet tail**. Source audit confirmed that legacy linear Mix reduced dry by −6dB at 50% *before* delayed and ducked wet arrived. Real DAW phase-cancellation claims remain distinct from this proven gain-law problem.
+- **Fix:** sine/cosine equal-power Mix with target gain sin/cos computed only on Mix changes, dual gain-space smoothing per sample. At steady 50%, dry is about −3.01 dB; Mix 0% returns dry, 100% is correctly wet-only for aux/send. No trigonometry, LUT, filter coefficient recomputation, heap, threads or I/O per audio sample.
+- **Air/tonal repair:** replace excessive FDN HF low-pass damping with smoothed bounded shelf weighting; at bright High Cut morph dual post-LP toward single post-LP and use subtle ~6.5kHz **wet-only** high shelf; modest wet late/early return gains. No added noise, fake shimmer, new UI or parameter IDs. **Tonality changes intentionally**, especially on prior projects; input dry remains unchanged at Mix=0%.
+- [Linux Release+ASan/UBSan PR CI](https://github.com/masarray/arsonverb/actions/runs/41204928129) **SUCCESS**, including 9/9 core CTests. [Windows VST3+Standalone PR CI](https://github.com/masarray/arsonverb/actions/runs/41204928207) **SUCCESS**, **10/10 CTests** incl. new Mix/Air/mono tests and real JUCE host. Original 13 scalar IDs, four modes, all 32 factory numeric program values and C ABI preserved; plugin still reports **0 additional latency samples**.
+- **CPU:** initial implementation using per-sample trig LUT was rejected because 12 offline deadline crossings appeared on 54 quick CI cases, with worst p99 budget ~97.95%. Revised cached-target implementation showed **0** offline crossings, worst p99 budget ~74.07% (192kHz/32 frames/16 serial instances); measured on **different shared Linux CI runs** and NOT proof of a same-machine speedup or physical ASIO xrun-free operation.
+- **GUI:** offscreen Windows full paint mean ~3.30ms (842×394), ~3.40ms (1180×545), 16 iterations; unchanged gold UI but no new screenshot/HiDPI acceptance.
+- **Unresolved musical claims:** Real stereo/mono phase problems from actual DAW routing, matched-loudness Valhalla comparison, harmonic/harshness behavior on vocals and cymbals, long-tail spectral RT60, and real ASIO/WASAPI p99. Numerical tests cannot prove subjective musical quality or global parity.
+- Evidence, research comparison and future gates: `docs/P5_MUSICAL_ENGINE_AUDIT.md`. No additional CI requested for documentation update.
 
 ---
+
 
 # VERIFIED — P4 Four Real Reverb Families, Windows VST3 + Standalone (2026-10-31)
 
