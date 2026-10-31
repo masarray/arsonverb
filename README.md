@@ -1,5 +1,24 @@
 # ArSonVerb — reusable studio reverb core
 
+## Download — v1.0.1 Latest Stable (2026-11-01)
+
+**Free/open source AGPL-3.0-only.** All seven native binaries are published on the [official v1.0.1 release page](https://github.com/masarray/arsonverb/releases/tag/v1.0.1).
+
+| OS | VST3 only (no installer) | Standalone | Installer |
+|---|---|---|---|
+| Windows x64 | [VST3 ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Windows-x64-VST3-v1.0.1.zip) | [Portable ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Windows-x64-Standalone-v1.0.1.zip) | [Inno Setup EXE](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Windows-x64-Setup-v1.0.1.exe) |
+| Linux x86_64 | [VST3 tar.gz](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz) | [Standalone tar.gz](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Linux-x86_64-Standalone-v1.0.1.tar.gz) | Manual per-user installation |
+| macOS Intel/Apple Silicon | [Universal VST3 ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-macOS-universal-VST3-v1.0.1.zip) | [Universal .app ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-macOS-universal-Standalone-v1.0.1.zip) | Manual per-user installation |
+
+[SHA-256 checksums](https://github.com/masarray/arsonverb/releases/download/v1.0.1/SHA256SUMS.txt) · [Installation, OS security and distribution guide](docs/RELEASE_V1.0.1.md)
+
+No paid signing certificate is required to compile or distribute the project, **but these binaries are not trusted-publisher signed**. Windows SmartScreen/Smart App Control and macOS Gatekeeper may show warnings; archive formats cannot guarantee avoidance. The installer is optional, installs per-user without admin rights and has selectable VST3/Standalone components and an uninstaller. Linux/macos archive users install manually. Do not disable OS security system-wide.
+
+### Native release verification
+[Build run](https://github.com/masarray/arsonverb/actions/runs/41247949265): Windows, Linux and macOS universal **all three succeeded** with 12/12 tests, Linux tar.gz / Windows Inno / signed-ad-hoc macOS bundles, seven binary SHA-256 manifests. [Publisher run](https://github.com/masarray/arsonverb/actions/runs/41248747185) revalidated source SHA `4c65f369348790bb6da7465deaffc2b3921fdeee`, all seven checksums and archives, and published the stable GitHub Release. Tagged source includes the corresponding AGPL-3.0 code; v1.0.0 was not overwritten.
+
+---
+
 **ArSonVerb: original, portable C++17 algorithmic reverb foundation for vocals and music.**
 
 **Public stable v1.0.0 (2026-11-01), Windows x64 VST3 + Standalone, free AGPL-3.0-only.** After P9 [PR #30](https://github.com/masarray/arsonverb/pull/30), the owner accepted the startup and preset-switch reliability improvements for stable distribution. P9 retains 4 reverb algorithms, 32 presets, 13 stable control IDs, the compact gold interface and clickable SonKuPik credit. [Windows JUCE 12/12 tests](https://github.com/masarray/arsonverb/actions/runs/41225265424) and [Linux 11/11 plus sanitizers](https://github.com/masarray/arsonverb/actions/runs/41225267456) passed. The publication pipeline rebuilds and retests the exact tagged commit. **Published download:** [ArSonVerb v1.0.0 Windows x64 VST3 + Standalone](https://github.com/masarray/arsonverb/releases/download/v1.0.0/ArSonVerb-Windows-x64-v1.0.0.zip) · [official release page](https://github.com/masarray/arsonverb/releases/tag/v1.0.0) · [v1.0.0 release notes](docs/RELEASE_V1.0.0.md) · [AGPL licence](LICENSE). Hardware/software driver latency remains dependent on interface/host settings; no universal xrun-free claim.
