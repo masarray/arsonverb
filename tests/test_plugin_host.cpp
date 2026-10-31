@@ -47,6 +47,34 @@ int main() {
            "branded transparent PNG must decode at runtime");
     check (logo.getWidth() == 225 && logo.getHeight() == 39,
            "use optimized branded PNG, not a costly full-resolution artwork");
+    // Gold knob source: strictly one compact transparent physical asset.
+    // The vector pointer and jade progress arc must NOT be baked into the PNG.
+    const auto gold = juce::ImageFileFormat::loadFrom (
+        BinaryData::ArSonVerbGoldKnob_png,
+        static_cast<std::size_t> (BinaryData::ArSonVerbGoldKnob_pngSize));
+    check (gold.isValid() && gold.hasAlphaChannel(),
+           "gold knob resource must decode with transparency");
+    check (gold.getWidth() == 160 && gold.getHeight() == 160,
+           "use compact optimized gold knob resource");
+    const auto sourceCentre = gold.getPixelAt (80, 80);
+    check (gold.getPixelAt (0, 0).getAlpha() == 0 &&
+           sourceCentre.getAlpha() >= 225 &&
+           sourceCentre.getRed() > sourceCentre.getBlue() + 15 &&
+           sourceCentre.getGreen() > sourceCentre.getBlue(),
+           "gold PNG source must be transparent outside and warm metal inside");
+    // JUCE renderer smoke on both compact & large knob bounds. Do not assert
+    // framebuffer pixels without a native desktop peer on Windows CI: this
+    // headless pixel sampling already proved unreliable in earlier GUI tests.
+    arplugin::HardwareLookAndFeel goldLook;
+    for (int side : {74, 172}) {
+        juce::Image surface (juce::Image::ARGB, side, side, true);
+        juce::Graphics canvas (surface);
+        juce::Slider control;
+        goldLook.drawRotarySlider (canvas, 0, 0, side, side, 0.50f,
+            juce::MathConstants<float>::pi * 1.25f,
+            juce::MathConstants<float>::pi * 2.75f, control);
+        check (surface.isValid(), "gold knob JUCE drawing smoke must succeed");
+    }
     // Direct geometry regression: the original bug ignored the slider
     // position and left the pointer fixed at 12 o'clock for every value.
     const float start = juce::MathConstants<float>::pi * 1.25f;

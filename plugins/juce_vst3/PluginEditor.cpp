@@ -102,6 +102,15 @@ const juce::Image& productWordmark() {
     return logo;
 }
 
+// One embedded original gold-metal knob asset shared by all 13 controls.
+// Decode ONCE on GUI thread; use two cached scaled surfaces for large/small.
+const juce::Image& goldKnobMaster() {
+    static const juce::Image gold = juce::ImageFileFormat::loadFrom (
+        BinaryData::ArSonVerbGoldKnob_png,
+        static_cast<std::size_t> (BinaryData::ArSonVerbGoldKnob_pngSize));
+    return gold;
+}
+
 juce::String humanValue (arverb::Parameter param, float value) {
     using P = arverb::Parameter;
     switch (param) {
@@ -176,49 +185,44 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
             arcWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // Circular brushed-metal face: only two cached JUCE images, shared by
-    // all equal-sized controls. No externally loaded assets or GPU shader.
+    // Gold physical knob replaces the old procedural graphite disk.
+    // All ornamentation, jade level arc and movable ivory pointer are separate
+    // vector layers. The metal image NEVER rotates on value/automation change.
     const int imageSide = juce::roundToInt (side);
     const int cacheSlot = imageSide >= 100 ? 1 : 0;
-    if (brushedFaceSizes[cacheSlot] != imageSide ||
-        !brushedFaceCache[cacheSlot].isValid()) {
+    if (goldFaceSizes[cacheSlot] != imageSide ||
+        !goldFaceCache[cacheSlot].isValid()) {
         auto image = juce::Image (juce::Image::ARGB, imageSide, imageSide, true);
         juce::Graphics metal (image);
-        const float c = imageSide * 0.5f;
+        const float centre = imageSide * 0.5f;
         const float radius = imageSide * vintageFaceRatio (float (imageSide));
-        const auto disk = juce::Rectangle<float> (
-            c - radius, c - radius, radius * 2.0f, radius * 2.0f);
 
-        metal.setColour (juce::Colours::black.withAlpha (0.49f));
-        metal.fillEllipse (disk.translated (0.0f, imageSide * 0.021f)
-                               .expanded (1.15f));
-        metal.setColour (juce::Colour (0xff898385));
-        metal.fillEllipse (disk.expanded (1.3f));
-        metal.setColour (juce::Colour (0xff111215));
-        metal.fillEllipse (disk.expanded (0.2f));
-        metal.setGradientFill (juce::ColourGradient (
-            juce::Colour (0xff646466), c - radius * 0.70f, c - radius * 0.74f,
-            juce::Colour (0xff292b2d), c + radius * 0.75f,
-            c + radius * 0.85f, false));
-        metal.fillEllipse (disk.reduced (1.05f));
-
-        // Subpixel concentric machining: enough rings for a spun metal
-        // appearance, but never a dense noisy texture on miniature knobs.
-        const int ringCount = imageSide >= 100 ? 30 : 12;
-        for (int i = 0; i < ringCount; ++i) {
-            const float t = (i + 0.5f) / static_cast<float> (ringCount);
-            const float r = radius * (0.24f + t * 0.68f);
-            metal.setColour (i % 3 == 0
-                ? juce::Colours::white.withAlpha (0.047f)
-                : juce::Colours::black.withAlpha (0.028f));
-            metal.drawEllipse (c - r, c - r, 2.0f * r, 2.0f * r, 0.55f);
+        if (const auto& asset = goldKnobMaster(); asset.isValid()) {
+            // Only perform high-quality downsampling when editor size changes.
+            // This is a static physical finish, not an animated image sequence.
+            const auto physical = juce::Rectangle<float> (
+                centre - radius, centre - radius, radius * 2.0f, radius * 2.0f)
+                .getSmallestIntegerContainer();
+            metal.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
+            metal.drawImageWithin (asset, physical.getX(), physical.getY(),
+                                   physical.getWidth(), physical.getHeight(),
+                                   juce::RectanglePlacement::stretchToFit);
+        } else {
+            // Graceful degraded renderer if the embedded asset fails decoding.
+            const auto fallback = juce::Rectangle<float> (
+                centre - radius, centre - radius, radius * 2.0f, radius * 2.0f);
+            metal.setColour (juce::Colour (0xff9a7750));
+            metal.fillEllipse (fallback);
+            metal.setGradientFill (juce::ColourGradient (
+                juce::Colour (0xffe1c28f), fallback.getX(), fallback.getY(),
+                juce::Colour (0xff59432e), fallback.getRight(),
+                fallback.getBottom(), false));
+            metal.fillEllipse (fallback.reduced (1.6f));
         }
-        metal.setColour (juce::Colour (0xffd1ceca).withAlpha (0.30f));
-        metal.drawEllipse (disk.reduced (2.0f), 0.8f);
-        brushedFaceCache[cacheSlot] = image;
-        brushedFaceSizes[cacheSlot] = imageSide;
+        goldFaceCache[cacheSlot] = image;
+        goldFaceSizes[cacheSlot] = imageSide;
     }
-    g.drawImageAt (brushedFaceCache[cacheSlot],
+    g.drawImageAt (goldFaceCache[cacheSlot],
         juce::roundToInt (cx - imageSide * 0.5f),
         juce::roundToInt (cy - imageSide * 0.5f));
 
