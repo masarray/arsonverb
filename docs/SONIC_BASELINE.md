@@ -1,3 +1,31 @@
+# 2026-10-31 — Musical clarity DSP milestone (PR #18 candidate)
+
+The verified earlier architecture is one original 8-line Householder FDN for all 32 factory programs. Prior to this milestone wet output had low/high cuts, FDN high damping, input predelay and broadband DUCK but no selective vocal/instrument presence protection. There is no claimed spectral AI classifier.
+
+## Original real-time technique
+
+- `src/dsp/Primitives.hpp` now has a small JUCE-independent `PresenceDucker`. Stereo-linked dry input filters estimate an approximate 1.25–4.2 kHz presence band.
+- 10ms attack and 180ms release smooth a shared envelope, gating a **bounded subtraction** of this frequency band in the *wet only* output. This protects intelligibility while retaining more bass/air than a broadband cut. The existing Duck parameter controls the new shaping as well as previous broadband duck. At Duck=0 the new shaping is exactly output-transparent; the eight filters still advance internal state to avoid a sudden transient when Duck automation rises.
+- All coefficients precomputed in `prepare()`; `process()` adds a constant number of one-pole multiplications and no allocations, locks, worker, FFT, lookahead or I/O. Dry remains untouched. RT60 FDN gain design, modulation, predelay, 13 parameter IDs, 32 factory programs, C ABI and reported zero additional samples of plugin latency remain unchanged.
+
+## Evidence and limits
+
+FabFilter Pro-R 2 independently exposes ducking, post EQ and frequency-dependent decay EQ; Valhalla DSP discusses echo density and early reflection control. These are product research references, **not** claims of reproduction, licensing or identical algorithms.
+- https://prod.fabfilter.com/help/pro-r/using/maincontrols
+- https://prod.fabfilter.com/help/pro-r/using/decayrateEQ
+- https://valhalladsp.com/2010/06/07/diffusion-vocals-and-real-rooms/
+- https://valhalladsp.com/2011/05/18/valhallaroom-the-early-controls/
+
+A band from ~1.25 to 4.2 kHz is a sensible adjustable prototype focus, not a universal "sweet spot": sibilance, vocal formants and instrument fundamentals vary. We intentionally preserve the user's existing preset voicing and do not automatically add a new EQ UI or permanent carved notch.
+
+## Validation
+
+- Objective core tests: 2.5k wet signal must be ducked more than 230Hz, stereo symmetry, Duck=0 transparency, existing impulse/predelay/tail/NaN/realtime allocation tests.
+- Exact GitHub Windows VST3/Standalone 6/6 CTest + Linux Release/sanitizer required before merge.
+- Still necessary before calling sonic parity: matched-level dry vocal, piano, guitar and full-mix A/B, RT20-by-band and mono fold-down, measured CPU p99 on named hardware, plus separate algorithm development for Plate/Hall/Chamber identities.
+
+---
+
 # ArSonVerb sonic measurement baseline (2026-10-29)
 
 This is an **offline diagnostic**, not proof that ArSonVerb matches or sounds like Valhalla. Do not ship raw reference audio or proprietary algorithms. The current four presets are all based on the **same 8-line FDN topology**.
