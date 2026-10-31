@@ -40,6 +40,18 @@ constexpr std::array<PresetInfo, presetCount> catalog {{
 static_assert (catalog.size() == presetCount, "factory count mismatch");
 } // namespace
 
+Algorithm presetAlgorithm (Preset preset) noexcept {
+    switch (preset) {
+        case Preset::VocalPlate: case Preset::VocalPlateClean:
+        case Preset::VocalPlateWarm: case Preset::SnarePlateClassic:
+        case Preset::VintagePlate70s: return Algorithm::Plate;
+        case Preset::VocalChamber: case Preset::VocalChamberTight:
+        case Preset::DrumRoomTight: case Preset::DrumRoomWarm:
+        case Preset::DarkVintageChamber: case Preset::RetroBroadcast:
+        case Preset::ClassicStudioRoom: return Algorithm::Chamber;
+        default: return Algorithm::Hall;
+    }
+}
 const PresetInfo& presetInfo (Preset preset) noexcept {
     const auto index = static_cast<std::size_t> (preset);
     return catalog[index < catalog.size() ? index : 0];
