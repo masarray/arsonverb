@@ -1,5 +1,7 @@
 # Golden Hardware Reference — user-approved target (2026-10-31)
 
+**Verified source:** PR #14 merged; Windows VST3 + Standalone and 6/6 CTest PASSED at https://github.com/masarray/arsonverb/actions/runs/41161532829 . Actual Windows screenshot comparison remains open.
+
 The 1774×887 user-selected image is the canonical screenshot for this **JUCE** GUI milestone. Treat it as a visual target, not as a substitute for a functioning editor. Existing ArSonVerb assets were approved earlier and are reused: `ArSonVerbLogo.png`, `ArSonVerbGoldKnob.png`.
 
 **Visual geometry in the existing 1100×510 JUCE design space:** four unchanged grouped panels (Mix/Decay, Tone/Control, Shape, Space/Motion). Small knob diameter **98** reference units (formerly 74), Decay hero diameter **200** (formerly 172) with centre (295,253), coherent upper/lower rows y=214/360; the shape module remains 132 units wide. Captions remain controlled JUCE Labels. Decay LCD is still anchored to the PRE-DELAY label bottom; its new x=231/width=128 centers it under Decay. Upper-left logo box expands to 315×61; top row and header controls remain stable.

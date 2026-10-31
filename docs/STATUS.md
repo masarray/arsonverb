@@ -1,4 +1,16 @@
-# Golden Hardware Reference Redesign — awaiting CI
+# VERIFIED — Golden Luxury Hardware Reference GUI (2026-10-31)
+
+- [PR #14](https://github.com/masarray/arsonverb/pull/14) **MERGED** as `93f7a720419606d3764517aad5c95501fcdf7f08`.
+- [Windows JUCE VST3 + Standalone run](https://github.com/masarray/arsonverb/actions/runs/41161532829) **SUCCESS**, all **6/6 CTest PASSED**, including host UI layout/knob renderer and parameter/DAW state tests. Unsigned artifact `ARStudioReverb-Windows-x64-unsigned` ID **13028020553** uploaded.
+- [Core Release + sanitizers](https://github.com/masarray/arsonverb/actions/runs/41161532867) **SUCCESS**.
+- Golden hardware visual: 12 small gold knobs at 98 design units; large Decay 200; luminous jade moving LED dot/continuous arc; resized metallic ArSon-Verb logo; bronze/champagne four-module faceplate; dynamic aligned LCD.
+- Caching: faceplate once per resize; two gold-face caches divided at 125 drawing pixels. Existing 160×160 embedded alpha PNG is reused. No DSP, host parameter ID, C ABI, 32 presets, plugin/host state or audio callback modifications.
+- **Still open for visual acceptance:** screenshots in real Windows Standalone and DAW at 100%, 125%, 150% DPI. CI tests do not establish pixel-perfect match with the user-approved illustration, nor Valhalla sonic parity.
+- Next work must start from this verified code and user screenshot, not reintroduce tiny gold knobs or the moving thin ivory strip.
+
+---
+
+# Historical design plan — verified by PR #14
 
 # Golden Hardware Reference — user-approved target (2026-10-31)
 
