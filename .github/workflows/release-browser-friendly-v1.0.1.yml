@@ -1,0 +1,95 @@
+name: Append Browser-Friendly Windows Installer ZIP (v1.0.1)
+
+on:
+  push:
+    branches: [release/package-browser-friendly-v1.0.1]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arsonverb-public-browser-friendly-v1.0.1
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Verify original installer and append ZIP to existing stable release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE: v1.0.1
+      INSTALLER: ArSonVerb-Windows-x64-Setup-v1.0.1.exe
+      ZIP_NAME: ArSonVerb-Windows-x64-Installer-v1.0.1.zip
+      OFFICIAL_SETUP_SHA256: 062e38898f1381302806f2bae3e7adc2da232f90afb5fb9eeb276dafd8018300
+      RELEASE_SOURCE_SHA: 4c65f369348790bb6da7465deaffc2b3921fdeee
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test normal ZIP structure, checksums and overwrite protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_browser_friendly.py
+      - name: Verify main branch, exact v1.0.1 source and official EXE digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          main_sha="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)"
+          test -n "$main_sha"
+          test "$GITHUB_SHA" = "$main_sha"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE" --jq '.object.sha')" = "$RELEASE_SOURCE_SHA"
+          release_sha="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE" --jq '.target_commitish')"
+          test "$release_sha" = "$RELEASE_SOURCE_SHA"
+          original_digest="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE" \
+            --jq '.assets[] | select(.name == "ArSonVerb-Windows-x64-Setup-v1.0.1.exe") | .digest')"
+          test "$original_digest" = "sha256:$OFFICIAL_SETUP_SHA256"
+          # Refuse replacing an existing ZIP, even on a re-run.
+          existing="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE" \
+            --jq '.assets[] | select(.name == "ArSonVerb-Windows-x64-Installer-v1.0.1.zip") | .name')"
+          test -z "$existing"
+          test -s LICENSE
+          test -s docs/RELEASE_V1.0.1.md
+      - name: Download only the official, already-tested Windows installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p payload release-assets
+          gh release download "$RELEASE" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$INSTALLER" --dir payload
+          printf '%s  %s\n' "$OFFICIAL_SETUP_SHA256" "payload/$INSTALLER" | sha256sum --check --strict
+      - name: Create standard, unencrypted installer ZIP with source notices
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/package_browser_friendly.py \
+            --installer "payload/$INSTALLER" \
+            --out "release-assets/$ZIP_NAME" \
+            --expected-sha256 "$OFFICIAL_SETUP_SHA256"
+          (cd release-assets && sha256sum "$ZIP_NAME" > SHA256SUMS-Installer-ZIP.txt)
+          (cd release-assets && sha256sum --check --strict SHA256SUMS-Installer-ZIP.txt)
+          unzip -t "release-assets/$ZIP_NAME"
+          for file in "$INSTALLER" INSTALL-FIRST.txt LICENSE.txt INTER-OFL.txt RELEASE_NOTES.md SHA256-INSTALLER-EXE.txt; do
+            unzip -Z -1 "release-assets/$ZIP_NAME" | grep -Fx "$file"
+          done
+      - name: Append new installer ZIP and dedicated checksum (never overwrite existing files)
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE" \
+            "release-assets/$ZIP_NAME" \
+            release-assets/SHA256SUMS-Installer-ZIP.txt \
+            --repo "$GITHUB_REPOSITORY"
+      - name: Put VST3 ZIP first and installer ZIP second on release landing page
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$RELEASE" --repo "$GITHUB_REPOSITORY" \
+            --notes-file docs/RELEASE_V1.0.1.md
+          actual_zip_digest="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE" \
+            --jq '.assets[] | select(.name == "ArSonVerb-Windows-x64-Installer-v1.0.1.zip") | .digest')"
+          expected_zip_digest="sha256:$(sha256sum "release-assets/$ZIP_NAME" | cut -d' ' -f1)"
+          test "$actual_zip_digest" = "$expected_zip_digest"
+          gh release view "$RELEASE" --repo "$GITHUB_REPOSITORY" --json url,assets \
+            --jq '{url: .url, assets: [.assets[].name]}'
