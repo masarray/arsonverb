@@ -1,8 +1,12 @@
-# In validation — GUI preset truth / always-visible parameter feedback (2026-10-31)
+# VERIFIED — PR #16 premium GUI UX and preset integrity (2026-10-31)
 
-The next GUI PR is scoped to reliable 32-preset selection after knob/wheel/host automation changes, a persistent native-unit parameter header readout, and the recessed LED halo render order. All mechanical PR #15 geometry, embedded gold/logo assets, DSP, ABI, host IDs and audio callback are unchanged. The new host regression tests verify a factory-to-CUSTOM-to-factory round trip after direct GUI editing at four window sizes.
-
-**Verification gate:** Windows VST3 + Standalone plus six CTests, Linux core Release and sanitizers; check actual GitHub Actions results before marking VERIFIED. User's 100/125/150% real runtime screenshots and listening remain outstanding.
+- [PR #16](https://github.com/masarray/arsonverb/pull/16) **MERGED** as `56612b67acdf0d43cc64c33409375c5b2d8f34f2`.
+- [Windows VST3 + Standalone CI](https://github.com/masarray/arsonverb/actions/runs/41164159808) **SUCCESS**: MSVC build + **6/6 CTests PASSED**, including `arverb_plugin_host_tests` and all previous DSP, automation, stress, and C ABI tests. Artifact **13029265452** (`ARStudioReverb-Windows-x64-unsigned`, 8,595,817 bytes; expires 2026-11-07 UTC).
+- [Linux Release and sanitizer CI](https://github.com/masarray/arsonverb/actions/runs/41164159788) **SUCCESS**.
+- Preset ComboBox now displays `CUSTOM` if actual 13 APVTS values do not match any of 32 factory profiles; restores factory selection when values match again. Drag, wheel, double-click and host-driven attachment updates use a GUI-only bounded check. User-visible parameter LCD persists instead of disappearing at drag end.
+- Emerald LED halo is drawn behind its recessed bezel. PR #15 approved 98/200 knob geometry, embedded PNG cache, 77%-inset moving LED, audio engine, parameter IDs, factory catalog and standalone ABI are **unchanged**.
+- Host regression tests verify preset→CUSTOM→preset restoration at minimum/default/resized/max window geometry.
+- **Remaining manual gate**: actual Windows GUI appearance at 100%, 125%, 150% scale and level-matched vocal/music listening. Headless CI is not proof of pixel-perfect luxury appearance.
 
 ---
 

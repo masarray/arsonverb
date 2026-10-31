@@ -32,7 +32,7 @@ For Windows MSVC: `cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64 -D
 5. Never claim GitHub CI is green until actual GitHub Actions runs are observed.
 6. Report the tested OS, command, actual output, known issues and next task for a clean new-thread handoff.
 
-Current verified release status: **v0.3 Linux core Release and ASan/UBSan tests 3/3 pass; JUCE VST3/Standalone and host-contract smoke-test source are authored but have NOT compiled or run using the JUCE SDK.** `.github/workflows/plugin-ci.yml` is unverified on GitHub until published/run.
+Current verified release status: **v0.4.1 JUCE 9.0.4 Windows VST3 + Standalone, 6/6 CTests PASSED in PR #16 (workflow 41164159808); Linux Release and ASan/UBSan PASSED (workflow 41164159788)**. PR #16 is merged; the Windows unsigned test artifact is available from the PR build. Real DAW screenshot and listening acceptance remain manual.
 
 ## v0.4 continuation notes (2026-10-29)
 
