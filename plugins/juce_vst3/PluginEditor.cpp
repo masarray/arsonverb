@@ -552,7 +552,7 @@ void ReverbEditor::resized() {
     const float s = juce::jlimit (0.74f, 1.35f, std::min (sx, sy));
     // One shared optical baseline for LCD preset and physical power button.
     // Integer-pixel snapping prevents blurred half-pixel text and frames.
-    presetBox.setBounds (scaled (750, 27, 175, 34, sx, sy));
+    presetBox.setBounds (scaled (672, 27, 253, 34, sx, sy));
     bypassButton.setBounds (scaled (935, 27, 141, 34, sx, sy));
 
     for (const auto& dial : dials) {
@@ -569,7 +569,7 @@ void ReverbEditor::resized() {
     }
     decayReadout.setBounds (scaled (207, 411, 120, 44, sx, sy));
     decayReadout.setFont (uiHeavy (23.0f * s));
-    parameterReadout.setBounds (scaled (369, 27, 330, 34, sx, sy));
+    parameterReadout.setBounds (scaled (355, 27, 305, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (std::max (12.0f, 14.5f * s)));
     rebuildFaceplateCache();
 }
