@@ -27,7 +27,8 @@ static void u32(FILE* f, std::uint32_t x) {
 int main(int argc, char** argv) {
     const char* filename = argc > 1 ? argv[1] : "arverb_impulse.wav";
     constexpr unsigned fs = 48000;
-    constexpr std::size_t frames = static_cast<std::size_t>(fs) * 6u;
+    // Keep old two-argument demo output at 5s; P6 explicit algorithm at 6s.
+    const std::size_t frames = static_cast<std::size_t>(fs) * (argc > 3 ? 6u : 5u);
     arverb::Engine engine;
     const char* preset = argc > 2 ? argv[2] : "plate";
     if (std::strcmp(preset, "clean") == 0)
