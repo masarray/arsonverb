@@ -85,6 +85,50 @@ struct HighPass {
     void reset() noexcept { low.reset(); }
 };
 
+// Stereo-linked, input-conditioned wet presence attenuation. This is an
+// economical perceptual starting point, not speech/AI analysis or a new mode.
+// The FDN feedback and all dry samples remain completely untouched.
+struct PresenceDucker {
+    LowPass dryLow[2], dryHigh[2], wetLow[2], wetHigh[2];
+    float lowCoeff = 0.0f, highCoeff = 0.0f;
+    float attack = 0.0f, release = 0.0f, envelope = 0.0f;
+
+    void prepare(float fs) noexcept {
+        lowCoeff = lowPassCoeff(1250.0f, fs);
+        highCoeff = lowPassCoeff(4200.0f, fs);
+        attack = 1.0f - std::exp(-1.0f / (0.010f * fs));
+        release = 1.0f - std::exp(-1.0f / (0.180f * fs));
+        reset();
+    }
+    void reset() noexcept {
+        for (auto& f : dryLow) f.reset();
+        for (auto& f : dryHigh) f.reset();
+        for (auto& f : wetLow) f.reset();
+        for (auto& f : wetHigh) f.reset();
+        envelope = 0.0f;
+    }
+    void process(float inL, float inR, float& wetL, float& wetR,
+                 float duckAmount) noexcept {
+        const float dryBandL = dryHigh[0].process(inL, highCoeff)
+                             - dryLow[0].process(inL, lowCoeff);
+        const float dryBandR = dryHigh[1].process(inR, highCoeff)
+                             - dryLow[1].process(inR, lowCoeff);
+        const float peak = std::max(std::fabs(dryBandL), std::fabs(dryBandR));
+        envelope = killDenormal(envelope + (peak > envelope ? attack : release)
+                                * (peak - envelope));
+        // Always advance history: raising Duck during an existing reverb tail
+        // must not start fresh filter state and create a discontinuity.
+        const float wetBandL = wetHigh[0].process(wetL, highCoeff)
+                             - wetLow[0].process(wetL, lowCoeff);
+        const float wetBandR = wetHigh[1].process(wetR, highCoeff)
+                             - wetLow[1].process(wetR, lowCoeff);
+        // Bounded, smooth saturating subtraction; 0% Duck = exact bypass.
+        const float depth = 0.56f * duckAmount * envelope / (0.085f + envelope);
+        wetL -= depth * wetBandL;
+        wetR -= depth * wetBandR;
+    }
+};
+
 struct Oscillator {
     float sinPhase = 0.0f;
     float cosPhase = 1.0f;
