@@ -10,18 +10,18 @@ namespace {
 // Single premium palette: satin bronze chassis, champagne typography,
 // subdued jade metering, and dark Bakelite hardware. No pink/neon mix.
 namespace palette {
-const juce::Colour chassisTop (0xff584840);
-const juce::Colour chassisBottom (0xff30292a);
-const juce::Colour moduleTop (0xff675851);
-const juce::Colour moduleBottom (0xff4a403c);
-const juce::Colour moduleBorder (0xffaa8d72);
-const juce::Colour mainText (0xfff6ebdb);
-const juce::Colour secondaryText (0xffd6c6b3);
-const juce::Colour lcd (0xff111719);
-const juce::Colour lcdBorder (0xff9a8871);
-const juce::Colour jade (0xff73c59e);
-const juce::Colour amber (0xffe6b978);
-const juce::Colour meterText (0xffc5efcf);
+const juce::Colour chassisTop (0xff59473c);
+const juce::Colour chassisBottom (0xff271f1f);
+const juce::Colour moduleTop (0xff675043);
+const juce::Colour moduleBottom (0xff43352f);
+const juce::Colour moduleBorder (0xffc4a077);
+const juce::Colour mainText (0xfffaeee1);
+const juce::Colour secondaryText (0xffdcc7ae);
+const juce::Colour lcd (0xff10191a);
+const juce::Colour lcdBorder (0xffbd956c);
+const juce::Colour jade (0xff60e5af);
+const juce::Colour amber (0xffeac48e);
+const juce::Colour meterText (0xff7df3c0);
 }
 const juce::Colour ice = palette::mainText;
 const juce::Colour amber = palette::amber;
@@ -64,19 +64,19 @@ struct Dial {
     const char* caption;
 };
 constexpr std::array<Dial, arverb::parameterCount> dials {{
-    {arverb::Parameter::Mix,          92, 214, 74, "MIX"},
-    {arverb::Parameter::PreDelayMs,   92, 369, 74, "PRE-DELAY"},
-    {arverb::Parameter::DecaySeconds, 281, 248, 172, "DECAY"},
-    {arverb::Parameter::Size,         767, 214, 74, "SIZE"},
-    {arverb::Parameter::Diffusion,    767, 369, 74, "DIFFUSION"},
-    {arverb::Parameter::DampingHz,    511, 214, 74, "HF DAMP"},
-    {arverb::Parameter::LowCutHz,     511, 369, 74, "LOW CUT"},
-    {arverb::Parameter::HighCutHz,    621, 214, 74, "HIGH CUT"},
-    {arverb::Parameter::ModDepthMs,  1016, 369, 74, "DEPTH"},
-    {arverb::Parameter::ModRateHz,    906, 369, 74, "RATE"},
-    {arverb::Parameter::Width,       1016, 214, 74, "WIDTH"},
-    {arverb::Parameter::EarlyLevel,   906, 214, 74, "EARLY"},
-    {arverb::Parameter::DuckAmount,   621, 369, 74, "DUCK"}
+    {arverb::Parameter::Mix,           96, 214, 98, "MIX"},
+    {arverb::Parameter::PreDelayMs,    96, 360, 98, "PRE-DELAY"},
+    {arverb::Parameter::DecaySeconds, 295, 253, 200, "DECAY"},
+    {arverb::Parameter::Size,         767, 214, 98, "SIZE"},
+    {arverb::Parameter::Diffusion,    767, 360, 98, "DIFFUSION"},
+    {arverb::Parameter::DampingHz,    511, 214, 98, "HF DAMP"},
+    {arverb::Parameter::LowCutHz,     511, 360, 98, "LOW CUT"},
+    {arverb::Parameter::HighCutHz,    621, 214, 98, "HIGH CUT"},
+    {arverb::Parameter::ModDepthMs,  1014, 360, 98, "DEPTH"},
+    {arverb::Parameter::ModRateHz,    902, 360, 98, "RATE"},
+    {arverb::Parameter::Width,       1014, 214, 98, "WIDTH"},
+    {arverb::Parameter::EarlyLevel,   902, 214, 98, "EARLY"},
+    {arverb::Parameter::DuckAmount,   621, 360, 98, "DUCK"}
 }};
 struct GroupPanel { float x, y, w, h; const char* title; };
 constexpr std::array<GroupPanel, 4> groupPanels {{
@@ -141,83 +141,74 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
      float rotaryStartAngle, float rotaryEndAngle, juce::Slider& slider) {
     const float side = static_cast<float> (std::min (width, height));
     if (side <= 1.0f) return;
-
     const float cx = x + width * 0.5f;
     const float cy = y + height * 0.5f;
     const float angle = vintageRotaryAngle (position, rotaryStartAngle, rotaryEndAngle);
     const float grooveR = side * vintageGrooveRatio (side);
     const float faceR = side * vintageFaceRatio (side);
     const float progressR = side * vintageArcRatio (side);
+    const auto shell = juce::Rectangle<float>(
+        cx - grooveR, cy - grooveR, 2.0f * grooveR, 2.0f * grooveR);
 
-    // Static outer machined socket; it leaves an actual dark gap between
-    // the panel and the brushed metal knob, not a translucent neon overlay.
-    const auto socket = juce::Rectangle<float> (
-        cx - grooveR, cy - grooveR, grooveR * 2.0f, grooveR * 2.0f);
-    g.setColour (juce::Colour (0xff8b827a));
-    g.fillEllipse (socket);
-    g.setColour (juce::Colour (0xff101214));
-    g.fillEllipse (socket.reduced (1.2f));
-    g.setColour (juce::Colour (0xffd1c2af).withAlpha (0.44f));
-    g.drawEllipse (socket.reduced (0.6f), 0.95f);
-    g.setColour (juce::Colours::black.withAlpha (0.80f));
-    g.drawEllipse (socket.reduced (2.0f), 1.15f);
+    // Dark, physically recessed Bakelite outer ring with a champagne alloy rim.
+    // Drawing is confined to the slider's own bounds.
+    g.setColour (juce::Colours::black.withAlpha (0.29f));
+    g.fillEllipse (shell.translated (0.0f, side * 0.017f));
+    g.setGradientFill (juce::ColourGradient (
+        juce::Colour (0xffc6a77d), cx - grooveR, cy - grooveR,
+        juce::Colour (0xff4d423a), cx + grooveR, cy + grooveR, false));
+    g.fillEllipse (shell);
+    g.setColour (juce::Colour (0xff0e1213));
+    g.fillEllipse (shell.reduced (1.25f));
+    g.setColour (juce::Colour (0xff383737));
+    g.drawEllipse (shell.reduced (2.1f), 0.8f);
 
-    // One continuous progress arc, not 19/29 quantized level ticks. The
-    // centerline thickness is 2.9 device-independent drawing units for
-    // EVERY dial size; the subtle soft edge is also constant.
-    constexpr float arcWidth = 2.9f;
-    constexpr float softEdgeWidth = 4.5f;
+    // One continuous live meter with a warm jade light pipe and subtle bloom.
+    // The same rotary angle feeds BOTH the arc end and the moving LED.
+    const float arcWidth = juce::jlimit (3.2f, 5.2f, side * 0.040f);
     juce::Path track;
     track.addCentredArc (cx, cy, progressR, progressR, 0.0f,
                          rotaryStartAngle, rotaryEndAngle, true);
-    g.setColour (juce::Colour (0xff292d2e));
+    g.setColour (juce::Colour (0xff303737));
     g.strokePath (track, juce::PathStrokeType (
         arcWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     if (slider.isEnabled() && position > 0.0001f) {
-        juce::Path filled;
-        filled.addCentredArc (cx, cy, progressR, progressR, 0.0f,
-                              rotaryStartAngle, angle, true);
-        g.setColour (volumeGreen.withAlpha (0.17f));
-        g.strokePath (filled, juce::PathStrokeType (
-            softEdgeWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        g.setColour (volumeGreen);
-        g.strokePath (filled, juce::PathStrokeType (
+        juce::Path progress;
+        progress.addCentredArc (cx, cy, progressR, progressR, 0.0f,
+                                rotaryStartAngle, angle, true);
+        g.setColour (palette::jade.withAlpha (0.16f));
+        g.strokePath (progress, juce::PathStrokeType (
+            arcWidth + 2.5f, juce::PathStrokeType::curved,
+            juce::PathStrokeType::rounded));
+        g.setColour (palette::jade);
+        g.strokePath (progress, juce::PathStrokeType (
             arcWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // Gold physical knob replaces the old procedural graphite disk.
-    // All ornamentation, jade level arc and movable ivory pointer are separate
-    // vector layers. The metal image NEVER rotates on value/automation change.
+    // Gold PNG is a stationary hardware surface, cached only in two sizes.
+    // No per-automation resampling, rotating bitmaps or audio-thread work.
     const int imageSide = juce::roundToInt (side);
-    const int cacheSlot = imageSide >= 100 ? 1 : 0;
-    if (goldFaceSizes[cacheSlot] != imageSide ||
-        !goldFaceCache[cacheSlot].isValid()) {
-        auto image = juce::Image (juce::Image::ARGB, imageSide, imageSide, true);
+    const int cacheSlot = vintageGoldCacheSlot (side);
+    if (goldFaceSizes[cacheSlot] != imageSide || !goldFaceCache[cacheSlot].isValid()) {
+        juce::Image image (juce::Image::ARGB, imageSide, imageSide, true);
         juce::Graphics metal (image);
-        const float centre = imageSide * 0.5f;
+        const float c = imageSide * 0.5f;
         const float radius = imageSide * vintageFaceRatio (float (imageSide));
-
         if (const auto& asset = goldKnobMaster(); asset.isValid()) {
-            // Only perform high-quality downsampling when editor size changes.
-            // This is a static physical finish, not an animated image sequence.
-            const auto physical = juce::Rectangle<float> (
-                centre - radius, centre - radius, radius * 2.0f, radius * 2.0f)
+            const auto disk = juce::Rectangle<float> (
+                c - radius, c - radius, 2.0f * radius, 2.0f * radius)
                 .getSmallestIntegerContainer();
             metal.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
-            metal.drawImageWithin (asset, physical.getX(), physical.getY(),
-                                   physical.getWidth(), physical.getHeight(),
+            metal.drawImageWithin (asset, disk.getX(), disk.getY(),
+                                   disk.getWidth(), disk.getHeight(),
                                    juce::RectanglePlacement::stretchToFit);
         } else {
-            // Graceful degraded renderer if the embedded asset fails decoding.
-            const auto fallback = juce::Rectangle<float> (
-                centre - radius, centre - radius, radius * 2.0f, radius * 2.0f);
-            metal.setColour (juce::Colour (0xff9a7750));
-            metal.fillEllipse (fallback);
+            const auto disk = juce::Rectangle<float> (
+                c - radius, c - radius, 2.0f * radius, 2.0f * radius);
             metal.setGradientFill (juce::ColourGradient (
-                juce::Colour (0xffe1c28f), fallback.getX(), fallback.getY(),
-                juce::Colour (0xff59432e), fallback.getRight(),
-                fallback.getBottom(), false));
-            metal.fillEllipse (fallback.reduced (1.6f));
+                juce::Colour (0xfff2d4a1), disk.getX(), disk.getY(),
+                juce::Colour (0xff6c4e33), disk.getRight(), disk.getBottom(), false));
+            metal.fillEllipse (disk);
         }
         goldFaceCache[cacheSlot] = image;
         goldFaceSizes[cacheSlot] = imageSide;
@@ -226,20 +217,26 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
         juce::roundToInt (cx - imageSide * 0.5f),
         juce::roundToInt (cy - imageSide * 0.5f));
 
-    // Actual rotary pointer: both its angle AND the arc endpoint use the
-    // same JUCE-provided normalized position. The previous fixed 12-o'clock
-    // indicator was incorrect and did not communicate the control value.
-    const float sine = std::sin (angle), cosine = std::cos (angle);
-    const float inner = faceR * 0.55f, outer = faceR * 0.83f;
-    const float x0 = cx + sine * inner, y0 = cy - cosine * inner;
-    const float x1 = cx + sine * outer, y1 = cy - cosine * outer;
+    // Clear, illuminated emerald hardware LED replaces the skinny ivory strip.
+    // It rides the visible gold rim and always follows normalized sliderPos.
+    const float radius = side * 0.344f;
+    const float dotX = cx + std::sin (angle) * radius;
+    const float dotY = cy - std::cos (angle) * radius;
+    const float dotR = vintageLedRadius (side);
+    const auto disk = juce::Rectangle<float> (
+        dotX - dotR, dotY - dotR, 2.0f * dotR, 2.0f * dotR);
+    g.setColour (juce::Colour (0xff101d1a));
+    g.fillEllipse (disk.expanded (1.45f));
     if (slider.isEnabled()) {
-        g.setColour (palette::mainText.withAlpha (0.18f));
-        g.drawLine (x0, y0, x1, y1, 4.2f);
+        g.setColour (palette::jade.withAlpha (0.22f));
+        g.fillEllipse (disk.expanded (2.75f));
     }
-    g.setColour (slider.isEnabled() ? palette::mainText
-                                    : juce::Colour (0xff98928e));
-    g.drawLine (x0, y0, x1, y1, 1.85f);
+    g.setColour (slider.isEnabled() ? juce::Colour (0xff40d58c)
+                                    : juce::Colour (0xff777a73));
+    g.fillEllipse (disk);
+    g.setColour (slider.isEnabled() ? juce::Colour (0xffe7fff0)
+                                    : juce::Colour (0xffc4c4ba));
+    g.fillEllipse (disk.reduced (dotR * 0.48f));
 }
 
 void HardwareLookAndFeel::drawComboBox (juce::Graphics& g,
@@ -460,7 +457,7 @@ juce::Rectangle<int> ReverbEditor::decayDisplayBounds() const {
     const float sy = getHeight() / referenceHeight;
     // Anchor LCD to the exact bottom of the PRE-DELAY caption. The aligned
     // baseline survives min/default/max editor sizes and font rounding.
-    const auto nominal = scaled (221.0f, 0.0f, 122.0f, 44.0f, sx, sy);
+    const auto nominal = scaled (231.0f, 0.0f, 128.0f, 42.0f, sx, sy);
     const auto captionBottom = labels[static_cast<std::size_t> (
         arverb::Parameter::PreDelayMs)].getBottom();
     return {nominal.getX(), captionBottom - nominal.getHeight(),
@@ -481,8 +478,8 @@ void ReverbEditor::rebuildFaceplateCache() {
     juce::ColourGradient bronze (
         palette::chassisTop, 0.0f, 5.0f,
         palette::chassisBottom, 0.0f, float (h - 5), false);
-    bronze.addColour (0.38, juce::Colour (0xff493b36));
-    bronze.addColour (0.74, juce::Colour (0xff382f2e));
+    bronze.addColour (0.38, juce::Colour (0xff4f3d34));
+    bronze.addColour (0.74, juce::Colour (0xff332824));
     g.setGradientFill (bronze);
     g.fillRoundedRectangle (chassis, 7.0f);
 
@@ -499,7 +496,7 @@ void ReverbEditor::rebuildFaceplateCache() {
             : juce::Colours::black.withAlpha (0.002f + (0.5f - n) * 0.015f));
         g.drawHorizontalLine (y, 9.0f, float (w - 9));
     }
-    g.setColour (juce::Colour (0xffc9af95).withAlpha (0.58f));
+    g.setColour (palette::moduleBorder.withAlpha (0.79f));
     g.drawRoundedRectangle (chassis.reduced (0.5f), 7.0f, 0.95f);
 
     const float sx = w / referenceWidth, sy = h / referenceHeight;
@@ -511,12 +508,12 @@ void ReverbEditor::rebuildFaceplateCache() {
         juce::ColourGradient satin (
             palette::moduleTop, rect.getX(), rect.getY(),
             palette::moduleBottom, rect.getX(), rect.getBottom(), false);
-        satin.addColour (0.50, juce::Colour (0xff5b4d46));
+        satin.addColour (0.50, juce::Colour (0xff554238));
         g.setGradientFill (satin);
         g.fillRoundedRectangle (rect.reduced (1.2f), 3.7f);
-        g.setColour (palette::moduleBorder.withAlpha (0.92f));
+        g.setColour (palette::moduleBorder.withAlpha (0.96f));
         g.drawRoundedRectangle (rect.reduced (0.6f), 4.0f, 1.0f);
-        g.setColour (juce::Colour (0xffecd3b4).withAlpha (0.15f));
+        g.setColour (juce::Colour (0xffecd3b4).withAlpha (0.22f));
         g.drawRoundedRectangle (rect.reduced (1.9f), 3.2f, 0.75f);
         const float titleRuleY = (module.y + 39.0f) * sy;
         g.setColour (palette::moduleBorder.withAlpha (0.56f));
@@ -534,7 +531,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
 
     // Transparent champagne-gold product asset. Aspect ratio remains exact,
     // and the image is decoded once, never during mouse/automation updates.
-    const auto logoBox = scaled (25, 15, 240, 42, sx, sy);
+    const auto logoBox = scaled (25, 12, 315, 61, sx, sy);
     const auto& logo = productWordmark();
     if (logo.isValid()) {
         g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
@@ -550,14 +547,14 @@ void ReverbEditor::paint (juce::Graphics& g) {
     g.setColour (palette::secondaryText);
     g.setFont (uiHeavy (std::max (11.8f, 13.6f * fs)));
     g.drawText ("MUSICAL VINTAGE REVERB",
-        scaled (26, 63, 310, 20, sx, sy),
+        scaled (27, 72, 315, 20, sx, sy),
         juce::Justification::centredLeft);
 
     // Printed machine-engraved group captions inside the framed modules.
     // None of these are extra JUCE components or click targets.
     for (const auto& m : groupPanels) {
         g.setColour (palette::mainText);
-        g.setFont (uiHeavy (std::max (12.8f, 15.7f * fs)));
+        g.setFont (uiHeavy (std::max (13.2f, 16.2f * fs)));
         g.drawText (m.title,
             scaled (m.x+7, m.y+8, m.w-14, 24, sx, sy),
             juce::Justification::centred);
@@ -567,9 +564,9 @@ void ReverbEditor::paint (juce::Graphics& g) {
     const auto display = decayDisplayBounds().toFloat();
     g.setColour (juce::Colour (0xff1e2622));
     g.fillRoundedRectangle (display, 5.0f * fs);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff263e32),
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff173e31),
             display.getX(), display.getY(),
-            juce::Colour (0xff15271f), display.getRight(),
+            juce::Colour (0xff09221b), display.getRight(),
             display.getBottom(), false));
     g.fillRoundedRectangle (display.reduced (2.0f * fs), 4.0f * fs);
     g.setColour (palette::jade.withAlpha (0.56f));
@@ -599,11 +596,11 @@ void ReverbEditor::resized() {
         labels[i].setBounds (juce::roundToInt (dial.centreX * sx - 55.0f * sx),
                              juce::roundToInt (captionTop),
                              juce::roundToInt (110.0f * sx), juce::roundToInt (21.0f * s));
-        labels[i].setFont (uiHeavy (std::max (12.5f, 17.6f * s)));
+        labels[i].setFont (uiHeavy (std::max (12.5f, 16.8f * s)));
     }
     decayReadout.setBounds (decayDisplayBounds().withTrimmedLeft (2)
                                                 .withTrimmedRight (2));
-    decayReadout.setFont (uiHeavy (23.0f * s));
+    decayReadout.setFont (uiHeavy (23.8f * s));
     parameterReadout.setBounds (scaled (355, 27, 305, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (std::max (12.0f, 14.5f * s)));
     rebuildFaceplateCache();

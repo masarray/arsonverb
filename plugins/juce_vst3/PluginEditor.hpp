@@ -16,14 +16,19 @@ inline float vintageRotaryAngle (float position, float start, float end) noexcep
 }
 // Hardware-size optical corrections: small dials need more visible black
 // socket, without changing the large Decay dial's successful proportions.
+// Larger face in both sizes matches the approved 2026-10-31 mockup.
 inline float vintageFaceRatio (float side) noexcept {
-    return side < 100.0f ? 0.316f : 0.355f;
+    return side < 125.0f ? 0.422f : 0.416f;
 }
-inline float vintageGrooveRatio (float side) noexcept {
-    return side < 100.0f ? 0.480f : 0.465f;
+inline float vintageGrooveRatio (float) noexcept { return 0.490f; }
+inline float vintageArcRatio (float) noexcept { return 0.435f; }
+// Keep one small-face and one large-face cache even at maximum window size:
+// small dial max ~105px, large dial minimum ~148px.
+inline int vintageGoldCacheSlot (float side) noexcept {
+    return side >= 125.0f ? 1 : 0;
 }
-inline float vintageArcRatio (float side) noexcept {
-    return side < 100.0f ? 0.409f : 0.419f;
+inline float vintageLedRadius (float side) noexcept {
+    return juce::jlimit (4.0f, 6.3f, side * 0.055f);
 }
 
 class HardwareLookAndFeel final : public juce::LookAndFeel_V4 {
