@@ -1,5 +1,7 @@
 # ArSonVerb Factory Bank v1 — 32 Original Programs
 
+**Verified:** Windows VST3+Standalone and 6/6 CTest successful on PR #11: https://github.com/masarray/arsonverb/actions/runs/41148830105 . This is a listening-QA starting bank, not a certified sonic match to any external plugin.
+
 The existing **one-algorithm** reusable C++ reverb engine is unchanged. Profiles draw inspiration from industry categories (plate/chamber/hall/room/ambient), not copied proprietary Valhalla settings. Valhalla's mode algorithms are not present in ArSonVerb. The first four preset IDs and their parameter values are preserved exactly. Every other program has 13 non-placeholder native settings.
 
 | # | Category | Name | Mix | Predelay ms | Decay s | Size | Diffusion | HF Hz | Low Hz | High Hz | ModDepth ms | ModRate Hz | Width | Early | Duck |

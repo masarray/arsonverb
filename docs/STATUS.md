@@ -1,3 +1,16 @@
+# VERIFIED — Factory32 + Crisp Inter + Raised Decay LCD (2026-10-31)
+
+- [PR #11](https://github.com/masarray/arsonverb/pull/11) **MERGED** as `5d971a5c9cc831426a484578758307e11d35daa0`.
+- [Windows JUCE CI run](https://github.com/masarray/arsonverb/actions/runs/41148830105) **SUCCESS**: VST3, Standalone, and 6/6 CTest PASSED (core DSP, 32-preset contract, regression, stress, C ABI, and real JUCE host UI/menu + state tests). GitHub artifact `ARStudioReverb-Windows-x64-unsigned`, ID `13022790317`.
+- [Core Release + sanitizer CI](https://github.com/masarray/arsonverb/actions/runs/41148830134) **SUCCESS**.
+- Factory bank v1 = **32 original fully populated engine-native programs** with metadata; 10 Vocal, 10 Music, 6 Vintage, 6 Ambient, fully documented in `docs/FACTORY_PRESETS.md`. Previous factory IDs 0–3 and 13 host automation parameter IDs preserved.
+- Embedded Inter **true 600 weight** via one cached variable Typeface clone replaces faux-bold. Integer font heights and minimum micro-caption sizes reduce text softness. Decay LCD background and text raised together by 13 reference units; wider preset selector fits longer program names.
+- **Pending manual sign-off:** Windows GUI screenshot at 100%, 125%, 150% DPI; vocal/music listening tests and host pluginval. Passing CI does **not** prove pixel-perfect typography or sonic equivalence to Valhalla DSP.
+- No new reverb algorithms, external dependencies, audio callback allocations, parameter IDs or state schema changes. Keep DSP core portable to C#/other hosts.
+- Engineering workflow: reuse this verified baseline; avoid Windows CI reruns for documentation-only updates.
+
+---
+
 # Factory32 + true Inter 600 milestone — CI pending
 
 ## 2026-10-31 — Text clarity + Factory32 final bank
