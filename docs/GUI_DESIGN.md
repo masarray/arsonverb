@@ -1,3 +1,9 @@
+# 2026-10-31 — Premium header LCD text inset from user screenshot
+
+Original Windows screenshot (844×422) showed **Mix** nearly touching the dark field left edge and **CUSTOM** too close to its ComboBox frame. The JUCE active name x-origin moves from 355 to 371 in 1100px design space, width shrinks equally to retain the original right alignment. `HardwareLookAndFeel::positionComboBoxText` uses 16px left padding rather than 9px and reserves 42px rather than 35px for right controls. No larger UI, panel movement, new timer, or change to the directly editable numeric LCD. Four-size GUI test checks active name stays inset; actual screenshot still the aesthetic acceptance gate.
+
+---
+
 # 2026-10-31 — Precision Control & Direct Numeric Entry (PR #17 candidate)
 
 - Standard wheel uses JUCE 9.0.4's native `Slider::mouseWheelMove` unchanged; holding **Ctrl** multiplies wheel X/Y deltas by **0.125**, an 8× finer response without changing host gesture or wheel direction.

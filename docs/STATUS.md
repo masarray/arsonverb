@@ -1,3 +1,12 @@
+# IN VALIDATION — PR #18 Musical Clarity & Header Refinement (2026-10-31)
+
+- GUI: inset dark LCD name Mix +16 design units, preset text CUSTOM +7px for a comfortable professional left margin.
+- DSP: 8-line FDN and 32 programs unchanged. Add finite, stereo-linked, signal-conditioned wet presence shaper (~1.25–4.2kHz), 10ms attack/180ms release, controlled by existing DUCK; 0% DUCK is exactly transparent. No added latency/lookahead or RT allocation.
+- Regression: isolated 2.5k-vs-230Hz selective energy, stereo symmetry, 0 DUCK transparent, GUI header geometry; existing block, C ABI and automation tests retained.
+- **Pending validation:** new Windows JUCE VST3/Standalone 6/6 CTests and Linux Release/sanitizers. Manual listening and measurement required for sonic quality claims, even after CI passes.
+
+---
+
 # VERIFIED — PR #17 Precision Control & Direct LCD Value Editing (2026-10-31)
 
 - [PR #17](https://github.com/masarray/arsonverb/pull/17) **MERGED** to main as `cfb635975ec43fdf663c569c2830c251fab85fa0`.
