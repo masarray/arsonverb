@@ -39,6 +39,10 @@ struct ParameterInfo {
 };
 
 constexpr std::size_t parameterCount = static_cast<std::size_t>(Parameter::Count);
+// Independent from the 13 original scalar parameter IDs and C ABI.
+enum class Algorithm : std::uint32_t { Classic=0, Plate=1, Chamber=2, Hall=3 };
+constexpr unsigned algorithmCount = 4;
+const char* algorithmName (Algorithm) noexcept;
 const ParameterInfo& parameterInfo(Parameter param) noexcept;
 
 // First four enum values preserved for backward-compatible core clients.
@@ -85,6 +89,7 @@ struct PresetInfo {
 };
 const PresetInfo& presetInfo (Preset preset) noexcept;
 std::array<float, parameterCount> presetValues (Preset preset) noexcept;
+Algorithm presetAlgorithm (Preset preset) noexcept;
 
 // The C++ DSP core has no dependency on VST, JUCE, audio I/O, UI or operating system.
 // A single Engine instance belongs to exactly one audio thread.
@@ -106,6 +111,8 @@ public:
     void setParameter(Parameter parameter, float value) noexcept;
     float getParameter(Parameter parameter) const noexcept;
     void loadPreset(Preset preset) noexcept;
+    void setAlgorithm(Algorithm algorithm) noexcept;
+    Algorithm getAlgorithm() const noexcept;
 
     // Planar stereo f32. In-place per channel supported. Avoid cross-channel buffer aliases.
     // All input/output pointers must be valid when frames > 0. No allocation, locks or I/O.
@@ -116,6 +123,7 @@ private:
     struct State;
     std::unique_ptr<State> state_;
     std::array<std::atomic<float>, parameterCount> parameters_;
+    std::atomic<std::uint32_t> algorithm_ {0};
 };
 
 }  // namespace arverb
