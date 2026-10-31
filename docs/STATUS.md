@@ -1,3 +1,19 @@
+# Factory32 + true Inter 600 milestone — CI pending
+
+## 2026-10-31 — Text clarity + Factory32 final bank
+
+- LCD Decay box and its numeric text **both move upward by 13 reference units**, about 10 pixels at 842x394, preserving center alignment.
+- Native JUCE Inter variable font uses a true 600 weight clone, not synthetic `.boldened()`. Font heights round to integer pixels; fixed minimum heights protect labels and module headers in compact view. Tooltip no longer squashes text with `drawFittedText`.
+- Factory preset catalog is a shared no-allocation C++ facility: `presetInfo(Preset)`, `presetValues(Preset)`, `Engine::loadPreset(Preset)`. Total **32 original complete programs**, each with 13 native units: Vocal(10), Music(10), Vintage(6), Ambient(6). See `docs/FACTORY_PRESETS.md` for the full inspectable parameter table.
+- First 4 preset enum IDs and actual values remain unchanged; new 28 are appended.
+- Menu categories and selectable names are generated directly from catalog. Host automation and VST3 state serialization remain the single parameter source of truth.
+- Valhalla VintageVerb has distinct modes absent here: the new profiles are tuning starting points for the existing ArSonVerb core, not Valhalla preset copies. Listening QA still required.
+- Tests: core checks all 32 names, ranges, engine roundtrip and finiteness with one prepare; host verifies 32 selectable items and exact parameter propagation. No extra audio threads, plugin modes, or DSP callbacks.
+- One PR, then Windows CI; merge only after 6/6 CTest.
+
+
+---
+
 # VERIFIED — Premium Bronze Control Surface (2026-10-31)
 
 - [PR #10](https://github.com/masarray/arsonverb/pull/10) **MERGED** into main at `51f9c769b76d312aad417d2349ba541265299bad`.

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 
 namespace arplugin {
 namespace {
@@ -31,10 +32,27 @@ juce::Typeface::Ptr interTypeface() {
         BinaryData::InterVariable_ttf, BinaryData::InterVariable_ttfSize);
     return face;
 }
-juce::Font uiFont (float size) {
-    return juce::Font (juce::FontOptions (size).withTypeface (interTypeface()));
+// Clone one true Semibold (wght=600) Inter outline instead of synthetic
+// boldening. The generated typeface is cached once on the GUI thread.
+juce::Typeface::Ptr interSemiboldTypeface() {
+    static const auto face = []() -> juce::Typeface::Ptr {
+        const std::array<juce::FontVariableSetting,1> settings {{
+            {juce::FontFeatureTag {"wght"}, 600.0f}
+        }};
+        if (auto configured = interTypeface()->cloneWithVariableSettings (settings))
+            return configured;
+        return interTypeface();
+    }();
+    return face;
 }
-juce::Font uiHeavy (float size) { return uiFont (size).boldened(); }
+juce::Font uiFont (float size) {
+    return juce::Font (juce::FontOptions (std::round (size))
+                          .withTypeface (interTypeface()));
+}
+juce::Font uiHeavy (float size) {
+    return juce::Font (juce::FontOptions (std::round (size))
+                          .withTypeface (interSemiboldTypeface()));
+}
 constexpr float referenceWidth = 1100.0f;
 constexpr float referenceHeight = 510.0f;
 
@@ -264,8 +282,8 @@ void HardwareLookAndFeel::drawTooltip (juce::Graphics& g,
     g.drawRect (0, 0, width, height, 1);
     g.setColour (palette::mainText);
     g.setFont (uiHeavy (13.0f));
-    g.drawFittedText (text, 8, 4, width - 16, height - 8,
-                      juce::Justification::centredLeft, 2);
+    g.drawText (text, juce::Rectangle<int> (8, 4, width - 16, height - 8),
+                juce::Justification::centredLeft, false);
 }
 void HardwareLookAndFeel::drawToggleButton (
     juce::Graphics& g, juce::ToggleButton& button,
@@ -321,14 +339,20 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     theme.setColour (juce::PopupMenu::highlightedTextColourId, palette::mainText);
 
     presetBox.setTextWhenNothingSelected ("PRESETS");
-    presetBox.addItem ("Vocal Plate", 1);
-    presetBox.addItem ("Vocal Chamber", 2);
-    presetBox.addItem ("Music Hall", 3);
-    presetBox.addItem ("Airy Ballad", 4);
+    // No placeholder rows: the immutable core catalog supplies every label
+    // and all 13 parameters. Menu section order does not renumber Preset IDs.
+    for (const auto* category : {"Vocal", "Music", "Vintage", "Ambient"}) {
+        presetBox.addSectionHeading (category);
+        for (std::size_t i = 0; i < arverb::presetCount; ++i) {
+            const auto& info = arverb::presetInfo (static_cast<arverb::Preset> (i));
+            if (std::strcmp (info.category, category) == 0)
+                presetBox.addItem (info.name, static_cast<int> (i) + 1);
+        }
+    }
     presetBox.setJustificationType (juce::Justification::centredLeft);
     presetBox.onChange = [this] {
         const int id = presetBox.getSelectedId();
-        if (id >= 1 && id <= 4)
+        if (id > 0 && id <= static_cast<int> (arverb::presetCount))
             processor.applyPreset (static_cast<arverb::Preset> (id - 1));
     };
     addAndMakeVisible (presetBox);
@@ -490,7 +514,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
     g.drawText ("ArSonVerb", scaled (25, 20, 270, 38, sx, sy),
                 juce::Justification::centredLeft);
     g.setColour (palette::secondaryText);
-    g.setFont (uiHeavy (13.6f * fs));
+    g.setFont (uiHeavy (std::max (11.8f, 13.6f * fs)));
     g.drawText ("MUSICAL VINTAGE REVERB",
         scaled (26, 63, 310, 20, sx, sy),
         juce::Justification::centredLeft);
@@ -499,14 +523,14 @@ void ReverbEditor::paint (juce::Graphics& g) {
     // None of these are extra JUCE components or click targets.
     for (const auto& m : groupPanels) {
         g.setColour (palette::mainText);
-        g.setFont (uiHeavy (15.7f * fs));
+        g.setFont (uiHeavy (std::max (12.8f, 15.7f * fs)));
         g.drawText (m.title,
             scaled (m.x+7, m.y+8, m.w-14, 24, sx, sy),
             juce::Justification::centred);
     }
 
     // Green hardware-style decay readout, not a general-purpose text box.
-    const auto display = scaled (206, 425, 122, 44, sx, sy).toFloat();
+    const auto display = scaled (206, 412, 122, 44, sx, sy).toFloat();
     g.setColour (juce::Colour (0xff1e2622));
     g.fillRoundedRectangle (display, 5.0f * fs);
     g.setGradientFill (juce::ColourGradient (juce::Colour (0xff263e32),
@@ -541,12 +565,12 @@ void ReverbEditor::resized() {
         labels[i].setBounds (juce::roundToInt (dial.centreX * sx - 55.0f * sx),
                              juce::roundToInt (captionTop),
                              juce::roundToInt (110.0f * sx), juce::roundToInt (21.0f * s));
-        labels[i].setFont (uiHeavy (17.6f * s));
+        labels[i].setFont (uiHeavy (std::max (12.5f, 17.6f * s)));
     }
-    decayReadout.setBounds (scaled (207, 424, 120, 44, sx, sy));
+    decayReadout.setBounds (scaled (207, 411, 120, 44, sx, sy));
     decayReadout.setFont (uiHeavy (23.0f * s));
     parameterReadout.setBounds (scaled (369, 27, 330, 34, sx, sy));
-    parameterReadout.setFont (uiHeavy (14.5f * s));
+    parameterReadout.setFont (uiHeavy (std::max (12.0f, 14.5f * s)));
     rebuildFaceplateCache();
 }
 } // namespace arplugin
