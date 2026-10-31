@@ -55,7 +55,7 @@ jobs:
             test "${{ inputs.juce_rights_confirmed }}" = "true"
             test "${{ inputs.project_rights_confirmed }}" = "true"
             test "${{ inputs.device_qa_confirmed }}" = "true"
-            test "v1.0.0" = "v1.0.0"
+            test "${{ inputs.version }}" = "v1.0.0"
           else
             # The owner authorised stable release after testing P9, in chat.
             # The only automatic trigger is this immutable named branch.
