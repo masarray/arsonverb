@@ -59,6 +59,7 @@ private:
     void refreshDecayReadout();
     void refreshParameterReadout (std::size_t index);
     void rebuildFaceplateCache();
+    juce::Rectangle<int> decayDisplayBounds() const;
     ReverbProcessor& processor;
     HardwareLookAndFeel theme;
     juce::ComboBox presetBox;
