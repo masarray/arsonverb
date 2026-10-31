@@ -1,5 +1,9 @@
 # ArSonVerb — repository rules for coding assistants
 
+## P3 musical early-energy and bass decay design — CI pending
+
+P3 changes the actual sound; the first 8-filter variant was rejected for ~31% overhead, and the lean modal variant must be rebenchmarked: a continuous early-to-late energy and stereo-crossfeed morph using the 6 existing taps are blended above Diffusion 0.62; the shared Householder projection gains a single one-pole low-bass absorption contour driven by existing Wet Low Cut control. Preserve original sample rates, controls, factory values, GUI, zero added plugin latency and all real-time no-allocation invariants. Avoid claims that numeric DSP stability proves musical beauty or Valhalla/FabFilter parity. Require Windows JUCE VST3+Standalone, all CTests and Linux sanitizers plus manually level-matched hearing/CPU acceptance. References in docs/SONIC_BASELINE.md.
+
 ## P2 measured optimization — merged, CI verified
 
 Removed only 5 unused audio-rate smoothing values. Independent Decay/Rate/EQ coefficient smoothing is unchanged; the 8 consumed per-sample controls are still updated in the original order. Static gold logo and module lettering have moved to the JUCE faceplate cache; moving LED/arc remain live. Verified 27/27 float-bit-identical P1/P2 audio cases, 54 same-runner CPU AB, Windows JUCE 7/7 CTests, and Linux sanitizer. CPU median delta approximately 0%, so do not claim universal speedup. Real DAW screenshots and device xrun still need user verification. Do not claim realtime zero device latency.

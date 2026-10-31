@@ -70,6 +70,37 @@ jobs:
             build-ci/p2-AB.txt
           if-no-files-found: error
           retention-days: 7
+      # Compare the sonic P3 DSP against P2 using the same Release runner.
+      # No extra job, no statistically unsound performance pass threshold.
+      - name: P3 matched P2-vs-P3 CPU callback profile
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p3-')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show HEAD^1:src/Reverb.cpp > build-ci/p3-P2-Reverb.cpp
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p3-P2-Reverb.cpp src/Presets.cpp tests/benchmark.cpp -o build-ci/p3-P2-benchmark
+          ./build-ci/p3-P2-benchmark --quick > build-ci/p3-P2-54.csv
+          ./build-ci/arverb_benchmark --quick > build-ci/p3-P3-54.csv
+          python3 scripts/compare_perf.py build-ci/p3-P2-54.csv build-ci/p3-P3-54.csv > build-ci/p3-AB.txt
+          cat build-ci/p3-AB.txt
+          ./build-ci/p3-P2-benchmark --quick --dense > build-ci/p3-P2-dense-54.csv
+          ./build-ci/arverb_benchmark --quick --dense > build-ci/p3-P3-dense-54.csv
+          python3 scripts/compare_perf.py build-ci/p3-P2-dense-54.csv build-ci/p3-P3-dense-54.csv > build-ci/p3-dense-AB.txt
+          cat build-ci/p3-dense-AB.txt
+      - name: Upload P3 matched-runner CPU evidence
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p3-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-P3-P2-vs-P3-Linux-CPU
+          path: |
+            build-ci/p3-P2-54.csv
+            build-ci/p3-P3-54.csv
+            build-ci/p3-AB.txt
+            build-ci/p3-P2-dense-54.csv
+            build-ci/p3-P3-dense-54.csv
+            build-ci/p3-dense-AB.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish P1 DSP profiler CSV
         if: matrix.os == 'ubuntu-24.04'
         uses: actions/upload-artifact@v4

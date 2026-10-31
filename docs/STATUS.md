@@ -1,3 +1,14 @@
+# P3 IN VALIDATION — Musical Early Energy and Frequency-Dependent Feedback Decay (2026-10-31)
+
+- Extends early energy density from six sparse taps with zero additional taps; a continuous early-to-late send/crossfeed morph using existing 6 taps for Diffusion above 0.62. Existing delay buffers (132ms) are reused; the original early-reflection signal remains unchanged at Diffusion <=0.62. Density morph is continuous and bounded, not an additional lookahead or convolution.
+- Adds a one shared one-pole, mild bass absorption contour on the Householder feedback eigenmode (3-10% low-band attenuation per pass, cutoff 85Hz + 0.14×Wet Low Cut Hz). The existing Wet Low Cut control therefore shapes both output HPF and low-band tail recurrence; avoids adding new host IDs. New filter states reset on host reset.
+- Retains eight-line Householder topology, 13 IDs, 32 factory preset values, automation, zero reported additional plugin latency, gold JUCE visual and existing presets. **Sound changes deliberately**; previous P2 audio bit-signatures are not expected to match (but run as deterministic regressions).
+- Initial P3 full 8-filter/6-tap variant **REJECTED** after same-runner benchmark indicated ~31% mean CPU increase and one offline deadline crossing. Revised variant uses one modal filter and 0 extra taps. P3 same-runner benchmark includes both ordinary MusicHall and explicit high-diffusion (LongDreamHall) same-runner CPU A/B.
+- P3 isolated bass/mid frequency tests + all-rate/early-density/finite/stereo/continuous output test; all prior CTest, sanitizer and host tests remain mandatory. CPU comparison against P2 and user DAW level-matched vocal/music listening still needed; no industry sonic parity claim.
+- References: ValhallaRoom early energy research and FabFilter Pro-R 2 frequency-dependent decay EQ (behavioral research; original implementation).
+
+---
+
 # VERIFIED — P2 Sound-Preserving DSP & Static GUI Cache (2026-10-31)
 
 - DSP removes five unused per-sample scalar smoothing updates: DecaySeconds, ModRateHz, DampingHz, LowCutHz and HighCutHz. Their actual FDN/gain/filter target and coefficient smoothing remains intact. Eight consumed parameter smoothers run in original order; no audio algorithm or parameter/ABI change.
