@@ -19,3 +19,12 @@ Static logo PNG, four group captions, subtitle and bronze chassis now share one 
 
 ## Merge acceptance
 Linux exact 27-case audio equality; Linux Release and sanitizer; Windows core and JUCE VST3/Standalone with 7/7 CTests; verify benchmark and GUI CSV artifact, then merge. P2 optimization must not sacrifice musical sound or physical GUI luxury. Steinberg VST3 realtime guidance: https://steinbergmedia.github.io/vst3_dev_portal/pages/FAQ/Processing.html
+
+## Results and PR merge — 2026-10-31
+
+- [PR #21](https://github.com/masarray/arsonverb/pull/21) merged, commit `80f9cdb07e8767db5709edac964394a952070f19`.
+- [Linux core Release + ASan/UBSan](https://github.com/masarray/arsonverb/actions/runs/41196712607): success. **27/27 actual P1/P2 float-bit stereo signatures identical.** The Linux runner published same-compiler, same-runner 54-case P1 and P2 callback CSVs (artifact `ArSonVerb-P2-Linux-Matched-AB`).
+- [Windows VST3 + Standalone](https://github.com/masarray/arsonverb/actions/runs/41196712610): success; **7/7 CTests passed**, including real-JUCE host, C ABI and audio signature.
+- Same-runner quick CPU probe: median p99 change ~+0.30%, median mean ~+0.36%; this is within uncontrolled runner variance and **does not prove general CPU improvement**. On 192k/32/16 instance/automation, reference p99 138.018 μs vs candidate 122.148 μs (−11.5% in one sample). On 96k/32/16 automation candidate p99 was slightly slower (114.894 vs 116.748 μs). Zero offline deadline crossings in both.
+- Windows GUI offscreen: mean full-paint 4.811 ms at 842×394 and 3.348 ms at 1180×545, resized costs 8.923/11.583 ms. Shared GitHub runner hardware/OS load varies, so do not compare these percentages with prior P1 CI timings as a proven GUI improvement. Real monitor and DAW screenshot checks pending.
+- Sound identity is established only for the 27 checked scenarios on the same Linux compiler, not all host/compiler combinations. Zero *reported* extra latency samples is not zero host/device latency.

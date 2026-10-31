@@ -1,8 +1,8 @@
 # ArSonVerb — repository rules for coding assistants
 
-## P2 measured optimization — pending verification
+## P2 measured optimization — merged, CI verified
 
-Removed only 5 unused audio-rate smoothing values. Independent Decay/Rate/EQ coefficient smoothing is unchanged; the 8 consumed per-sample controls are still updated in the original order. Static gold logo and module lettering have moved to the JUCE faceplate cache; moving LED/arc remain live. Require 27-case exact float-bit signature against previous engine, same-runner P1/P2 CPU data, 7 Windows JUCE CTests, core sanitizer, and real GUI screenshot before visual parity claims. Do not claim realtime zero device latency.
+Removed only 5 unused audio-rate smoothing values. Independent Decay/Rate/EQ coefficient smoothing is unchanged; the 8 consumed per-sample controls are still updated in the original order. Static gold logo and module lettering have moved to the JUCE faceplate cache; moving LED/arc remain live. Verified 27/27 float-bit-identical P1/P2 audio cases, 54 same-runner CPU AB, Windows JUCE 7/7 CTests, and Linux sanitizer. CPU median delta approximately 0%, so do not claim universal speedup. Real DAW screenshots and device xrun still need user verification. Do not claim realtime zero device latency.
 
 ## P1 performance instrumentation — 2026-10-31
 

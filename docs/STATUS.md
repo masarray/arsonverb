@@ -1,10 +1,14 @@
-# P2 IN VALIDATION — Verified-sound DSP and GUI repaint optimization (2026-10-31)
+# VERIFIED — P2 Sound-Preserving DSP & Static GUI Cache (2026-10-31)
 
 - DSP removes five unused per-sample scalar smoothing updates: DecaySeconds, ModRateHz, DampingHz, LowCutHz and HighCutHz. Their actual FDN/gain/filter target and coefficient smoothing remains intact. Eight consumed parameter smoothers run in original order; no audio algorithm or parameter/ABI change.
 - GUI caches static brushed-gold logo PNG, subtitle and panel heading typography with bronze faceplate on resize. Native knob LEDs, value editor, Decay LCD and layout remain unchanged. No timer or audio callback work.
 - New 27-case float-bit stereo signature (48/96/192 kHz × 3 factory presets × 1/32/257 frame blocks), including extreme block automation. Linux CI compiles P1 source from PR first-parent with the same compiler/flags and compares exact outputs, then records before/after 54-case CPU p99 on the same runner. Audio must be **bit-for-bit identical** on that compiler or PR must not merge.
 - Normal Core Linux/macOS/Windows, ASan+UBSan and Windows JUCE VST3+Standalone regressions required; automated CTest count becomes 7. No new CI jobs.
-- **Pending CI/merge:** results are not yet verified. GUI HiDPI screenshots and actual ASIO xrun on a physical DAW workstation remain manual.
+- [PR #21](https://github.com/masarray/arsonverb/pull/21) **MERGED** as `80f9cdb07e8767db5709edac964394a952070f19`. Linux [Release + sanitizer CI](https://github.com/masarray/arsonverb/actions/runs/41196712607) **SUCCESS**; PR Windows [VST3+Standalone JUCE CI](https://github.com/masarray/arsonverb/actions/runs/41196712610) **SUCCESS, 7/7 CTests**.
+- Exact audio validation: 27/27 bit-identical signatures P1 vs P2 on same Linux compiler; automation included. 54-case same-runner CPU AB artifact `ArSonVerb-P2-Linux-Matched-AB` was inspected.
+- Median p99 delta over 54 short CI cases was about **+0.30% (slower)**, median mean about **+0.36%**, i.e. **no confirmed universal CPU speedup**. At 192 kHz / 32 samples / 16 instances / aggressive automation p99 improved from 138.018 to 122.148 μs (−11.5% in that run). Both variants had zero *offline* deadline crossings, not proof of real DAW xrun-free operation.
+- Windows offscreen full editor paint measured 4.811 ms at 842×394 and 3.348 ms at 1180×545 on this CI runner. Those metrics **cannot be fairly compared** with P1's older separate Windows runner; source-static-work reduction is verified, overall GUI speedup is not.
+- **Remaining physical acceptance:** compare P1/P2 on the same Windows machine with ASIO hardware, host CPU p99, actual underruns, visual 100/125/150% screenshots and matched-level vocal/music listening. Post-merge Windows CI may report separately.
 
 ---
 
