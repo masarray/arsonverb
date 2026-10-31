@@ -1,3 +1,7 @@
+## P4 distinct FDN algorithm milestone — in verification (2026-10-31)
+
+Classic uses the original P3 Householder path, Plate uses a normalized Hadamard, Chamber four independent orthogonal pair rotations and Hall an alternate Householder vector. One tank, 100ms matrix morph, zero new delay buffers and zero reported extra plugin latency. The new host algorithm choice follows the original thirteen IDs and bypass, so older DAW states explicitly restore Classic. Premium compact algorithm capsule; keep full factory browser. Require verified 9 Windows CTests, Linux sanitizer, host state migration and physical listening before sonic parity claims. Details in docs/P4_ALGORITHMS.md.
+
 # ArSonVerb — repository rules for coding assistants
 
 ## P3 musical early-to-late and bass modal decay — merged, 8/8 Windows verified

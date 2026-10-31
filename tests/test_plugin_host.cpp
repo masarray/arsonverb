@@ -168,7 +168,11 @@ int main() {
     check(p.getNumInputChannels() == 2 && p.getNumOutputChannels() == 2,
           "stereo bus layout");
     check(p.getBypassParameter() != nullptr, "explicit bypass parameter");
-    check(p.getParameters().size() == static_cast<int>(arverb::parameterCount) + 1,
+    check(p.parameters.getParameter("algorithm") != nullptr,
+          "new algorithm parameter appended after legacy IDs");
+    check(p.parameters.getRawParameterValue("algorithm")->load() == 0.0f,
+          "Classic must be default for pre-P4 project compatibility");
+    check(p.getParameters().size() == static_cast<int>(arverb::parameterCount) + 2,
           "number of automatable parameters");
 
     {
@@ -297,6 +301,17 @@ int main() {
             for (int n = 0; n < editor->getNumChildComponents(); ++n)
                 if (auto* combo = dynamic_cast<juce::ComboBox*> (
                         editor->getChildComponent (n))) {
+                    if (combo->getComponentID() == "algorithm-mode") {
+                        check (combo->getNumItems() == 4, "four real mode choices visible");
+                        combo->setSelectedId (2, juce::sendNotificationSync); // Plate
+                        check (juce::roundToInt (
+                            p.parameters.getRawParameterValue ("algorithm")->load()) == 1,
+                            "native mode selector must automate algorithm parameter");
+                        // Restore Classic before the user chooses a factory
+                        // program. The preset must subsequently choose Hall.
+                        combo->setSelectedId (1, juce::sendNotificationSync);
+                        continue;
+                    }
                     factoryCount += combo->getNumItems();
                     // Test actual menu wiring, not merely Processor::applyPreset.
                     combo->setSelectedId (static_cast<int> (arverb::presetCount),
@@ -394,19 +409,37 @@ int main() {
     setParameter(p, "bypass", 1.0f);
     render(p, 256); // Plugin automatable bypass path.
 
+    // DAW automation of topology must survive state save/restore.
+    setParameter(p, "algorithm", 2.0f); // Chamber
+    render(p, 256);
     juce::MemoryBlock saved;
     p.getStateInformation(saved);
     check(saved.getSize() > 0, "serialized session must not be empty");
     arplugin::ReverbProcessor restored;
     restored.setStateInformation(saved.getData(), static_cast<int>(saved.getSize()));
-    for (const char* id : {"decay", "lowcut", "mix", "bypass"}) {
+    for (const char* id : {"decay", "lowcut", "mix", "bypass", "algorithm"}) {
         auto* before = p.parameters.getParameter(id);
         auto* after  = restored.parameters.getParameter(id);
         check(before && after, "state parameter missing");
         check(std::fabs(before->getValue() - after->getValue()) < 1e-5f,
               "DAW state roundtrip mismatch");
     }
-    // Loading corrupt chunks must not crash or corrupt valid parameters.
+    // Actual pre-P4 XML chunks had no algorithm child. Rebuild an old chunk
+    // from a modern one after removing only the new mode row. A previously
+    // selected modern mode must not leak into a restored legacy project.
+    auto legacyXml = p.getXmlFromBinary(saved.getData(), static_cast<int>(saved.getSize()));
+    check(legacyXml != nullptr, "state XML readable");
+    for (int i=legacyXml->getNumChildElements()-1; i>=0; --i) {
+        auto* child=legacyXml->getChildElement(i);
+        if (child->getStringAttribute("id") == "algorithm")
+            legacyXml->removeChildElement(child, true);
+    }
+    juce::MemoryBlock legacyChunk;
+    p.copyXmlToBinary(*legacyXml, legacyChunk);
+    restored.setStateInformation(legacyChunk.getData(), static_cast<int>(legacyChunk.getSize()));
+    check(restored.parameters.getRawParameterValue("algorithm")->load() == 0.0f,
+          "legacy state explicitly restores Classic mode");
+        // Loading corrupt chunks must not crash or corrupt valid parameters.
     constexpr std::array<char, 6> corrupted{{'b','a','d','\0','\x7f','z'}};
     restored.setStateInformation(corrupted.data(), static_cast<int>(corrupted.size()));
     check(std::fabs(restored.parameters.getParameter("decay")->getValue() -

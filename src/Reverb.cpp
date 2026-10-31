@@ -13,6 +13,43 @@ namespace {
 constexpr float kLn001 = 6.907755278982137f;  // ln(1000), for RT60
 constexpr std::size_t kLines = 8;
 
+inline void algorithmMatrix (unsigned mode, const float* input, float* output) noexcept {
+    // All three *new* feedback families are orthogonal and do not add delay
+    // buffers. Plate: eight-line 3-stage normalized Hadamard, O(N log N).
+    if (mode == 1u) {
+        float a[8], b[8];
+        for (int i=0;i<8;i+=2) {
+            a[i]=input[i]+input[i+1]; a[i+1]=input[i]-input[i+1];
+        }
+        for (int i=0;i<8;i+=4) {
+            b[i]=a[i]+a[i+2]; b[i+2]=a[i]-a[i+2];
+            b[i+1]=a[i+1]+a[i+3]; b[i+3]=a[i+1]-a[i+3];
+        }
+        constexpr float invSqrt8=0.353553390593273762f;
+        for (int i=0;i<4;++i) {
+            output[i]=invSqrt8*(b[i]+b[i+4]);
+            output[i+4]=invSqrt8*(b[i]-b[i+4]);
+        }
+    } else if (mode == 2u) {
+        // Chamber: four interleaved pairwise Givens rotations; intentionally
+        // sparser, with less cross-coupling than a hall/plate feedback field.
+        constexpr int pairs[4][2] {{0,5},{1,6},{2,7},{3,4}};
+        for (const auto& p:pairs) {
+            const int i=p[0],j=p[1];
+            output[i]=0.8f*input[i]+0.6f*input[j];
+            output[j]=-0.6f*input[i]+0.8f*input[j];
+        }
+    } else {
+        // Hall: distinct Householder eigenvector from legacy Classic.
+        constexpr float sign[8] {1.f,1.f,-1.f,-1.f,-1.f,-1.f,1.f,1.f};
+        float projection=0.0f;
+        for (int i=0;i<8;++i) projection+=sign[i]*input[i];
+        projection*=0.25f;
+        for (int i=0;i<8;++i) output[i]=input[i]-sign[i]*projection;
+    }
+}
+
+
 constexpr ParameterInfo kParameterInfo[parameterCount] = {
     {"mix",       "Mix",         "",    0.0f,    1.0f,    0.19f},
     {"predelay",  "Pre-delay",   "ms",  0.0f,  250.0f,   36.0f},
@@ -118,6 +155,8 @@ struct Engine::State {
     float hfFeedbackCoeff = 0.0f;
     float wetHighCoeff = 0.0f;
     float wetLowCoeff = 0.0f;
+    unsigned fromAlgorithm=0, toAlgorithm=0;
+    float algorithmBlend=1.0f, algorithmStep=0.0f;
 
     void reset() noexcept {
         for (auto& p : pre) p.reset();
@@ -176,6 +215,9 @@ void Engine::prepare(double sampleRate) {
     s.envelopeAttack = 1.0f - std::exp(-1.0f / (0.012f * fs));
     s.envelopeRelease = 1.0f - std::exp(-1.0f / (0.34f * fs));
     s.presence.prepare(fs);
+    s.algorithmStep = 1.0f / std::max(1.0f, fs * 0.100f); // 100ms morph
+    s.fromAlgorithm = s.toAlgorithm = algorithm_.load(std::memory_order_relaxed);
+    s.algorithmBlend=1.0f;
     for (std::size_t i = 0; i < parameterCount; ++i)
         s.smooth[i] = parameters_[i].load(std::memory_order_relaxed);
 
@@ -200,7 +242,28 @@ void Engine::prepare(double sampleRate) {
     reset();
 }
 
-void Engine::reset() noexcept { state_->reset(); }
+void Engine::reset() noexcept {
+    state_->reset();
+    State& s=*state_;
+    s.fromAlgorithm=s.toAlgorithm=algorithm_.load(std::memory_order_relaxed);
+    s.algorithmBlend=1.0f;
+}
+void Engine::setAlgorithm(Algorithm value) noexcept {
+    const auto v=static_cast<unsigned>(value);
+    if (v<algorithmCount) algorithm_.store(v,std::memory_order_relaxed);
+}
+Algorithm Engine::getAlgorithm() const noexcept {
+    return static_cast<Algorithm>(algorithm_.load(std::memory_order_relaxed));
+}
+const char* algorithmName(Algorithm value) noexcept {
+    switch(value) {
+        case Algorithm::Classic: return "Classic";
+        case Algorithm::Plate: return "Plate";
+        case Algorithm::Chamber: return "Chamber";
+        case Algorithm::Hall: return "Hall";
+    }
+    return "Classic";
+}
 
 void Engine::setParameter(Parameter parameter, float value) noexcept {
     const auto i = static_cast<std::size_t>(parameter);
@@ -223,6 +286,15 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     for (std::size_t i = 0; i < parameterCount; ++i)
         target[i] = parameters_[i].load(std::memory_order_relaxed);
     const auto idx = [](Parameter p) -> unsigned { return static_cast<unsigned>(p); };
+    // Atomic host target captured once per block. The entire 100ms
+    // transition uses the SAME tank; no two-engine tail CPU/memory cost.
+    const unsigned requested = algorithm_.load(std::memory_order_relaxed);
+    if (requested != s.toAlgorithm) {
+        s.fromAlgorithm = (s.algorithmBlend < 0.5f)
+            ? s.fromAlgorithm : s.toAlgorithm;
+        s.toAlgorithm = requested;
+        s.algorithmBlend = s.fromAlgorithm == s.toAlgorithm ? 1.0f : 0.0f;
+    }
 
     // Constant work per block: expensive transcendental operations are never per sample.
     // Cache expensive math until the controlling parameter changes. Hosts are free to
@@ -354,9 +426,29 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         // other eigenmodes, stereo injection and dry remain untouched.
         const float bassShapedProjection = s.feedbackBass.process(
             householderProjection, s.bassCoeff, s.bassDepth);
+        // Legacy Classic remains exactly the original Householder DSP.
+        // Non-Classic modes use real, distinct feedback transform families.
+        float feedbackA[8], feedbackB[8], feedback[8];
+        if (s.fromAlgorithm==0u) {
+            for (int i=0;i<8;++i)
+                feedbackA[i]=taps[i]-bassShapedProjection*kReflect[i];
+        } else algorithmMatrix(s.fromAlgorithm,taps,feedbackA);
+        if (s.algorithmBlend<1.0f) {
+            if (s.toAlgorithm==0u) {
+                for (int i=0;i<8;++i)
+                    feedbackB[i]=taps[i]-bassShapedProjection*kReflect[i];
+            } else algorithmMatrix(s.toAlgorithm,taps,feedbackB);
+            const float blend=s.algorithmBlend;
+            for (int i=0;i<8;++i)
+                feedback[i]=feedbackA[i]+blend*(feedbackB[i]-feedbackA[i]);
+            s.algorithmBlend=std::min(1.0f,blend+s.algorithmStep);
+            if (s.algorithmBlend>=1.0f) s.fromAlgorithm=s.toAlgorithm;
+        } else {
+            for (int i=0;i<8;++i) feedback[i]=feedbackA[i];
+        }
         for (std::size_t i = 0; i < kLines; ++i) {
             s.gains[i] += s.smoother * (s.targetGains[i] - s.gains[i]);
-            const float mixed = taps[i] - bassShapedProjection * kReflect[i];
+            const float mixed = feedback[i];
             const float damped = s.feedbackLP[i].process(mixed, s.hfFeedbackCoeff);
             const float injected = 0.30f * (kInjectL[i] * diffL + kInjectR[i] * diffR);
             s.lines[i].push(killDenormal(s.gains[i] * damped + injected));

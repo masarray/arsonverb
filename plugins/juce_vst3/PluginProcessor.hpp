@@ -45,6 +45,7 @@ private:
     arverb::Engine engine;
     std::array<std::atomic<float>*, arverb::parameterCount> targets{};
     std::atomic<float>* bypassTarget = nullptr;
+    std::atomic<float>* algorithmTarget = nullptr;
     bool ready = false; // Audio thread owns after prepareToPlay, no GUI reads
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbProcessor)

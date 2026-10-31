@@ -6,6 +6,7 @@
 namespace arplugin {
 namespace {
 constexpr const char* kBypassId = "bypass";
+constexpr const char* kAlgorithmId = "algorithm";
 constexpr const char* kStateType = "ARStudioReverbState";
 constexpr int kStateVersion = 1;
 
@@ -39,6 +40,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReverbProcessor::createParam
     }
     result.add (std::make_unique<juce::AudioParameterBool> (
         juce::ParameterID {kBypassId, 1}, "Bypass", false));
+    // Append only: all previous 13 IDs and bypass order remain immutable.
+    result.add (std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID {kAlgorithmId, 1}, "Algorithm",
+        juce::StringArray {"Classic", "Plate", "Chamber", "Hall"}, 0));
     return result;
 }
 
@@ -51,8 +56,9 @@ ReverbProcessor::ReverbProcessor()
         targets[i] = parameters.getRawParameterValue (
             arverb::parameterInfo (static_cast<arverb::Parameter> (i)).id);
     bypassTarget = parameters.getRawParameterValue (kBypassId);
+    algorithmTarget = parameters.getRawParameterValue (kAlgorithmId);
     // APVTS owns all parameter objects for the lifetime of this processor.
-    jassert (bypassTarget != nullptr);
+    jassert (bypassTarget != nullptr && algorithmTarget != nullptr);
 }
 
 bool ReverbProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const {
@@ -91,6 +97,11 @@ void ReverbProcessor::render (juce::AudioBuffer<float>& audio, bool hostBypass) 
     }
     auto* l = audio.getWritePointer (0);
     auto* r = audio.getWritePointer (1);
+    if (algorithmTarget != nullptr) {
+        const auto index = juce::jlimit (0, 3,
+            juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)));
+        engine.setAlgorithm (static_cast<arverb::Algorithm> (index));
+    }
     engine.process (l, r, l, r, static_cast<std::size_t> (frames));
 }
 
@@ -123,12 +134,29 @@ void ReverbProcessor::setStateInformation (const void* data, int size) {
     if (!tree.isValid()) return;
     const auto version = static_cast<int> (tree.getProperty ("schemaVersion", 0));
     if (version > kStateVersion) return; // Never silently misread unknown future states.
+    // Sessions saved before P4 do not have an Algorithm parameter.
+    // Always restore them as Classic, even if this instance previously
+    // had a newly-selected mode; the old reverb must sound unchanged.
+    bool hasAlgorithm = false;
+    for (int i = 0; i < tree.getNumChildren(); ++i)
+        if (tree.getChild (i).getProperty ("id").toString() == kAlgorithmId)
+            hasAlgorithm = true;
     parameters.replaceState (tree);
+    if (!hasAlgorithm)
+        if (auto* mode = parameters.getParameter (kAlgorithmId))
+            mode->setValueNotifyingHost (0.0f);
 }
 
 void ReverbProcessor::applyPreset (arverb::Preset preset) {
-    // Preset application on UI thread; APVTS sets the single source of truth.
+    // Native factory presets now select genuinely distinct feedback topology,
+    // while their original 13 numeric values remain unchanged.
     const auto values = arverb::presetValues (preset);
+    if (auto* mode = parameters.getParameter (kAlgorithmId)) {
+        mode->beginChangeGesture();
+        mode->setValueNotifyingHost (mode->convertTo0to1 (
+            static_cast<float>(static_cast<unsigned>(arverb::presetAlgorithm(preset)))));
+        mode->endChangeGesture();
+    }
     for (std::uint32_t i = 0; i < arverb::parameterCount; ++i) {
         const auto p = static_cast<arverb::Parameter> (i);
         if (auto* parameter = parameters.getParameter (arverb::parameterInfo (p).id)) {
