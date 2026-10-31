@@ -1,10 +1,10 @@
-# P6 v0.5.0 development candidate — CI validation pending (2026-10-31)
+# VERIFIED PR CI — P6 v0.5.0 mono/stereo physical audition milestone (2026-10-31)
 
-Branch: feat/p6-mono-host-audition-pack-20261031; target is native MONO 1→1, MONO→STEREO 1→2 expansion and existing stereo 2→2 JUCE hosting, a real four-mode host regression, and an eight-file 48k stereo impulse diagnostics/audition artifact from the **existing** Windows CI job. This is NOT a validated release or a claim of commercial sonic parity.
+**PR #26 merged** to main as `7cbc9c2792082990e7b94e74678e02f966b6505b`: native MONO 1→1, MONO→STEREO 1→2 and existing stereo 2→2 JUCE hosting; actual four-mode host regression; 8 raw 48k/6s impulse WAVs in the existing Windows CI job. Not a public release, licensed distribution, physical DAW acceptance or commercial sonic parity claim.
 
 P6 leaves the core engine, original 13 scalar IDs, algorithm ID, 32 factory values and approved compact gold GUI unchanged; only JUCE I/O adaptation, offline WAV tooling, release-preview version, test/CI and docs change. In 1→1 mono mode, feed one source into both core channels and return the mid from bounded stack chunks; in 1→2 mode, duplicate the mono source once to the host's second channel and reuse the existing stereo DSP fast path. Existing stereo processing stays in-place and untouched. The P6 offline exporter generates 6s raw wet responses for four feedback matrices with identical Vocal Plate Clean parameters (plus mono/left impulses), SHA-256 provenance and per-band Schroeder T20 x3 diagnostics; diagnostic measurements are not acceptance of real driver phase/xruns.
 
-**Do not mark P6 verified before observing actual Core Linux/Windows/macOS + sanitizer, Windows JUCE build/host CTests and the P6 audition artifact.** After passing, conduct real user workstation/DAW mono+stereo, ASIO/WASAPI low-buffer xruns, loudness-matched vocal/instrument A/B and pluginval/second host. License remains undecided. See docs/P6_PHYSICAL_AUDITION.md.
+**Verified P6 PR gate:** [Windows VST3/Standalone run 41208990180](https://github.com/masarray/arsonverb/actions/runs/41208990180) SUCCESS, 10/10 CTests including real JUCE mono/expanding/stereo host, all 8 measured WAVs and two uploaded artifacts; [Linux core Release+ASan/UBSan run 41208990172](https://github.com/masarray/arsonverb/actions/runs/41208990172) SUCCESS. Windows artifact 13045452835 (8.6MB), audition artifact 13045597649 (16.9MB), each with 7-day retention. PR Linux checks are not a substitute for post-merge main CI or actual DAW/ASIO testing. **Human audition, real device CPU/xruns, DAW multi-host/pluginval and licensing remain open**. See docs/P6_PHYSICAL_AUDITION.md.
 
 ---
 
