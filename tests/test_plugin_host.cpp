@@ -388,7 +388,7 @@ int main() {
     // For a dual-mono source, the mono plugin must produce the arithmetic
     // downmix of the stereo plugin, across modes and irregular host blocks.
     for (int mode = 0; mode < 4; ++mode) {
-        arplugin::ReverbProcessor mono, stereo;
+        arplugin::ReverbProcessor mono, stereo, expanding;
         juce::AudioProcessor::BusesLayout monoBuses;
         monoBuses.inputBuses.add (juce::AudioChannelSet::mono());
         monoBuses.outputBuses.add (juce::AudioChannelSet::mono());
@@ -398,25 +398,34 @@ int main() {
                "JUCE must activate mono-to-mono host bus layout");
         check (mono.getNumInputChannels() == 1 && mono.getNumOutputChannels() == 1,
                "mono channel count reaches the actual AudioProcessor");
+        juce::AudioProcessor::BusesLayout expandable = monoBuses;
+        expandable.outputBuses.set (0, juce::AudioChannelSet::stereo());
+        check (expanding.isBusesLayoutSupported (expandable) &&
+               expanding.setBusesLayout (expandable),
+               "mono vocal track may expand to true stereo wet return");
         juce::AudioProcessor::BusesLayout mismatched = monoBuses;
-        mismatched.outputBuses.set (0, juce::AudioChannelSet::stereo());
+        mismatched.inputBuses.set (0, juce::AudioChannelSet::stereo());
         check (!mono.isBusesLayoutSupported (mismatched),
-               "reject incompatible mono-to-stereo layout rather than misroute");
+               "unsupported stereo-to-mono layout must be rejected");
         setParameter (mono, "mix", 0.78f);
         setParameter (stereo, "mix", 0.78f);
+        setParameter (expanding, "mix", 0.78f);
         setParameter (mono, "duck", 0.0f);
         setParameter (stereo, "duck", 0.0f);
+        setParameter (expanding, "duck", 0.0f);
         setParameter (mono, "algorithm", static_cast<float>(mode));
         setParameter (stereo, "algorithm", static_cast<float>(mode));
+        setParameter (expanding, "algorithm", static_cast<float>(mode));
         mono.prepareToPlay (48000.0, 256);
         stereo.prepareToPlay (48000.0, 256);
+        expanding.prepareToPlay (48000.0, 256);
         juce::MidiBuffer midi;
         std::size_t sampleIndex = 0;
         double wetEnergy = 0.0;
         for (int iteration = 0; iteration < 180; ++iteration) {
             const int frames = std::array<int, 6>{{1, 17, 127, 128, 257, 511}}
                 [static_cast<std::size_t> (iteration % 6)];
-            juce::AudioBuffer<float> m (1, frames), s (2, frames);
+            juce::AudioBuffer<float> m (1, frames), s (2, frames), e (2, frames);
             for (int i = 0; i < frames; ++i, ++sampleIndex) {
                 // Short recurring vocal-like bursts with silence between.
                 const float excitation = sampleIndex % 2400 < 400
@@ -425,9 +434,12 @@ int main() {
                 m.setSample (0, i, excitation);
                 s.setSample (0, i, excitation);
                 s.setSample (1, i, excitation);
+                e.setSample (0, i, excitation);
+                e.setSample (1, i, 0.0f); // host supplies cleared extra output
             }
             mono.processBlock (m, midi);
             stereo.processBlock (s, midi);
+            expanding.processBlock (e, midi);
             for (int i = 0; i < frames; ++i) {
                 const float actual = m.getSample (0, i);
                 const float expected = 0.5f * (s.getSample (0, i) +
@@ -435,6 +447,9 @@ int main() {
                 check (std::isfinite(actual) && std::isfinite(expected) &&
                        std::abs(actual - expected) < 8e-5f,
                        "mono equals stereo mid across odd-sized host callbacks");
+                check (std::abs(e.getSample (0, i) - s.getSample (0, i)) < 8e-5f &&
+                       std::abs(e.getSample (1, i) - s.getSample (1, i)) < 8e-5f,
+                       "mono->stereo wet equals dual-mono stereo without crosstalk errors");
                 wetEnergy += static_cast<double>(actual) * actual;
             }
         }
