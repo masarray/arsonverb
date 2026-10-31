@@ -15,7 +15,7 @@ static void check(bool ok,const char* why) {
 }
 static double shelfGain(float hz,float air,float fs) {
     arverb::detail::AirShelf shelf;
-    const float coefficient=arverb::detail::lowPassCoeff(6500.0f,fs);
+    const float coefficient=arverb::detail::lowPassCoeff(7800.0f,fs);
     double before=0,after=0;
     for(int i=0;i<48000;++i) {
         float s=0.3f*std::sin(2.0f*arverb::detail::kPi*hz*i/fs);
@@ -50,6 +50,34 @@ static double render(int mode,float mix,bool mono) {
     }
     return std::sqrt(sum/(399.0*128.0));
 }
+// P8 real-engine tone probes: gate the final wet spectrum, not only a
+// disconnected shelf primitive. Measurements are RMS, not listening scores.
+static double wetTone(int mode, float hz, float highCut) {
+    arverb::Engine e;
+    e.setAlgorithm(static_cast<arverb::Algorithm>(mode));
+    e.setParameter(arverb::Parameter::Mix, 1.0f);
+    e.setParameter(arverb::Parameter::PreDelayMs, 0.0f);
+    e.setParameter(arverb::Parameter::DecaySeconds, 2.3f);
+    e.setParameter(arverb::Parameter::DampingHz, 16500.0f);
+    e.setParameter(arverb::Parameter::HighCutHz, highCut);
+    e.setParameter(arverb::Parameter::DuckAmount, 0.0f);
+    e.setParameter(arverb::Parameter::ModDepthMs, 0.0f);
+    e.prepare(48000.0);
+    std::array<float,128> l{},r{},a{},b{};
+    double energy=0.0;
+    for(int block=0;block<360;++block) {
+        for(int j=0;j<128;++j) {
+            const float phase=2.0f*arverb::detail::kPi*hz*
+                static_cast<float>(block*128+j)/48000.0f;
+            l[j]=r[j]=0.18f*std::sin(phase);
+        }
+        e.process(l.data(),r.data(),a.data(),b.data(),128);
+        if (block>=160) for(int j=0;j<128;++j)
+            energy+=static_cast<double>(a[j])*a[j]+static_cast<double>(b[j])*b[j];
+    }
+    return std::sqrt(energy/(200.0*128.0*2.0));
+}
+
 int main() {
     // These must use the exact gain law; with 36ms predelay, the first
     // sample after prepare is dry only, not phase-cancelled wet energy.
@@ -87,5 +115,45 @@ int main() {
             prev=rms;
         }
     }
-    std::puts("PASS P5: equal-power dry/wet, non-silent mono wet, air selectivity");
+    // P8: prepare() must prime coefficients, not defer expensive
+    // initialization to the very first small buffer; with static targets,
+    // samplewise and large-block engines must generate the same output.
+    {
+        arverb::Engine full, split;
+        full.setAlgorithm(arverb::Algorithm::Plate);
+        split.setAlgorithm(arverb::Algorithm::Plate);
+        full.setParameter(arverb::Parameter::PreDelayMs,0.0f);
+        split.setParameter(arverb::Parameter::PreDelayMs,0.0f);
+        full.prepare(48000.0);
+        split.prepare(48000.0);
+        std::array<float,2048> il{},ir{},fl{},fr{},sl{},sr{};
+        for(std::size_t i=0;i<il.size();++i) {
+            il[i]=0.15f*std::sin(static_cast<float>(i)*0.037f);
+            ir[i]=-0.12f*std::sin(static_cast<float>(i)*0.043f);
+        }
+        full.process(il.data(),ir.data(),fl.data(),fr.data(),il.size());
+        for(std::size_t i=0;i<il.size();++i)
+            split.process(&il[i],&ir[i],&sl[i],&sr[i],1);
+        for(std::size_t i=0;i<il.size();++i)
+            check(std::abs(fl[i]-sl[i])<1e-6f &&
+                  std::abs(fr[i]-sr[i])<1e-6f,
+                  "cold-start one-sample versus 2048-sample buffers diverged");
+    }
+    // HighCut should determine whether top air exists. No free-running
+    // noise, dry boost, pseudo-shimmer or bypass of the user's dark cutoff.
+    for(int mode : {0,1,3}) {
+        const double highDark=wetTone(mode,9800.0f,4000.0f);
+        const double highOpen=wetTone(mode,9800.0f,14500.0f);
+        const double lowDark=wetTone(mode,500.0f,4000.0f);
+        const double lowOpen=wetTone(mode,500.0f,14500.0f);
+        check(highDark>1e-8 && lowDark>1e-8, "measurable wet frequency probe");
+        const double highRatio=highOpen/highDark;
+        const double lowRatio=lowOpen/lowDark;
+        std::printf("P8 mode=%d wet air highRatio=%.3f lowRatio=%.3f\\n",
+                    mode,highRatio,lowRatio);
+        check(highRatio>lowRatio*1.12,
+              "brightening open HighCut must favor top air over body");
+        check(highOpen<2.5, "wet top-air output must remain bounded");
+    }
+    std::puts("PASS P8: equal-power Mix, cold-block invariance, wet top-air selectivity");
 }

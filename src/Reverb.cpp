@@ -12,6 +12,9 @@ namespace arverb {
 namespace {
 constexpr float kLn001 = 6.907755278982137f;  // ln(1000), for RT60
 constexpr std::size_t kLines = 8;
+// Bound expensive control-coefficient work under tiny ASIO buffer automation.
+// The last host target wins; audio coefficients remain sample-smoothed.
+constexpr unsigned kControlQuantumSamples = 128;
 
 inline void algorithmMatrix (unsigned mode, const float* input, float* output) noexcept {
     // All three *new* feedback families are orthogonal and do not add delay
@@ -108,6 +111,15 @@ inline float calibratedHFLoss(float decaySeconds, float roomSize,
     return detail::clamp(-std::expm1(excessLogLoss), 0.0f, 0.92f);
 }
 
+// Top-air is a bounded wet-only spectral tilt, never a noise generator.
+// A closed high-cut gate remains dark; an open high-cut and low HF absorption
+// permit more sheen without raising the dry path, tail feedback or output trim.
+inline float musicalAirLift(float highCutHz, float dampingHz) noexcept {
+    const float openness = detail::clamp((highCutHz - 5500.0f) / 8000.0f, 0.0f, 1.0f);
+    const float bright = detail::clamp((dampingHz - 800.0f) / 17200.0f, 0.0f, 1.0f);
+    return 0.72f * openness * (0.72f + 0.28f * bright);
+}
+
 // Additional low-amplitude, irregularly spaced *early energy* taps. This is
 // one original density layer, not a ray-traced room model or Valhalla code.
 // The old 6-tap sound remains untouched below Diffusion=0.62. Delay storage
@@ -180,6 +192,7 @@ struct Engine::State {
     float cachedDamping = -1.0f;
     float cachedLowCut = -1.0f;
     float cachedHighCut = -1.0f;
+    unsigned coefficientCooldownSamples = 0;
     float targetHF = 0.0f;
     float targetLow = 0.0f;
     float targetHigh = 0.0f;
@@ -252,7 +265,7 @@ void Engine::prepare(double sampleRate) {
     s.envelopeAttack = 1.0f - std::exp(-1.0f / (0.012f * fs));
     s.envelopeRelease = 1.0f - std::exp(-1.0f / (0.34f * fs));
     s.presence.prepare(fs);
-    s.airCoeff = lowPassCoeff(6500.0f, fs);
+    s.airCoeff = lowPassCoeff(7800.0f, fs);
     s.algorithmStep = 1.0f / std::max(1.0f, fs * 0.100f); // 100ms morph
     s.fromAlgorithm = s.toAlgorithm = algorithm_.load(std::memory_order_relaxed);
     s.algorithmBlend=1.0f;
@@ -270,27 +283,32 @@ void Engine::prepare(double sampleRate) {
     for (std::size_t i = 0; i < kLines; ++i) {
         const float lengthSeconds = kDelayMs[i] * 0.001f * size;
         s.gains[i] = std::exp(-kLn001 * lengthSeconds / decay);
+        s.targetGains[i] = s.gains[i];
     }
-    s.cachedDecay = -1.0f;
-    s.cachedSize = -1.0f;
-    s.cachedRate = -1.0f;
-    s.cachedDamping = -1.0f;
-    s.cachedLowCut = -1.0f;
-    s.cachedHighCut = -1.0f;
-    s.hfFeedbackCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::DampingHz)], fs);
-    s.wetLowCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::LowCutHz)], fs);
+    // P8: all invariant/exp/trig work belongs in prepare(), not the first
+    // time-critical processBlock after the host starts its ASIO stream.
+    s.cachedDecay = decay;
+    s.cachedSize = size;
+    s.cachedRate = s.smooth[static_cast<unsigned>(Parameter::ModRateHz)];
+    for (std::size_t i = 0; i < kLines; ++i)
+        s.lfo[i].setFrequency(s.cachedRate * kLfoRatio[i], fs);
+    s.cachedDamping = s.smooth[static_cast<unsigned>(Parameter::DampingHz)];
+    s.cachedLowCut = s.smooth[static_cast<unsigned>(Parameter::LowCutHz)];
+    s.cachedHighCut = s.smooth[static_cast<unsigned>(Parameter::HighCutHz)];
+    s.coefficientCooldownSamples = 0;
+    s.hfFeedbackCoeff = s.targetHF = lowPassCoeff(s.cachedDamping, fs);
+    s.wetLowCoeff = s.targetLow = lowPassCoeff(s.cachedLowCut, fs);
     const float highCut = s.smooth[static_cast<unsigned>(Parameter::HighCutHz)];
-    s.wetHighCoeff = lowPassCoeff(highCut, fs);
+    s.wetHighCoeff = s.targetHigh = lowPassCoeff(highCut, fs);
     // Bright settings transition from a 12dB/oct to a gentler 6dB/oct
     // wet post-filter, with a small controlled air shelf above ~6.5k.
     s.wetHighSlope = s.targetHighSlope =
         clamp((highCut - 5500.0f) / 5500.0f, 0.0f, 1.0f);
-    s.airLift = s.targetAirLift =
-        0.55f * clamp((highCut - 6500.0f) / 13500.0f, 0.0f, 1.0f);
-    const float dampingCut = s.smooth[static_cast<unsigned>(Parameter::DampingHz)];
+    const float dampingCut = s.cachedDamping;
+    s.airLift = s.targetAirLift = musicalAirLift(highCut, dampingCut);
     s.hfDampingBlend = s.targetHFDampingBlend = calibratedHFLoss(
         decay, size, dampingCut);
-    const float initialLowCut = s.smooth[static_cast<unsigned>(Parameter::LowCutHz)];
+    const float initialLowCut = s.cachedLowCut;
     s.bassCoeff = s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(initialLowCut), fs);
     s.bassDepth = s.targetBassDepth = bassDecayDepth(initialLowCut);
     reset();
@@ -301,6 +319,7 @@ void Engine::reset() noexcept {
     State& s=*state_;
     s.fromAlgorithm=s.toAlgorithm=algorithm_.load(std::memory_order_relaxed);
     s.algorithmBlend=1.0f;
+    s.coefficientCooldownSamples=0;
 }
 void Engine::setAlgorithm(Algorithm value) noexcept {
     const auto v=static_cast<unsigned>(value);
@@ -359,49 +378,65 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         s.algorithmBlend = s.fromAlgorithm == s.toAlgorithm ? 1.0f : 0.0f;
     }
 
-    // Constant work per block: expensive transcendental operations are never per sample.
-    // Cache expensive math until the controlling parameter changes. Hosts are free to
-    // call process() with tiny blocks; unchanged settings cost no transcendental ops.
-    const bool roomChanged = target[idx(Parameter::Size)] != s.cachedSize ||
-                             target[idx(Parameter::DecaySeconds)] != s.cachedDecay;
-    if (roomChanged) {
-        s.cachedSize = target[idx(Parameter::Size)];
-        s.cachedDecay = target[idx(Parameter::DecaySeconds)];
-        for (std::size_t i = 0; i < kLines; ++i) {
-            const float delaySec = kDelayMs[i] * s.cachedSize * 0.001f;
-            s.targetGains[i] = std::exp(-kLn001 * delaySec / s.cachedDecay);
+    // Coalesce fast automation to one coefficient update per 128 processed
+    // samples. Mix + topology still receive every block; the seven continuous
+    // audio controls and all filter/gain coefficients still smooth per sample.
+    // Avoid 8 exp + 16 trig and several exp filters on EVERY 32-sample block.
+    // Always use the latest atomic targets; never queue stale control events.
+    if (s.coefficientCooldownSamples == 0u) {
+        bool anyCoefficientChanged = false;
+        const bool roomChanged = target[idx(Parameter::Size)] != s.cachedSize ||
+                                 target[idx(Parameter::DecaySeconds)] != s.cachedDecay;
+        if (roomChanged) {
+            s.cachedSize = target[idx(Parameter::Size)];
+            s.cachedDecay = target[idx(Parameter::DecaySeconds)];
+            for (std::size_t i = 0; i < kLines; ++i) {
+                const float delaySec = kDelayMs[i] * s.cachedSize * 0.001f;
+                s.targetGains[i] = std::exp(-kLn001 * delaySec / s.cachedDecay);
+            }
+            anyCoefficientChanged = true;
         }
+        if (target[idx(Parameter::ModRateHz)] != s.cachedRate) {
+            s.cachedRate = target[idx(Parameter::ModRateHz)];
+            for (std::size_t i = 0; i < kLines; ++i)
+                s.lfo[i].setFrequency(s.cachedRate * kLfoRatio[i], s.sampleRate);
+            anyCoefficientChanged = true;
+        }
+        const bool dampingChanged = target[idx(Parameter::DampingHz)] != s.cachedDamping;
+        if (dampingChanged) {
+            s.cachedDamping = target[idx(Parameter::DampingHz)];
+            s.targetHF = lowPassCoeff(s.cachedDamping, s.sampleRate);
+            anyCoefficientChanged = true;
+        }
+        if (roomChanged || dampingChanged)
+            s.targetHFDampingBlend = calibratedHFLoss(
+                s.cachedDecay, s.cachedSize, s.cachedDamping);
+        if (target[idx(Parameter::LowCutHz)] != s.cachedLowCut) {
+            s.cachedLowCut = target[idx(Parameter::LowCutHz)];
+            s.targetLow = lowPassCoeff(s.cachedLowCut, s.sampleRate);
+            s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(s.cachedLowCut), s.sampleRate);
+            s.targetBassDepth = bassDecayDepth(s.cachedLowCut);
+            anyCoefficientChanged = true;
+        }
+        const bool highCutChanged = target[idx(Parameter::HighCutHz)] != s.cachedHighCut;
+        if (highCutChanged) {
+            s.cachedHighCut = target[idx(Parameter::HighCutHz)];
+            s.targetHigh = lowPassCoeff(s.cachedHighCut, s.sampleRate);
+            s.targetHighSlope = clamp(
+                (s.cachedHighCut - 5500.0f) / 5500.0f, 0.0f, 1.0f);
+            anyCoefficientChanged = true;
+        }
+        if (highCutChanged || dampingChanged)
+            s.targetAirLift = musicalAirLift(s.cachedHighCut, s.cachedDamping);
+        if (anyCoefficientChanged)
+            s.coefficientCooldownSamples = kControlQuantumSamples;
     }
-    if (target[idx(Parameter::ModRateHz)] != s.cachedRate) {
-        s.cachedRate = target[idx(Parameter::ModRateHz)];
-        for (std::size_t i = 0; i < kLines; ++i)
-            s.lfo[i].setFrequency(s.cachedRate * kLfoRatio[i], s.sampleRate);
-    }
-    const bool dampingChanged = target[idx(Parameter::DampingHz)] != s.cachedDamping;
-    if (dampingChanged) {
-        s.cachedDamping = target[idx(Parameter::DampingHz)];
-        s.targetHF = lowPassCoeff(s.cachedDamping, s.sampleRate);
-    }
-    if (roomChanged || dampingChanged) {
-        // One block-rate expm1 for all 8 lines; existing scalar smoother and
-        // eight feedback lowpasses are reused. No per-sample math or new state.
-        s.targetHFDampingBlend = calibratedHFLoss(
-            s.cachedDecay, s.cachedSize, s.cachedDamping);
-    }
-    if (target[idx(Parameter::LowCutHz)] != s.cachedLowCut) {
-        s.cachedLowCut = target[idx(Parameter::LowCutHz)];
-        s.targetLow = lowPassCoeff(s.cachedLowCut, s.sampleRate);
-        s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(s.cachedLowCut), s.sampleRate);
-        s.targetBassDepth = bassDecayDepth(s.cachedLowCut);
-    }
-    if (target[idx(Parameter::HighCutHz)] != s.cachedHighCut) {
-        s.cachedHighCut = target[idx(Parameter::HighCutHz)];
-        s.targetHigh = lowPassCoeff(s.cachedHighCut, s.sampleRate);
-        s.targetHighSlope = clamp(
-            (s.cachedHighCut - 5500.0f) / 5500.0f, 0.0f, 1.0f);
-        s.targetAirLift = 0.55f * clamp(
-            (s.cachedHighCut - 6500.0f) / 13500.0f, 0.0f, 1.0f);
-    }
+    // Decrement by actual processed frames, not callback count: block sizes
+    // are variable, including 1 and 2048 samples; no clock/thread required.
+    if (frames >= s.coefficientCooldownSamples)
+        s.coefficientCooldownSamples = 0;
+    else
+        s.coefficientCooldownSamples -= static_cast<unsigned>(frames);
 
     // Seven smoothed scalar controls remain: Mix is smoothed directly in
     // gain space, avoiding LUT/index/lerp arithmetic on every sample.

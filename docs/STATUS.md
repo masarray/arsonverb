@@ -1,3 +1,9 @@
+# P8 v0.7.0 — REALTIME STARTUP + TOP AIR, PR VALIDATION PENDING (2026-10-31)
+
+**Working branch:** `feat/p8-rt-startup-air-20261031`, following verified P7 main `71f3e75`. The user still hears startup crackles and insufficient sparkle; those are real-world symptoms, not yet hardware-reproduced by CI. P8 moves first-block DSP coefficient initialization into `prepare()`, bounds expensive automation coefficient recalculation to once per 128 processed samples with last-value-wins, and strengthens wet-only top air when HighCut and Damping are open. Adds net live-allocation lifecycle and real-engine spectral/block-size tests, plus same-runner P7/P8 54-case CPU evidence in the existing CI workflow. **Do not claim CI green, crackle-free workstation operation or top-plugin sonic parity until verified.** Existing 13 host scalar IDs, 32 presets, four feedback modes, gold GUI and C ABI retained. See `docs/P8_REALTIME_STARTUP_AIR.md` for engineering scope and physical acceptance gate.
+
+---
+
 # P7 v0.6.0 RT60-aware High-Frequency Tail — MERGED and PR CI verified (2026-10-31)
 
 **Scope:** replace P5 fixed per-feedback HF damping loss with a Decay/Size-aware bounded spectral-tail loss derived from a representative FDN delay and relative HF RT60 target, using the **existing LP filters + single scalar smoother**. New real-engine 4-mode high-band tail regression at two Size / two Decay values. The existing P6 8-WAV QA artifact and Windows JUCE VST3+Standalone are preserved; no GUI change, no new parameter, C ABI/32 factory values intact. Intentional sonic behavior change in old sessions; a P6 vs P7 matched-loudness A/B is mandatory. **v0.6.0 is a DEVELOPMENT AUDITION version, not a public release.**

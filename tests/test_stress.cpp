@@ -11,6 +11,7 @@
 #include <atomic>
 
 static std::atomic<unsigned> allocations{0};
+static std::atomic<unsigned> releases{0};
 void* operator new(std::size_t n) {
     allocations.fetch_add(1, std::memory_order_relaxed);
     if (auto* p = std::malloc(n ? n : 1)) return p;
@@ -21,10 +22,10 @@ void* operator new[](std::size_t n) {
     if (auto* p = std::malloc(n ? n : 1)) return p;
     throw std::bad_alloc();
 }
-void operator delete(void* p) noexcept { std::free(p); }
-void operator delete[](void* p) noexcept { std::free(p); }
-void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+void operator delete(void* p) noexcept { if (p) releases.fetch_add(1, std::memory_order_relaxed); std::free(p); }
+void operator delete[](void* p) noexcept { if (p) releases.fetch_add(1, std::memory_order_relaxed); std::free(p); }
+void operator delete(void* p, std::size_t) noexcept { if (p) releases.fetch_add(1, std::memory_order_relaxed); std::free(p); }
+void operator delete[](void* p, std::size_t) noexcept { if (p) releases.fetch_add(1, std::memory_order_relaxed); std::free(p); }
 static void require(bool pass, const char* why) {
     if (!pass) { std::fprintf(stderr, "STRESS FAIL: %s\n",why); std::abort(); }
 }
@@ -67,5 +68,25 @@ int main() {
             if (iter % 79 == 0) core.reset();
         }
     }
-    std::puts("PASS: 5 sample rates, 1500 randomized automation blocks, zero-to-2048 frames, no allocations");
+    // A separate lifecycle engine is repeatedly re-prepared/released at
+    // different rates. Track the net number of *live* new/delete allocations
+    // rather than assuming no leak merely because process() never allocates.
+    const unsigned liveBefore = allocations.load(std::memory_order_relaxed) -
+                                releases.load(std::memory_order_relaxed);
+    {
+        Engine lifecycle;
+        for (int repeat = 0; repeat < 12; ++repeat) {
+            for (double fs : {8000.0, 44100.0, 48000.0, 96000.0, 192000.0}) {
+                lifecycle.prepare(fs);
+                lifecycle.reset();
+                inL.fill(0.0f);
+                inR.fill(0.0f);
+                lifecycle.process(inL.data(), inR.data(), outL.data(), outR.data(), 64);
+            }
+        }
+    }
+    const unsigned liveAfter = allocations.load(std::memory_order_relaxed) -
+                               releases.load(std::memory_order_relaxed);
+    require(liveAfter == liveBefore, "repeated prepare/reset/destruction leaked live heap blocks");
+    std::puts("PASS P8: 5 sample rates, 1500 randomized automation blocks, no callback heap and no lifecycle net leaks");
 }

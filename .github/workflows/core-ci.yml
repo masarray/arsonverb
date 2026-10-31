@@ -125,6 +125,31 @@ jobs:
             build-ci/p7-AB.txt
           if-no-files-found: error
           retention-days: 7
+      # P8: compare the actual P7 main DSP against the new bounded
+      # coefficient scheduler under identical compiler/runner conditions.
+      # No additional job, no hard pass/fail timing threshold on shared CI.
+      - name: P8 same-runner P7 vs P8 callback CPU
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p8-')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show HEAD^1:src/Reverb.cpp > build-ci/p8-P7-Reverb.cpp
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p8-P7-Reverb.cpp src/Presets.cpp tests/benchmark.cpp -o build-ci/p8-P7-benchmark
+          ./build-ci/p8-P7-benchmark --quick > build-ci/p8-P7-54.csv
+          ./build-ci/arverb_benchmark --quick > build-ci/p8-P8-54.csv
+          python3 scripts/compare_perf.py build-ci/p8-P7-54.csv build-ci/p8-P8-54.csv > build-ci/p8-AB.txt
+          cat build-ci/p8-AB.txt
+      - name: Publish P8 matched callback CPU evidence
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p8-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-P8-P7-vs-P8-Linux-CPU
+          path: |
+            build-ci/p8-P7-54.csv
+            build-ci/p8-P8-54.csv
+            build-ci/p8-AB.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish P1 DSP profiler CSV
         if: matrix.os == 'ubuntu-24.04'
         uses: actions/upload-artifact@v4
