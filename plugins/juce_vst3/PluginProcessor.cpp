@@ -1,5 +1,7 @@
 #include "PluginProcessor.hpp"
 #include "PluginEditor.hpp"
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <stdexcept>
 
@@ -62,8 +64,15 @@ ReverbProcessor::ReverbProcessor()
 }
 
 bool ReverbProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const {
-    return layouts.getMainInputChannelSet() == juce::AudioChannelSet::stereo()
-        && layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
+    const auto in = layouts.getMainInputChannelSet();
+    const auto out = layouts.getMainOutputChannelSet();
+    // Vocal mono -> stereo wet is a standard creative-reverb workflow.
+    // Hosts that cannot expand a mono track can use mono->mono instead.
+    return (in == juce::AudioChannelSet::stereo() &&
+            out == juce::AudioChannelSet::stereo()) ||
+           (in == juce::AudioChannelSet::mono() &&
+            (out == juce::AudioChannelSet::mono() ||
+             out == juce::AudioChannelSet::stereo()));
 }
 
 void ReverbProcessor::prepareToPlay (double sampleRate, int) {
@@ -83,7 +92,8 @@ void ReverbProcessor::releaseResources() {
 
 void ReverbProcessor::render (juce::AudioBuffer<float>& audio, bool hostBypass) noexcept {
     const auto frames = audio.getNumSamples();
-    if (frames <= 0 || audio.getNumChannels() != 2 || !ready) return;
+    if (frames <= 0 || !ready ||
+        audio.getNumChannels() < getTotalNumOutputChannels()) return;
     const juce::ScopedNoDenormals noDenormals;
     const bool bypass = hostBypass || (bypassTarget != nullptr
                           && bypassTarget->load (std::memory_order_relaxed) >= 0.5f);
@@ -95,14 +105,42 @@ void ReverbProcessor::render (juce::AudioBuffer<float>& audio, bool hostBypass) 
             value = 0.0f; // Smooth wet ramp; keep processing the tail and input history.
         engine.setParameter (static_cast<arverb::Parameter> (i), value);
     }
-    auto* l = audio.getWritePointer (0);
-    auto* r = audio.getWritePointer (1);
     if (algorithmTarget != nullptr) {
         const auto index = juce::jlimit (0, 3,
             juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)));
         engine.setAlgorithm (static_cast<arverb::Algorithm> (index));
     }
-    engine.process (l, r, l, r, static_cast<std::size_t> (frames));
+    const int inputChannels = getTotalNumInputChannels();
+    const int outputChannels = getTotalNumOutputChannels();
+    if (outputChannels == 2) {
+        if (inputChannels == 1) {
+            // Mono vocal -> true stereo reverb: duplicate dry input ONCE to
+            // the host-provided second output channel, then existing stereo
+            // FDN builds independently diffused L/R tails. No heap or locks.
+            audio.copyFrom (1, 0, audio, 0, 0, frames);
+        }
+        auto* l = audio.getWritePointer (0);
+        auto* r = audio.getWritePointer (1);
+        engine.process (l, r, l, r, static_cast<std::size_t> (frames));
+    } else {
+        // Mono input -> mono output: dual-mono excitation through the
+        // same FDN, then return mid = (left + right)/2. This deliberately discards stereo side
+        // energy for mono hosts, avoiding phase-unsafe fake stereo mixing.
+        // Fixed bounded stack buffers: no audio callback heap or locks.
+        constexpr int chunkSize = 128;
+        std::array<float, chunkSize> wetL {};
+        std::array<float, chunkSize> wetR {};
+        auto* mono = audio.getWritePointer (0);
+        for (int offset = 0; offset < frames; offset += chunkSize) {
+            const int count = std::min (chunkSize, frames - offset);
+            const float* input = mono + offset;
+            engine.process (input, input, wetL.data(), wetR.data(),
+                            static_cast<std::size_t> (count));
+            for (int i = 0; i < count; ++i)
+                mono[offset + i] = 0.5f * (wetL[static_cast<std::size_t> (i)]
+                                           + wetR[static_cast<std::size_t> (i)]);
+        }
+    }
 }
 
 void ReverbProcessor::processBlock (juce::AudioBuffer<float>& audio, juce::MidiBuffer&) {

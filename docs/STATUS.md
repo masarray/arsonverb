@@ -1,3 +1,13 @@
+# P6 v0.5.0 development candidate — CI validation pending (2026-10-31)
+
+Branch: feat/p6-mono-host-audition-pack-20261031; target is native MONO 1→1, MONO→STEREO 1→2 expansion and existing stereo 2→2 JUCE hosting, a real four-mode host regression, and an eight-file 48k stereo impulse diagnostics/audition artifact from the **existing** Windows CI job. This is NOT a validated release or a claim of commercial sonic parity.
+
+P6 leaves the core engine, original 13 scalar IDs, algorithm ID, 32 factory values and approved compact gold GUI unchanged; only JUCE I/O adaptation, offline WAV tooling, release-preview version, test/CI and docs change. In 1→1 mono mode, feed one source into both core channels and return the mid from bounded stack chunks; in 1→2 mode, duplicate the mono source once to the host's second channel and reuse the existing stereo DSP fast path. Existing stereo processing stays in-place and untouched. The P6 offline exporter generates 6s raw wet responses for four feedback matrices with identical Vocal Plate Clean parameters (plus mono/left impulses), SHA-256 provenance and per-band Schroeder T20 x3 diagnostics; diagnostic measurements are not acceptance of real driver phase/xruns.
+
+**Do not mark P6 verified before observing actual Core Linux/Windows/macOS + sanitizer, Windows JUCE build/host CTests and the P6 audition artifact.** After passing, conduct real user workstation/DAW mono+stereo, ASIO/WASAPI low-buffer xruns, loudness-matched vocal/instrument A/B and pluginval/second host. License remains undecided. See docs/P6_PHYSICAL_AUDITION.md.
+
+---
+
 # CURRENT — P5 reconciled integrated status (2026-10-31)
 
 **Audited DSP source:** `masarray/arsonverb` P5 code merge `8da785b`; later commits `24c1f95` and docs PR #25 only reconcile documentation. **As of PR #25: 23 PRs merged, 0 open.** Historical branches are not pending unmerged deliverables. P1–P5 milestones are integrated. This summary supersedes historical P1-not-started / Plate-is-only-a-preset / JUCE-not-built notes further below.

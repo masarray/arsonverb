@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - 'tests/**'
+      - 'examples/**'
+      - 'scripts/p6_audition_pack.py'
       - 'plugins/**'
       - 'CMakeLists.txt'
       - '.github/workflows/plugin-ci.yml'
@@ -40,12 +42,21 @@ jobs:
           -DARVERB_BUILD_TESTS=ON
           -DARVERB_BUILD_SHARED=ON
       - name: Build VST3, Standalone, and host smoke tests
-        run: cmake --build build-plugin --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests
+        run: cmake --build build-plugin --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests arverb_demo
       - name: Run DSP and real AudioProcessor host-contract tests
         run: ctest --test-dir build-plugin -C Release --output-on-failure
         env:
           # GUI paint measurements execute only in the host test's GUI thread.
           ARVERB_GUI_PROFILE_CSV: p1-gui-profile.csv
+      - name: Build P6 physical audition QA pack (offline stdlib only)
+        run: python scripts/p6_audition_pack.py --renderer build-plugin/Release/arverb_demo.exe --output build-plugin/P6-Audition
+      - name: Upload P6 measured four-mode IR audition (same Windows job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-P6-Physical-Audition-48k
+          path: build-plugin/P6-Audition/**
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload unsigned test artifact (not a validated release)
         uses: actions/upload-artifact@v4
         with:
