@@ -63,6 +63,27 @@ ReverbProcessor::ReverbProcessor()
     jassert (bypassTarget != nullptr && algorithmTarget != nullptr);
 }
 
+void ReverbProcessor::syncEngineParameters (bool hostBypass) noexcept {
+    // Canonical host snapshot: both prepare and render must use exactly
+    // these values. Prevent host-restored presets from doing coefficient
+    // first-use work on the time-critical first ASIO callback.
+    const bool bypass = hostBypass || (bypassTarget != nullptr
+                          && bypassTarget->load (std::memory_order_relaxed) >= 0.5f);
+    for (std::uint32_t i = 0; i < arverb::parameterCount; ++i) {
+        auto value = targets[i] != nullptr
+            ? targets[i]->load (std::memory_order_relaxed)
+            : arverb::parameterInfo (static_cast<arverb::Parameter> (i)).defaultValue;
+        if (i == static_cast<std::uint32_t> (arverb::Parameter::Mix) && bypass)
+            value = 0.0f; // Smooth wet ramp; keep processing the tail and input history.
+        engine.setParameter (static_cast<arverb::Parameter> (i), value);
+    }
+    if (algorithmTarget != nullptr) {
+        const auto index = juce::jlimit (0, 3,
+            juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)));
+        engine.setAlgorithm (static_cast<arverb::Algorithm> (index));
+    }
+}
+
 bool ReverbProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const {
     const auto in = layouts.getMainInputChannelSet();
     const auto out = layouts.getMainOutputChannelSet();
@@ -78,6 +99,8 @@ bool ReverbProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const 
 void ReverbProcessor::prepareToPlay (double sampleRate, int) {
     ready = false;
     try {
+        // Prime from the actual DAW/APVTS state, not internal defaults.
+        syncEngineParameters (false);
         engine.prepare (sampleRate);  // May allocate, only in prepareToPlay.
         ready = true;
     } catch (const std::exception&) {
@@ -95,21 +118,7 @@ void ReverbProcessor::render (juce::AudioBuffer<float>& audio, bool hostBypass) 
     if (frames <= 0 || !ready ||
         audio.getNumChannels() < getTotalNumOutputChannels()) return;
     const juce::ScopedNoDenormals noDenormals;
-    const bool bypass = hostBypass || (bypassTarget != nullptr
-                          && bypassTarget->load (std::memory_order_relaxed) >= 0.5f);
-    for (std::uint32_t i = 0; i < arverb::parameterCount; ++i) {
-        auto value = targets[i] != nullptr
-            ? targets[i]->load (std::memory_order_relaxed)
-            : arverb::parameterInfo (static_cast<arverb::Parameter> (i)).defaultValue;
-        if (i == static_cast<std::uint32_t> (arverb::Parameter::Mix) && bypass)
-            value = 0.0f; // Smooth wet ramp; keep processing the tail and input history.
-        engine.setParameter (static_cast<arverb::Parameter> (i), value);
-    }
-    if (algorithmTarget != nullptr) {
-        const auto index = juce::jlimit (0, 3,
-            juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)));
-        engine.setAlgorithm (static_cast<arverb::Algorithm> (index));
-    }
+    syncEngineParameters (hostBypass);
     const int inputChannels = getTotalNumInputChannels();
     const int outputChannels = getTotalNumOutputChannels();
     if (outputChannels == 2) {
