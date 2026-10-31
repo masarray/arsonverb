@@ -292,7 +292,7 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
 
 void HardwareLookAndFeel::drawComboBox (juce::Graphics& g,
                                          int width, int height, bool,
-                                         int, int, int, int, juce::ComboBox&) {
+                                         int, int, int, int, juce::ComboBox& box) {
     // Solid, pixel-aligned LCD, with no translucent gradient behind text.
     // The native ComboBox Label is positioned explicitly below.
     const auto frame = juce::Rectangle<float> (
@@ -304,6 +304,9 @@ void HardwareLookAndFeel::drawComboBox (juce::Graphics& g,
     g.setColour (juce::Colour (0xffd8c1a3).withAlpha (0.24f));
     g.drawHorizontalLine (2, 4.0f, float (width - 5));
 
+    // Compact algorithm capsule uses its full width for the mode name
+    // and omits the arrow. The factory browser retains the original arrow.
+    if (box.getComponentID() == "algorithm-mode") return;
     const float x = float (width - 15);
     const float y = float (height / 2);
     g.setColour (palette::mainText);
@@ -320,10 +323,13 @@ juce::Font HardwareLookAndFeel::getComboBoxFont (juce::ComboBox&) {
 }
 void HardwareLookAndFeel::positionComboBoxText (
     juce::ComboBox& box, juce::Label& label) {
-    label.setBounds (16, 1, juce::jmax (0, box.getWidth() - 42),
+    const bool mode = box.getComponentID() == "algorithm-mode";
+    label.setBounds (mode ? 5 : 16, 1,
+                     juce::jmax (0, box.getWidth() - (mode ? 10 : 42)),
                      juce::jmax (0, box.getHeight() - 2));
-    label.setFont (getComboBoxFont (box));
-    label.setJustificationType (juce::Justification::centredLeft);
+    label.setFont (mode ? uiHeavy (12.1f) : getComboBoxFont (box));
+    label.setJustificationType (mode ? juce::Justification::centred
+                                     : juce::Justification::centredLeft);
     label.setColour (juce::Label::textColourId, palette::mainText);
 }
 juce::Font HardwareLookAndFeel::getPopupMenuFont() {
@@ -425,6 +431,18 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     };
     addAndMakeVisible (presetBox);
 
+    modeBox.setComponentID ("algorithm-mode");
+    modeBox.addItem ("CLASSIC", 1);
+    modeBox.addItem ("PLATE", 2);
+    modeBox.addItem ("CHAMBER", 3);
+    modeBox.addItem ("HALL", 4);
+    modeBox.setTooltip ("Reverb feedback algorithm; Classic preserves older sessions");
+    modeBox.addListener (this);
+    addAndMakeVisible (modeBox);
+    modeAttachment = std::make_unique<
+        juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processor.parameters, "algorithm", modeBox);
+
     bypassButton.setButtonText ("Active");
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         processor.parameters, "bypass", bypassButton);
@@ -519,9 +537,16 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
 
 ReverbEditor::~ReverbEditor() {
     // APVTS attachments must be destroyed before the controls and theme.
+    modeBox.removeListener (this);
+    modeAttachment.reset();
     bypassAttachment.reset();
     for (auto& attachment : sliderAttachments) attachment.reset();
     setLookAndFeel (nullptr);
+}
+
+void ReverbEditor::comboBoxChanged (juce::ComboBox* combo) {
+    if (combo == &modeBox && !applyingPreset)
+        synchronisePresetSelection();
 }
 
 void ReverbEditor::synchronisePresetSelection (int editedSlider) {
@@ -556,8 +581,15 @@ void ReverbEditor::synchronisePresetSelection (int editedSlider) {
             }
         }
         if (match) {
-            selection = static_cast<int> (presetIndex) + 1;
-            break;
+            const auto chosenMode = modeBox.getSelectedId() - 1;
+            const auto factoryMode = static_cast<int> (
+                arverb::presetAlgorithm (static_cast<arverb::Preset> (presetIndex)));
+            // Classic means pre-P4 session compatibility; a hand-selected
+            // incorrect new algorithm must never masquerade as a preset.
+            if (chosenMode == 0 || chosenMode == factoryMode) {
+                selection = static_cast<int> (presetIndex) + 1;
+                break;
+            }
         }
     }
     if (presetBox.getSelectedId() != selection)
@@ -735,6 +767,7 @@ void ReverbEditor::resized() {
     // One shared optical baseline for LCD preset and physical power button.
     // Integer-pixel snapping prevents blurred half-pixel text and frames.
     presetBox.setBounds (scaled (672, 27, 253, 34, sx, sy));
+    modeBox.setBounds (scaled (554, 27, 110, 34, sx, sy));
     bypassButton.setBounds (scaled (935, 27, 141, 34, sx, sy));
 
     for (const auto& dial : dials) {
@@ -754,8 +787,10 @@ void ReverbEditor::resized() {
     decayReadout.setFont (uiHeavy (23.8f * s));
     // Inner padding: the dark LCD recess begins at x=355; inset the text
     // while retaining the original right edge and numeric-edit region.
-    parameterReadout.setBounds (scaled (371, 27, 155, 34, sx, sy));
-    parameterValueLabel.setBounds (scaled (526, 27, 134, 34, sx, sy));
+    // Mode is an inset capsule between the parameter LCD and preset field;
+    // no added window height or movement of the approved gold hardware.
+    parameterReadout.setBounds (scaled (371, 27, 90, 34, sx, sy));
+    parameterValueLabel.setBounds (scaled (461, 27, 89, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (std::max (11.4f, 13.5f * s)));
     parameterValueLabel.setFont (uiHeavy (std::max (12.0f, 15.1f * s)));
     rebuildFaceplateCache();
