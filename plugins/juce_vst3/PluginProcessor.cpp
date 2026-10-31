@@ -66,12 +66,13 @@ ReverbProcessor::ReverbProcessor()
 bool ReverbProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const {
     const auto in = layouts.getMainInputChannelSet();
     const auto out = layouts.getMainOutputChannelSet();
-    // Mono vocal inserts work without a dummy stereo track. Only identical
-    // in/out layouts are supported: mono->mono or stereo->stereo.
+    // Vocal mono -> stereo wet is a standard creative-reverb workflow.
+    // Hosts that cannot expand a mono track can use mono->mono instead.
     return (in == juce::AudioChannelSet::stereo() &&
             out == juce::AudioChannelSet::stereo()) ||
            (in == juce::AudioChannelSet::mono() &&
-            out == juce::AudioChannelSet::mono());
+            (out == juce::AudioChannelSet::mono() ||
+             out == juce::AudioChannelSet::stereo()));
 }
 
 void ReverbProcessor::prepareToPlay (double sampleRate, int) {
@@ -91,7 +92,8 @@ void ReverbProcessor::releaseResources() {
 
 void ReverbProcessor::render (juce::AudioBuffer<float>& audio, bool hostBypass) noexcept {
     const auto frames = audio.getNumSamples();
-    if (frames <= 0 || (audio.getNumChannels() != 1 && audio.getNumChannels() != 2) || !ready) return;
+    if (frames <= 0 || !ready ||
+        audio.getNumChannels() < getTotalNumOutputChannels()) return;
     const juce::ScopedNoDenormals noDenormals;
     const bool bypass = hostBypass || (bypassTarget != nullptr
                           && bypassTarget->load (std::memory_order_relaxed) >= 0.5f);
@@ -108,14 +110,21 @@ void ReverbProcessor::render (juce::AudioBuffer<float>& audio, bool hostBypass) 
             juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)));
         engine.setAlgorithm (static_cast<arverb::Algorithm> (index));
     }
-    if (audio.getNumChannels() == 2) {
-        // Preserve existing fast in-place stereo processing exactly.
+    const int inputChannels = getTotalNumInputChannels();
+    const int outputChannels = getTotalNumOutputChannels();
+    if (outputChannels == 2) {
+        if (inputChannels == 1) {
+            // Mono vocal -> true stereo reverb: duplicate dry input ONCE to
+            // the host-provided second output channel, then existing stereo
+            // FDN builds independently diffused L/R tails. No heap or locks.
+            audio.copyFrom (1, 0, audio, 0, 0, frames);
+        }
         auto* l = audio.getWritePointer (0);
         auto* r = audio.getWritePointer (1);
         engine.process (l, r, l, r, static_cast<std::size_t> (frames));
     } else {
-        // Feed dual-mono excitation into the same stereo FDN, then return
-        // mid = (left + right)/2. This deliberately discards stereo side
+        // Mono input -> mono output: dual-mono excitation through the
+        // same FDN, then return mid = (left + right)/2. This deliberately discards stereo side
         // energy for mono hosts, avoiding phase-unsafe fake stereo mixing.
         // Fixed bounded stack buffers: no audio callback heap or locks.
         constexpr int chunkSize = 128;
