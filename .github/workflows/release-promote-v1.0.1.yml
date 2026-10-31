@@ -1,0 +1,90 @@
+name: v1.0.1 One-shot Promote Verified Native Artifacts
+
+on:
+  push:
+    branches: [release/promote-v1.0.1]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: arsonverb-native-v1.0.1-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-validated:
+    name: Verify proven 3-OS builds and publish without rebuilding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 4
+      - name: Verify exact released code, main and successful native build jobs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BUILD_SHA=4c65f369348790bb6da7465deaffc2b3921fdeee
+          BUILD_RUN=41247949265
+          # Main must contain the exact previously built and tested source.
+          main_sha="$(git ls-remote https://github.com/$GITHUB_REPOSITORY.git refs/heads/main | cut -f1)"
+          test -n "$main_sha"
+          test "$GITHUB_SHA" = "$main_sha"
+          git merge-base --is-ancestor "$BUILD_SHA" "$GITHUB_SHA"
+          test "$(git show "$BUILD_SHA:CMakeLists.txt" | grep -c 'project(arsonverb VERSION 1.0.1 LANGUAGES C CXX)')" -eq 1
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN" --jq '.head_sha')" = "$BUILD_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN" --jq '.status')" = "completed"
+          # Overall previous workflow intentionally failed at tar SIGPIPE, AFTER
+          # all three independent OS build/tests/artifact uploads succeeded.
+          jobs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN/jobs?per_page=30"             --jq '.jobs[] | select(.name | test("^(windows|linux|macos) /")) | .conclusion')"
+          test "$(echo "$jobs" | wc -l)" -eq 3
+          test "$(echo "$jobs" | grep -c '^success$')" -eq 3
+          if gh release view v1.0.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Already published; refuse replacement of public binaries.' >&2
+            exit 1
+          fi
+      - name: Fetch three immutable successful OS artifact sets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          for platform in windows linux macos; do
+            gh run download 41247949265 --repo "$GITHUB_REPOSITORY"               --name "arsonverb-v1.0.1-$platform" --dir release-assets
+          done
+      - name: Verify all seven packaged binaries, licenses and SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for file in             ArSonVerb-Windows-x64-VST3-v1.0.1.zip             ArSonVerb-Windows-x64-Standalone-v1.0.1.zip             ArSonVerb-Windows-x64-Setup-v1.0.1.exe             ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz             ArSonVerb-Linux-x86_64-Standalone-v1.0.1.tar.gz             ArSonVerb-macOS-universal-VST3-v1.0.1.zip             ArSonVerb-macOS-universal-Standalone-v1.0.1.zip; do
+              test -s "$file"
+          done
+          for platform in windows linux macos; do
+            test -s "SHA256SUMS-$platform.txt"
+          done
+          cat SHA256SUMS-windows.txt SHA256SUMS-linux.txt SHA256SUMS-macos.txt > SHA256SUMS.txt
+          test "$(wc -l < SHA256SUMS.txt)" -eq 7
+          sha256sum --check --strict SHA256SUMS.txt
+          unzip -t ArSonVerb-Windows-x64-VST3-v1.0.1.zip
+          unzip -t ArSonVerb-macOS-universal-VST3-v1.0.1.zip
+          # Avoid tar | grep -q SIGPIPE under pipefail: materialize the entire
+          # entry list, then grep it separately.
+          tar -tzf ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz > linux-vst3-entries.txt
+          grep -q 'ArSonVerb.vst3/' linux-vst3-entries.txt
+          tar -tzf ArSonVerb-Linux-x86_64-Standalone-v1.0.1.tar.gz > linux-standalone-entries.txt
+          grep -q '^ArSonVerb$' linux-standalone-entries.txt
+          test -f SHA256SUMS.txt
+      - name: Publish seven download choices under v1.0.1
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Tag exactly the source used to compile the published binaries.
+          gh release create v1.0.1 release-assets/ArSonVerb-* release-assets/SHA256SUMS.txt             --repo "$GITHUB_REPOSITORY"             --target 4c65f369348790bb6da7465deaffc2b3921fdeee             --title 'ArSonVerb v1.0.1 — Windows, Linux & macOS'             --notes-file docs/RELEASE_V1.0.1.md             --latest
