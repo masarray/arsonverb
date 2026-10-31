@@ -1,3 +1,11 @@
+# P7 v0.6.0 RT60-aware High-Frequency Tail — source candidate, CI pending (2026-10-31)
+
+**Scope:** replace P5 fixed per-feedback HF damping loss with a Decay/Size-aware bounded spectral-tail loss derived from a representative FDN delay and relative HF RT60 target, using the **existing LP filters + single scalar smoother**. New real-engine 4-mode high-band tail regression at two Size / two Decay values. The existing P6 8-WAV QA artifact and Windows JUCE VST3+Standalone are preserved; no GUI change, no new parameter, C ABI/32 factory values intact. Intentional sonic behavior change in old sessions; a P6 vs P7 matched-loudness A/B is mandatory. **v0.6.0 is a DEVELOPMENT AUDITION version, not a public release.**
+
+**CI acceptance still open:** existing Linux Core + ASan/UBSan and Windows JUCE host CTests (11 expected), P6 8-WAV generator, and same-Linux-runner P6-vs-P7 54-case callback comparison (no extra CI jobs). Do not claim benchmark speedup or plugin/physical pass until logs/artifacts checked. Real ASIO/WASAPI CPU p99/xruns, DAW phase/routing, pluginval and distribution licensing remain unresolved. See docs/P7_RT60_AWARE_HF.md.
+
+---
+
 # VERIFIED PR CI — P6 v0.5.0 mono/stereo physical audition milestone (2026-10-31)
 
 **PR #26 merged** to main as `7cbc9c2792082990e7b94e74678e02f966b6505b`: native MONO 1→1, MONO→STEREO 1→2 and existing stereo 2→2 JUCE hosting; actual four-mode host regression; 8 raw 48k/6s impulse WAVs in the existing Windows CI job. Not a public release, licensed distribution, physical DAW acceptance or commercial sonic parity claim.
