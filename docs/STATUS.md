@@ -1,3 +1,20 @@
+# CURRENT — P5 reconciled integrated status (2026-10-31)
+
+**Source of truth:** `masarray/arsonverb` `main@24c1f95` (P5 code merge `8da785b`; subsequent documentation only). **All 22 PRs in this repository are merged; 0 open PRs.** Historical branches are not pending unmerged deliverables. P1–P5 milestones are integrated. This summary supersedes historical P1-not-started / Plate-is-only-a-preset / JUCE-not-built notes further below.
+
+| Gate | Result |
+|---|---|
+| Core post-merge [run 41205502461](https://github.com/masarray/arsonverb/actions/runs/41205502461) | PASS — Linux, Windows, macOS, Linux ASan/UBSan |
+| JUCE post-merge [run 41205502513](https://github.com/masarray/arsonverb/actions/runs/41205502513) | PASS — Windows VST3 + Standalone, P5 regression 10/10 CTests |
+| Windows unsigned test artifact | ID `13044660087`; 7-day workflow retention, not a public production release |
+| Source compatibility | Original 13 scalar automation IDs, appended P4 algorithm choice, 32 factory values, stable C ABI, gold GUI retained |
+| P5 sonic engineering | Equal-power Mix and wet HF/air corrections source-implemented and automated-tested; original user-reported real phase cancellation and musical quality still require physical verification |
+| Pending acceptance | Physical level-matched vocal/music A/B, DAW insert vs AUX routing, mono/phase correlation, decay spectrum/echo density, ASIO/WASAPI callback p99/xruns, pluginval/second host and distribution license |
+
+**Priority:** Do not reopen old merged branches or mistake an unsigned CI artifact for a release. Freeze cosmetics and pursue one evidence-driven **P6 Musical QA & Topology Acceptance** gate: matched dry/wet renders, spectral decay (RT60 per octave), echo-density / ringing, mono fold-down and actual ASIO host measurements. Only then change topology, and do not claim Valhalla parity from numerical tests alone. P5 intentionally changes existing-project sonics; revisit mixes with level matching.
+
+---
+
 # VERIFIED CI — P5 Musical Mix & Air Correction (2026-10-31)
 
 - [PR #24](https://github.com/masarray/arsonverb/pull/24) **MERGED** to `main` at `8da785b48a785fa17ad9f19583feea9e2799d52b`.
