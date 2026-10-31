@@ -203,8 +203,10 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
                                    disk.getWidth(), disk.getHeight(),
                                    juce::RectanglePlacement::stretchToFit);
         } else {
+            // Preserve the arc clearance if a damaged PNG triggers fallback.
+            const float visibleR = imageSide * vintageGoldVisibleRatio (float (imageSide));
             const auto disk = juce::Rectangle<float> (
-                c - radius, c - radius, 2.0f * radius, 2.0f * radius);
+                c - visibleR, c - visibleR, 2.0f * visibleR, 2.0f * visibleR);
             metal.setGradientFill (juce::ColourGradient (
                 juce::Colour (0xfff2d4a1), disk.getX(), disk.getY(),
                 juce::Colour (0xff6c4e33), disk.getRight(), disk.getBottom(), false));
@@ -217,9 +219,9 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
         juce::roundToInt (cx - imageSide * 0.5f),
         juce::roundToInt (cy - imageSide * 0.5f));
 
-    // Clear, illuminated emerald hardware LED replaces the skinny ivory strip.
-    // It rides the visible gold rim and always follows normalized sliderPos.
-    const float radius = side * 0.344f;
+    // Emerald LED sits INSIDE the visible gold-metal rim, not on its edge.
+    // The dot and progress arc still share exactly the same automation angle.
+    const float radius = side * vintageLedPositionRatio (side);
     const float dotX = cx + std::sin (angle) * radius;
     const float dotY = cy - std::cos (angle) * radius;
     const float dotR = vintageLedRadius (side);

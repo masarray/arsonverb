@@ -94,8 +94,29 @@ int main() {
     check (arplugin::vintageGrooveRatio (76.0f) >
            arplugin::vintageArcRatio (76.0f) &&
            arplugin::vintageArcRatio (155.0f) >
-           arplugin::vintageFaceRatio (155.0f),
-           "jade arc stays in visible dark bezel outside gold image");
+           arplugin::vintageGoldVisibleRatio (155.0f),
+           "jade arc stays outside the actual gold alpha edge");
+    // Real alpha bounds: the 160px source has metal at roughly 85% of
+    // the nominal image radius. Compare physical clearances, NOT PNG boxes.
+    const auto clearance = [] (float side) {
+        return side * (arplugin::vintageArcRatio (side) -
+                       arplugin::vintageGoldVisibleRatio (side));
+    };
+    check (std::abs (clearance (98.0f) - clearance (200.0f)) < 1.25f &&
+           std::abs (clearance (73.0f) - clearance (148.0f)) < 1.25f,
+           "small and hero gold-to-emerald arc gaps must match at both scales");
+    check (arplugin::vintageGoldVisibleRatio (200.0f) >
+           arplugin::vintageGoldVisibleRatio (98.0f),
+           "Decay must have proportionally larger visible gold face");
+    for (float side : {73.0f, 98.0f, 148.0f, 200.0f}) {
+        const float visibleGold = side * arplugin::vintageGoldVisibleRatio (side);
+        const float ledCentre = side * arplugin::vintageLedPositionRatio (side);
+        check (ledCentre < visibleGold * 0.80f &&
+               ledCentre + arplugin::vintageLedRadius (side) + 1.4f < visibleGold,
+               "LED dot and its dark bezel must remain inset from physical gold rim");
+        check (arplugin::vintageLedPositionRatio (side) < 0.344f,
+               "LED dot must move inward versus previous rim-mounted design");
+    }
     check (arplugin::vintageGoldCacheSlot (105.0f) == 0 &&
            arplugin::vintageGoldCacheSlot (148.0f) == 1,
            "small/hero metal caches must remain separate at all host sizes");

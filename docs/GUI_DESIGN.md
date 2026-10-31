@@ -1,3 +1,21 @@
+# 2026-10-31 — Optical gold radius and recessed LED pointer correction
+
+**Source:** user screenshot `image(20261031-025850).png` (actual 844×422 Windows screenshot).
+
+## Root cause and mechanical correction
+- `assets/gui/ArSonVerbGoldKnob.png` is an alpha PNG with metal reaching approximately 85% of its nominal image radius. Previous code compared **image bounding radius**, not **visible metal**, so Decay had a much larger perceived black gap to the jade track than the small dials.
+- Preserve the already accepted 98-reference-unit small knobs and 200-reference-unit Decay hitboxes/centres. Change **only the rendered Decay gold face ratio** `0.416→0.468` (small remains `0.422`). Native JUCE image scaling/cache retained. This matches physical gold-to-arc centreline gaps: at 1100×510 design scale small `98×(0.435−0.422×0.85)≈7.48` and Decay `200×(0.435−0.468×0.85)≈7.44`. Also matches at the default 842×394 scale.
+- Move the emerald LED dot away from the metallic/bezel boundary. Its location is calculated as **77% of the visible gold radius** (not the old fixed `0.344×sliderSize`); position and jade arc endpoint still use the *same* automated `vintageRotaryAngle`. The dot is separate native JUCE vector hardware, not baked into the PNG.
+- If a PNG fails decoding, draw a fallback metal disc with the same visible radius so the arc stays readable.
+
+## Stable engineering contract
+- No changes to DSP, 13 host automation parameters, 32 real factory presets, C ABI, window size, visual groups, audio callback, existing logo, gold PNG, or pointer/arc update source.
+- Source of truth is the `vintageGoldVisibleRatio()`/`vintageLedPositionRatio()` helpers in `PluginEditor.hpp`. Host contract checks normalized gold-to-arc gap at design and default scale, and verifies every LED dot remains inset including its bezel.
+- One Windows JUCE VST3+Standalone PR CI and existing core Release/sanitizer only; merge if 6/6 CTest and artifact pass. Real Windows screenshot still required for aesthetic acceptance.
+
+
+---
+
 # Golden Hardware Reference — user-approved target (2026-10-31)
 
 **Verified source:** PR #14 merged; Windows VST3 + Standalone and 6/6 CTest PASSED at https://github.com/masarray/arsonverb/actions/runs/41161532829 . Actual Windows screenshot comparison remains open.
