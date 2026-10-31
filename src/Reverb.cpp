@@ -230,9 +230,23 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         s.targetHigh = lowPassCoeff(s.cachedHighCut, s.sampleRate);
     }
 
+    // Eight smoothed scalars are actually consumed in process().
+    // Decay, modulation rate and the three EQ frequency parameters instead
+    // drive independent, correctly smoothed feedback/filter coefficients.
+    // Integrating those five unused sample histories cost CPU but had no
+    // influence on the audio output. Keep the original audible update order.
+    constexpr std::array<unsigned, 8> kSmoothedAudioControls {{
+        static_cast<unsigned>(Parameter::Mix),
+        static_cast<unsigned>(Parameter::PreDelayMs),
+        static_cast<unsigned>(Parameter::Size),
+        static_cast<unsigned>(Parameter::Diffusion),
+        static_cast<unsigned>(Parameter::ModDepthMs),
+        static_cast<unsigned>(Parameter::Width),
+        static_cast<unsigned>(Parameter::EarlyLevel),
+        static_cast<unsigned>(Parameter::DuckAmount)
+    }};
     for (std::size_t frame = 0; frame < frames; ++frame) {
-        // Every scalar is smoothed independently. No parameter zipper noise on the dry/wet path.
-        for (std::size_t p = 0; p < parameterCount; ++p)
+        for (const unsigned p : kSmoothedAudioControls)
             s.smooth[p] += s.smoother * (target[p] - s.smooth[p]);
         const float mix = s.smooth[idx(Parameter::Mix)];
         const float preSamples = s.smooth[idx(Parameter::PreDelayMs)] * s.millisecondsToSamples;
