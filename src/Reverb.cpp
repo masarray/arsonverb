@@ -99,13 +99,13 @@ constexpr float representativeDelayMs() noexcept {
 // The existing 8 feedback LPs perform the actual spectral shaping.
 inline float calibratedHFLoss(float decaySeconds, float roomSize,
                               float dampingHz) noexcept {
-    const float bright = clamp((dampingHz - 800.0f) / 17200.0f, 0.0f, 1.0f);
+    const float bright = detail::clamp((dampingHz - 800.0f) / 17200.0f, 0.0f, 1.0f);
     const float highRT60Fraction = 0.58f + 0.40f * bright; // 58%-98% of mid RT60
     const float traversalSeconds = representativeDelayMs() * 0.001f * roomSize;
     const float excessLogLoss = -kLn001 * traversalSeconds / decaySeconds *
                                 (1.0f / highRT60Fraction - 1.0f);
     // expm1 retains precision when Decay is long and damping is bright.
-    return clamp(-std::expm1(excessLogLoss), 0.0f, 0.92f);
+    return detail::clamp(-std::expm1(excessLogLoss), 0.0f, 0.92f);
 }
 
 // Additional low-amplitude, irregularly spaced *early energy* taps. This is
