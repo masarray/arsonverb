@@ -1,3 +1,13 @@
+# P2 IN VALIDATION — Verified-sound DSP and GUI repaint optimization (2026-10-31)
+
+- DSP removes five unused per-sample scalar smoothing updates: DecaySeconds, ModRateHz, DampingHz, LowCutHz and HighCutHz. Their actual FDN/gain/filter target and coefficient smoothing remains intact. Eight consumed parameter smoothers run in original order; no audio algorithm or parameter/ABI change.
+- GUI caches static brushed-gold logo PNG, subtitle and panel heading typography with bronze faceplate on resize. Native knob LEDs, value editor, Decay LCD and layout remain unchanged. No timer or audio callback work.
+- New 27-case float-bit stereo signature (48/96/192 kHz × 3 factory presets × 1/32/257 frame blocks), including extreme block automation. Linux CI compiles P1 source from PR first-parent with the same compiler/flags and compares exact outputs, then records before/after 54-case CPU p99 on the same runner. Audio must be **bit-for-bit identical** on that compiler or PR must not merge.
+- Normal Core Linux/macOS/Windows, ASan+UBSan and Windows JUCE VST3+Standalone regressions required; automated CTest count becomes 7. No new CI jobs.
+- **Pending CI/merge:** results are not yet verified. GUI HiDPI screenshots and actual ASIO xrun on a physical DAW workstation remain manual.
+
+---
+
 # VERIFIED — P1 profiling and repeatable performance baseline (2026-10-31)
 
 - Baseline feature source remains merged PR #18. This PR only changes offline benchmark/test instrumentation, CI evidence collection, docs and standard-library-only CSV comparison tooling. **No production audio engine, JUCE editor, preset, parameter ABI or runtime CPU behavior changes.**
