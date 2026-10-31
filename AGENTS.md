@@ -32,7 +32,7 @@ For Windows MSVC: `cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64 -D
 5. Never claim GitHub CI is green until actual GitHub Actions runs are observed.
 6. Report the tested OS, command, actual output, known issues and next task for a clean new-thread handoff.
 
-Current verified release status: **v0.4.1 JUCE 9.0.4 Windows VST3 + Standalone, 6/6 CTests PASSED in PR #16 (workflow 41164159808); Linux Release and ASan/UBSan PASSED (workflow 41164159788)**. PR #16 is merged; the Windows unsigned test artifact is available from the PR build. Real DAW screenshot and listening acceptance remain manual.
+Current verified release status: **v0.4.1 JUCE 9.0.4 Windows VST3+Standalone 6/6 CTests PASSED in PR #17 (workflow 41165637177); Linux Release and ASan/UBSan PASSED (workflow 41165637133)**. PR #17 merged; unsigned artifact ID 13029208079. Ctrl+wheel precision, 280px knob drag and direct LCD native-unit editing are verified in Windows host-contract tests. Reported plugin latency is 0 samples, not zero physical device/buffer latency. Actual GUI screenshots and listening acceptance remain manual.
 
 ## v0.4 continuation notes (2026-10-29)
 

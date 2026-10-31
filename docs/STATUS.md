@@ -1,8 +1,12 @@
-# IMPLEMENTED — PR #17 Precision Control and Direct LCD Value Editing (2026-10-31)
+# VERIFIED — PR #17 Precision Control & Direct LCD Value Editing (2026-10-31)
 
-New JUCE GUI work: Ctrl+wheel 8× finer while standard wheel unchanged, predictable 280px native rotary drag, editable active parameter LCD on double-click with strict native-unit validation and host automation via existing attachments. Added host regression coverage and explicit zero reported plugin latency assertion. Audio DSP, 13 IDs, 32 presets, assets and ABI unchanged.
-
-**CI pending**: do not mark VERIFIED/merged until actual Windows JUCE VST3+Standalone 6/6 CTests and Linux Release/sanitizers succeed. Real Windows 100/125/150% DPI control feel, screenshots and level-matched audio remain manual.
+- [PR #17](https://github.com/masarray/arsonverb/pull/17) **MERGED** to main as `cfb635975ec43fdf663c569c2830c251fab85fa0`.
+- [Windows JUCE 9.0.4 VST3+Standalone CI](https://github.com/masarray/arsonverb/actions/runs/41165637177) **SUCCESS**, **6/6 CTests PASSED**, including real JUCE host smoke testing: direct inline LCD editor commit, invalid input recovery, 13 precision rotary controls, Ctrl-wheel delta scaling, preserve stock wheel, existing geometry/presets/automation/C ABI. Artifact **13029208079**, 8,599,230 bytes, unsigned, expires 2026-11-07 UTC.
+- [Linux Release and ASan/UBSan CI](https://github.com/masarray/arsonverb/actions/runs/41165637133) **SUCCESS**.
+- Ctrl+wheel multiplies native JUCE wheel deltas by **0.125** (8× finer); unmodified wheel continues original JUCE behavior. Rotary drag sensitivity configured to 280px full-range.
+- Persistent parameter LCD has separate name and double-click-editable numeric field. Enter commits, Esc cancels; accept native units, percentages, Hz/kHz shorthand; reject invalid and out-of-range. All edits pass via existing APVTS SliderAttachments.
+- JUCE reports **0 additional plugin latency samples**; this does not eliminate host/device buffering, wet pre-delay, or acoustic reverb decay. No audio DSP changes, timers, worker threads, new GUI render loops, parameter-ID/preset/asset changes.
+- **Manual acceptance still required** in Windows host: Ctrl-wheel physical sensitivity (mouse/trackpad), native inline edit, DAW automation, 100/125/150% DPI screenshot and listening.
 
 ---
 
