@@ -1,6 +1,7 @@
 // P4 4-mode topology: real feedback differences, stable recursion and
 // automation switches. No assertion of subjective parity.
 #include <arverb/Reverb.hpp>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
