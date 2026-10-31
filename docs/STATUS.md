@@ -1,3 +1,20 @@
+# Golden Hardware Reference Redesign — awaiting CI
+
+# Golden Hardware Reference — user-approved target (2026-10-31)
+
+The 1774×887 user-selected image is the canonical screenshot for this **JUCE** GUI milestone. Treat it as a visual target, not as a substitute for a functioning editor. Existing ArSonVerb assets were approved earlier and are reused: `ArSonVerbLogo.png`, `ArSonVerbGoldKnob.png`.
+
+**Visual geometry in the existing 1100×510 JUCE design space:** four unchanged grouped panels (Mix/Decay, Tone/Control, Shape, Space/Motion). Small knob diameter **98** reference units (formerly 74), Decay hero diameter **200** (formerly 172) with centre (295,253), coherent upper/lower rows y=214/360; the shape module remains 132 units wide. Captions remain controlled JUCE Labels. Decay LCD is still anchored to the PRE-DELAY label bottom; its new x=231/width=128 centers it under Decay. Upper-left logo box expands to 315×61; top row and header controls remain stable.
+
+**Premium materials:** cocoa/bronze vignette chassis, champagne engraved double-line frames, satin taupe modules, stationary brushed-gold PNG physical surfaces, black recessed sockets, mint/emerald arc, and **large round luminous green pointer** (the pointer and arc endpoint use the same `vintageRotaryAngle` normalized slider state). No cyan tick bars, fake LEDs, static 12-o'clock pointer, bitmap rotation or WebView.
+
+**Performance:** one cached chassis image rebuilt on resize and two cached gold-face surfaces (small/hero). Cache slot threshold 125px prevents the large-host small knobs from evicting the hero cache; no shader, timer, disk access, or changes to audio callback. Desktop-host rendering, real DPI/screenshot visual acceptance and listening QA still required beyond compile and 6/6 CTests.
+
+**Regression:** host test draws 6 relevant knob sizes, validates cache split and LED size, all 13 sliders/32 presets, responsive bounds and Decay PRE-DELAY LCD alignment. No parameter IDs, presets, DSP code, C API or host state changes.
+
+
+---
+
 # VERIFIED — Luxury Gold Knob Native UI (2026-10-31)
 
 - [PR #13](https://github.com/masarray/arsonverb/pull/13) **MERGED** as `d91d9381c6ae42e20ecd9bff1f4e52b93749ecf0`.

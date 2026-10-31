@@ -62,11 +62,10 @@ int main() {
            sourceCentre.getRed() > sourceCentre.getBlue() + 15 &&
            sourceCentre.getGreen() > sourceCentre.getBlue(),
            "gold PNG source must be transparent outside and warm metal inside");
-    // JUCE renderer smoke on both compact & large knob bounds. Do not assert
-    // framebuffer pixels without a native desktop peer on Windows CI: this
-    // headless pixel sampling already proved unreliable in earlier GUI tests.
+    // Headless renderer exercises new small + hero large sizes, pointer ends
+    // and both extremes without unreliable pixel-alpha sampling.
     arplugin::HardwareLookAndFeel goldLook;
-    for (int side : {74, 172}) {
+    for (int side : {72, 76, 105, 148, 155, 214}) {
         juce::Image surface (juce::Image::ARGB, side, side, true);
         juce::Graphics canvas (surface);
         juce::Slider control;
@@ -89,16 +88,20 @@ int main() {
            std::abs (angle (2.0f) - stop) < 1e-5f,
            "invalid rotary proportions clamp safely");
 
-    check (arplugin::vintageGrooveRatio (74.0f) -
-           arplugin::vintageFaceRatio (74.0f) > 0.15f,
-           "small knob requires visibly deeper socket");
-    check (arplugin::vintageGrooveRatio (74.0f) -
-           arplugin::vintageFaceRatio (74.0f) >
-           arplugin::vintageGrooveRatio (172.0f) -
-           arplugin::vintageFaceRatio (172.0f),
-           "small knob black ring must be proportionally stronger");
-    check (arplugin::vintageFaceRatio (172.0f) > 0.35f,
-           "large Decay knob face remains unchanged");
+    check (arplugin::vintageFaceRatio (76.0f) > 0.40f &&
+           arplugin::vintageFaceRatio (155.0f) > 0.40f,
+           "gold discs must fill the premium reference bezel");
+    check (arplugin::vintageGrooveRatio (76.0f) >
+           arplugin::vintageArcRatio (76.0f) &&
+           arplugin::vintageArcRatio (155.0f) >
+           arplugin::vintageFaceRatio (155.0f),
+           "jade arc stays in visible dark bezel outside gold image");
+    check (arplugin::vintageGoldCacheSlot (105.0f) == 0 &&
+           arplugin::vintageGoldCacheSlot (148.0f) == 1,
+           "small/hero metal caches must remain separate at all host sizes");
+    check (arplugin::vintageLedRadius (155.0f) >
+           arplugin::vintageLedRadius (76.0f),
+           "hero Decay must use a larger luminous LED dot");
 
     arplugin::ReverbProcessor p;
     check(p.getNumInputChannels() == 2 && p.getNumOutputChannels() == 2,
@@ -139,6 +142,22 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            // A focused visual geometry contract: hero dial dominant, small
+            // dials comfortably sized, and fully inside their hardware modules.
+            const juce::Slider* hero = nullptr;
+            int fullSizedSmall = 0;
+            for (int n=0; n<editor->getNumChildComponents(); ++n)
+                if (const auto* slider = dynamic_cast<const juce::Slider*> (
+                        editor->getChildComponent(n))) {
+                    if (hero == nullptr || slider->getWidth() > hero->getWidth())
+                        hero = slider;
+                    if (slider->getWidth() >= static_cast<int>(width * 0.065))
+                        ++fullSizedSmall;
+                }
+            check (hero != nullptr &&
+                   hero->getWidth() >= static_cast<int> (width * 0.12f) &&
+                   fullSizedSmall == static_cast<int> (arverb::parameterCount),
+                   "all twelve small knobs and hero Decay must scale with window");
             // LCD lower border and PRE-DELAY caption lower border must be
             // optically co-linear at each supported host/editor size.
             const juce::Label* preDelayLabel = nullptr;
