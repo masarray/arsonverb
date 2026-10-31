@@ -108,6 +108,7 @@ private:
     juce::Rectangle<int> decayDisplayBounds() const;
     ReverbProcessor& processor;
     HardwareLookAndFeel theme;
+    juce::HyperlinkButton creatorCredit;
     juce::ComboBox presetBox;
     juce::ComboBox modeBox;
     juce::ToggleButton bypassButton;
