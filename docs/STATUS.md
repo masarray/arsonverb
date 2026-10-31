@@ -1,3 +1,13 @@
+# v1.0.1 Public Multiplatform Release — PUBLISHED 2026-11-01
+
+**Latest stable:** https://github.com/masarray/arsonverb/releases/tag/v1.0.1 ; tag SHA `4c65f369348790bb6da7465deaffc2b3921fdeee` (exact validated source). **Seven user-facing native choices**: Windows VST3-only ZIP, Windows standalone portable ZIP, Windows selective per-user Inno Setup EXE, Linux x86_64 VST3-only tar.gz, Linux standalone tar.gz, macOS universal Intel/Apple Silicon VST3-only ZIP and standalone app ZIP. Plus SHA256SUMS and source archives. v1.0.0 remains intact. AGPL-3.0-only source, Inter SIL OFL 1.1, JUCE 9.0.4 AGPLv3.
+
+**Verified native CI:** https://github.com/masarray/arsonverb/actions/runs/41247949265 : ALL THREE Windows/Linux/macOS build jobs SUCCESS, 12/12 native CTests each, 2-arch macOS `lipo` and ad-hoc codesign checks, Windows Inno Setup 6 compilation, packaging tests and artifact upload. Original publisher job had only a `tar | grep -q` SIGPIPE under `pipefail`, after all SHA-256 digests and ZIP tests passed. Fix merged in PR #34. **Verified artifact promotion**: https://github.com/masarray/arsonverb/actions/runs/41248747185 SUCCESS using the exact three successful build artifacts (no second native rebuild); seven SHA-256 hashes and ZIP/tar contents verified and stable public tag published.
+
+**Security reality:** No code signing purchases. Windows EXE is unsigned and may invoke SmartScreen or Smart App Control. macOS ad-hoc signed for local Mach-O integrity but **NOT Apple Developer ID notarized**, may need per-item approval. .tar.gz/ZIP do not guarantee no OS warnings; never disable antivirus, security settings or Gatekeeper programmatically. Linux built against Ubuntu 24.04 toolchain, portability beyond tested distro not implied.
+
+---
+
 # Public Stable v1.0.0 — PUBLISHED on 2026-11-01
 
 **Official public GitHub Release:** https://github.com/masarray/arsonverb/releases/tag/v1.0.0. Tag points to `4d4499bc664353a2c6f35e7c9ec3b26de9a372e0`, the reviewed and approved main commit at publication. Release asset `ArSonVerb-Windows-x64-v1.0.0.zip` (8,663,550 bytes) and `SHA256SUMS.txt` were uploaded, along with GitHub's canonical tagged source archives. **Not a prerelease, not a draft.** Original project licensed `AGPL-3.0-only`; JUCE 9 used via AGPL and Inter font via its separate SIL OFL 1.1.
