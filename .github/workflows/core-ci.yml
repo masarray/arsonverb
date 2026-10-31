@@ -29,6 +29,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # P2 compares with the synthetic PR merge's first-parent DSP.
+          fetch-depth: 2
       - name: Configure CMake
         run: cmake -S . -B build-ci -DCMAKE_BUILD_TYPE=Release -DARVERB_BUILD_TESTS=ON -DARVERB_BUILD_SHARED=ON
       - name: Compile (Release)
@@ -40,6 +42,34 @@ jobs:
       - name: P1 DSP callback profiler (54 scenarios, quick CI sample)
         if: matrix.os == 'ubuntu-24.04'
         run: ./build-ci/arverb_benchmark --quick > build-ci/p1-dsp-callbacks.csv
+      - name: P2 same-runner byte-exact audio and CPU A/B
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p2-')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show HEAD^1:src/Reverb.cpp > build-ci/p2-reference-Reverb.cpp
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p2-reference-Reverb.cpp src/Presets.cpp tests/audio_signature.cpp -o build-ci/p2-reference-audio
+          ./build-ci/p2-reference-audio > build-ci/p2-before-audio.txt
+          ./build-ci/arverb_audio_signature > build-ci/p2-after-audio.txt
+          diff -u build-ci/p2-before-audio.txt build-ci/p2-after-audio.txt
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p2-reference-Reverb.cpp src/Presets.cpp tests/benchmark.cpp -o build-ci/p2-reference-benchmark
+          ./build-ci/p2-reference-benchmark --quick > build-ci/p2-before-54.csv
+          ./build-ci/arverb_benchmark --quick > build-ci/p2-after-54.csv
+          python3 scripts/compare_perf.py build-ci/p2-before-54.csv build-ci/p2-after-54.csv > build-ci/p2-AB.txt
+          cat build-ci/p2-AB.txt
+      - name: Upload P2 matched-runner A/B evidence
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p2-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-P2-Linux-Matched-AB
+          path: |
+            build-ci/p2-before-audio.txt
+            build-ci/p2-after-audio.txt
+            build-ci/p2-before-54.csv
+            build-ci/p2-after-54.csv
+            build-ci/p2-AB.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish P1 DSP profiler CSV
         if: matrix.os == 'ubuntu-24.04'
         uses: actions/upload-artifact@v4

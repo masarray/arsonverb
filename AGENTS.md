@@ -1,5 +1,9 @@
 # ArSonVerb — repository rules for coding assistants
 
+## P2 measured optimization — pending verification
+
+Removed only 5 unused audio-rate smoothing values. Independent Decay/Rate/EQ coefficient smoothing is unchanged; the 8 consumed per-sample controls are still updated in the original order. Static gold logo and module lettering have moved to the JUCE faceplate cache; moving LED/arc remain live. Require 27-case exact float-bit signature against previous engine, same-runner P1/P2 CPU data, 7 Windows JUCE CTests, core sanitizer, and real GUI screenshot before visual parity claims. Do not claim realtime zero device latency.
+
 ## P1 performance instrumentation — 2026-10-31
 
 P1 profiling infrastructure is merged in PR #20, and its CI is verified: `tests/benchmark.cpp` measures 54 audio-callback workload cases, `tests/test_plugin_host.cpp` optionally measures real-JUCE editor paint/resize, and `docs/PERFORMANCE_P1.md` defines how to repeat and interpret CPU p99. 54-case Linux CI CPU timings and 2-size Windows offscreen GUI paint measurements are preserved under docs/performance/ and summarized in docs/P1_RESULTS_20261031.md. Results are not proof of a glitch-free DAW or the user's physical workstation p99. Do not tune DSP arithmetic, claim CPU improvements or change approved gold GUI until reproducible baseline and sonic regression evidence. CI quick profiling is informational, not a speed gate. Avoid new CI matrix jobs and do not add profiling overhead to the audio path.
