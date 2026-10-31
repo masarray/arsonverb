@@ -42,6 +42,33 @@ inline float vintageLedRadius (float side) noexcept {
     return juce::jlimit (4.0f, 6.3f, side * 0.055f);
 }
 
+// Preserve JUCE's native wheel/host gesture semantics. Ctrl only scales
+// the incoming delta; standard scroll is unchanged and remains familiar.
+inline juce::MouseWheelDetails refinedWheel (
+    const juce::MouseWheelDetails& original, bool controlHeld) noexcept {
+    auto result = original;
+    if (controlHeld) {
+        result.deltaX *= 0.125f;
+        result.deltaY *= 0.125f;
+    }
+    return result;
+}
+
+class PrecisionRotarySlider final : public juce::Slider {
+public:
+    void mouseWheelMove (const juce::MouseEvent& e,
+                         const juce::MouseWheelDetails& wheel) override {
+        if (!isEnabled() || !isScrollWheelEnabled()) return;
+        juce::Slider::mouseWheelMove (e,
+            refinedWheel (wheel, e.mods.isCtrlDown()));
+    }
+};
+
+// Parse only complete, finite numeric inputs in each parameter's DISPLAY
+// units; out-of-range values are rejected, never silently written to APVTS.
+bool parseDisplayValue (arverb::Parameter parameter, const juce::String& text,
+                        float& nativeValue) noexcept;
+
 class HardwareLookAndFeel final : public juce::LookAndFeel_V4 {
 public:
     void drawRotarySlider (juce::Graphics&, int, int, int, int, float, float,
@@ -74,6 +101,7 @@ private:
     void synchronisePresetSelection (int editedSlider = -1);
     void refreshDecayReadout();
     void refreshParameterReadout (std::size_t index);
+    void commitTypedParameterValue();
     void rebuildFaceplateCache();
     juce::Rectangle<int> decayDisplayBounds() const;
     ReverbProcessor& processor;
@@ -82,10 +110,11 @@ private:
     juce::ToggleButton bypassButton;
     juce::Label decayReadout;
     juce::Label parameterReadout;
+    juce::Label parameterValueLabel;
     juce::Image faceplateCache;
     int activeParameter = 0; // Persistent header displays last touched control.
     bool applyingPreset = false;
-    std::array<juce::Slider, arverb::parameterCount> sliders;
+    std::array<PrecisionRotarySlider, arverb::parameterCount> sliders;
     std::array<juce::Label, arverb::parameterCount> labels;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,
                arverb::parameterCount> sliderAttachments;

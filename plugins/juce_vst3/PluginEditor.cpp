@@ -2,7 +2,9 @@
 #include <BinaryData.h>
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <cstring>
 
@@ -136,6 +138,50 @@ juce::Rectangle<int> scaled (float x, float y, float w, float h,
             juce::roundToInt (w * sx), juce::roundToInt (h * sy)};
 }
 } // namespace
+
+bool parseDisplayValue (arverb::Parameter parameter, const juce::String& text,
+                        float& nativeValue) noexcept {
+    const auto entered = text.trim().toLowerCase().replaceCharacter (',', '.');
+    if (entered.isEmpty()) return false;
+
+    const auto* start = entered.toRawUTF8();
+    char* end = nullptr;
+    errno = 0;
+    const double number = std::strtod (start, &end);
+    if (end == start || errno == ERANGE || !std::isfinite (number))
+        return false;
+    const auto suffix = juce::String (end).trim();
+    using P = arverb::Parameter;
+    const bool percent = parameter == P::Mix || parameter == P::Diffusion
+        || parameter == P::Width || parameter == P::EarlyLevel || parameter == P::DuckAmount;
+    const bool frequency = parameter == P::DampingHz || parameter == P::LowCutHz
+        || parameter == P::HighCutHz || parameter == P::ModRateHz;
+    const bool milliseconds = parameter == P::PreDelayMs || parameter == P::ModDepthMs;
+    const bool seconds = parameter == P::DecaySeconds;
+    const bool ratio = parameter == P::Size;
+    double converted = number;
+    if (percent) {
+        if (suffix.isNotEmpty() && suffix != "%") return false;
+        converted /= 100.0; // label says 35%, typing 35 means 35%.
+    } else if (frequency) {
+        if (suffix == "k" || suffix == "khz")
+            converted *= 1000.0;
+        else if (suffix.isNotEmpty() && suffix != "hz") return false;
+    } else if (milliseconds) {
+        if (suffix.isNotEmpty() && suffix != "ms") return false;
+    } else if (seconds) {
+        if (suffix.isNotEmpty() && suffix != "s") return false;
+    } else if (ratio) {
+        if (suffix.isNotEmpty() && suffix != "x") return false;
+    } else if (suffix.isNotEmpty()) return false;
+
+    const auto& meta = arverb::parameterInfo (parameter);
+    if (!std::isfinite (converted) || converted < meta.minimum - 1e-6
+        || converted > meta.maximum + 1e-6) return false;
+    nativeValue = static_cast<float> (juce::jlimit (
+        static_cast<double> (meta.minimum), static_cast<double> (meta.maximum), converted));
+    return true;
+}
 
 void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
      int x, int y, int width, int height, float position,
@@ -395,6 +441,9 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
         slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.25f,
                                     juce::MathConstants<float>::pi * 2.75f, true);
         slider.setScrollWheelEnabled (true);
+        // Stable and controllable drag: 280px traverses the full parameter
+        // range, without accelerators or adding continuous UI timers.
+        slider.setMouseDragSensitivity (280);
         // Avoid JUCE's full-precision floating bubble (e.g. 10000.000000).
         slider.setPopupDisplayEnabled (false, false, this);
         slider.setDoubleClickReturnValue (true, meta.defaultValue);
@@ -431,10 +480,35 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     addAndMakeVisible (decayReadout);
     refreshDecayReadout();
     parameterReadout.setColour (juce::Label::backgroundColourId, palette::lcd);
-    parameterReadout.setColour (juce::Label::textColourId, palette::mainText);
-    parameterReadout.setJustificationType (juce::Justification::centred);
+    parameterReadout.setColour (juce::Label::textColourId, palette::secondaryText);
+    parameterReadout.setJustificationType (juce::Justification::centredLeft);
     parameterReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (parameterReadout);
+
+    // A native JUCE inline TextEditor opens only on double-click; the display
+    // has no separate popup, allocations or paint work on the audio callback.
+    parameterValueLabel.setComponentID ("active-parameter-value");
+    parameterValueLabel.setColour (juce::Label::backgroundColourId, palette::lcd);
+    parameterValueLabel.setColour (juce::Label::textColourId, palette::meterText);
+    parameterValueLabel.setColour (juce::Label::textWhenEditingColourId, palette::mainText);
+    parameterValueLabel.setColour (juce::Label::backgroundWhenEditingColourId, palette::lcd);
+    parameterValueLabel.setColour (juce::Label::outlineWhenEditingColourId, palette::jade);
+    parameterValueLabel.setJustificationType (juce::Justification::centred);
+    parameterValueLabel.setTooltip ("Double-click to enter an exact value, Enter to apply, Esc to cancel");
+    parameterValueLabel.setEditable (false, true, true);
+    parameterValueLabel.onEditorShow = [this] {
+        if (auto* editor = parameterValueLabel.getCurrentTextEditor()) {
+            const auto param = static_cast<arverb::Parameter> (activeParameter);
+            const auto v = sliders[static_cast<std::size_t> (activeParameter)].getValue();
+            const bool pct = param == arverb::Parameter::Mix
+                || param == arverb::Parameter::Diffusion || param == arverb::Parameter::Width
+                || param == arverb::Parameter::EarlyLevel || param == arverb::Parameter::DuckAmount;
+            editor->setText (juce::String (pct ? v * 100.0 : v, 4), false);
+            editor->selectAll();
+        }
+    };
+    parameterValueLabel.onTextChange = [this] { commitTypedParameterValue(); };
+    addAndMakeVisible (parameterValueLabel);
     refreshParameterReadout (0);
     synchronisePresetSelection();
 
@@ -498,10 +572,27 @@ void ReverbEditor::refreshDecayReadout() {
 
 void ReverbEditor::refreshParameterReadout (std::size_t index) {
     const auto parameter = static_cast<arverb::Parameter> (index);
-    parameterReadout.setText (
-        juce::String (arverb::parameterInfo (parameter).name) + "   " +
-        humanValue (parameter, static_cast<float> (sliders[index].getValue())),
-        juce::dontSendNotification);
+    parameterReadout.setText (arverb::parameterInfo (parameter).name,
+                              juce::dontSendNotification);
+    if (!parameterValueLabel.isBeingEdited())
+        parameterValueLabel.setText (
+            humanValue (parameter, static_cast<float> (sliders[index].getValue())),
+            juce::dontSendNotification);
+}
+
+void ReverbEditor::commitTypedParameterValue() {
+    const auto index = static_cast<std::size_t> (activeParameter);
+    if (index >= sliders.size()) return;
+    float native = 0.0f;
+    if (parseDisplayValue (static_cast<arverb::Parameter> (index),
+                           parameterValueLabel.getText(), native)) {
+        // JUCE SliderAttachment emits the regular host automation gesture and
+        // performs APVTS normalization. No direct access to DSP state.
+        sliders[index].setValue (native, juce::sendNotificationSync);
+    }
+    // Invalid input, out-of-range, unchanged value, or accepted input all end
+    // with the canonical unit-bearing value rather than a raw/invalid string.
+    refreshParameterReadout (index);
 }
 
 juce::Rectangle<int> ReverbEditor::decayDisplayBounds() const {
@@ -653,8 +744,10 @@ void ReverbEditor::resized() {
     decayReadout.setBounds (decayDisplayBounds().withTrimmedLeft (2)
                                                 .withTrimmedRight (2));
     decayReadout.setFont (uiHeavy (23.8f * s));
-    parameterReadout.setBounds (scaled (355, 27, 305, 34, sx, sy));
-    parameterReadout.setFont (uiHeavy (std::max (12.0f, 14.5f * s)));
+    parameterReadout.setBounds (scaled (355, 27, 171, 34, sx, sy));
+    parameterValueLabel.setBounds (scaled (526, 27, 134, 34, sx, sy));
+    parameterReadout.setFont (uiHeavy (std::max (11.4f, 13.5f * s)));
+    parameterValueLabel.setFont (uiHeavy (std::max (12.0f, 15.1f * s)));
     rebuildFaceplateCache();
 }
 } // namespace arplugin

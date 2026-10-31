@@ -1,3 +1,11 @@
+# IMPLEMENTED — PR #17 Precision Control and Direct LCD Value Editing (2026-10-31)
+
+New JUCE GUI work: Ctrl+wheel 8× finer while standard wheel unchanged, predictable 280px native rotary drag, editable active parameter LCD on double-click with strict native-unit validation and host automation via existing attachments. Added host regression coverage and explicit zero reported plugin latency assertion. Audio DSP, 13 IDs, 32 presets, assets and ABI unchanged.
+
+**CI pending**: do not mark VERIFIED/merged until actual Windows JUCE VST3+Standalone 6/6 CTests and Linux Release/sanitizers succeed. Real Windows 100/125/150% DPI control feel, screenshots and level-matched audio remain manual.
+
+---
+
 # VERIFIED — PR #16 premium GUI UX and preset integrity (2026-10-31)
 
 - [PR #16](https://github.com/masarray/arsonverb/pull/16) **MERGED** as `56612b67acdf0d43cc64c33409375c5b2d8f34f2`.

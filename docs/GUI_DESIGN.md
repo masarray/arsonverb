@@ -1,3 +1,14 @@
+# 2026-10-31 — Precision Control & Direct Numeric Entry (PR #17 candidate)
+
+- Standard wheel uses JUCE 9.0.4's native `Slider::mouseWheelMove` unchanged; holding **Ctrl** multiplies wheel X/Y deltas by **0.125**, an 8× finer response without changing host gesture or wheel direction.
+- 13 knobs use `PrecisionRotarySlider`, native APVTS attachments, and 280px full-range drag sensitivity for predictable, easy manual adjustment. No sampling timer or arbitrary parameter re-quantization.
+- The compact LCD header is divided into a stable parameter name and directly editable value. **Double-click the value** to open a native `juce::Label` inline editor; **Enter** commits, **Esc** cancels. The editor auto-selects a clean numeric value (no need to erase units).
+- Native-unit parser rejects malformed, non-finite, out-of-range, or incorrect-suffix entries, with no parameter change on invalid edits. Percentage controls accept `35`/`35%` as 35%; Hz controls accept `1200`, `1200 Hz`, `1.2k` or `1.2kHz`; other controls accept their native units (`ms`, `s`, `x`).
+- No DSP/GUI crossover: input parse, wheel scaling, JUCE label editor and paint run on GUI thread. Mixer audio processing remains synchronous; no lookahead was introduced. Zero **reported plugin latency** tested with `getLatencySamples()==0`, distinct from unavoidable host/audio-device buffer latency and reverb pre-delay.
+- Existing gold assets, 98/200-unit geometry, inset LED, 13 stable automation IDs, 32 factory profiles, bypass and C ABI are untouched. Host CI explicitly checks precision scale, 13 controls, value parser, and GUI text commit at four window sizes.
+
+---
+
 # 2026-10-31 — Premium GUI interaction integrity (PR milestone)
 
 - Preserve PR #15's approved physical knob geometry, inset green LED, gold PNG, 13 automation IDs, original engine and 32 factory programs.

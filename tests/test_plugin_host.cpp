@@ -124,7 +124,43 @@ int main() {
            arplugin::vintageLedRadius (76.0f),
            "hero Decay must use a larger luminous LED dot");
 
+
+    // Fidelity contracts: normal scroll unchanged; Ctrl+scroll scales both
+    // smooth trackpads and stepped wheels without changing orientation.
+    juce::MouseWheelDetails wheel {};
+    wheel.deltaY = 0.5f;
+    wheel.deltaX = -0.125f;
+    wheel.isSmooth = true;
+    const auto normalWheel = arplugin::refinedWheel (wheel, false);
+    const auto preciseWheel = arplugin::refinedWheel (wheel, true);
+    check (std::abs (normalWheel.deltaY - 0.5f) < 1e-6f
+            && std::abs (preciseWheel.deltaY - 0.0625f) < 1e-6f
+            && std::abs (preciseWheel.deltaX + 0.015625f) < 1e-6f
+            && preciseWheel.isSmooth == wheel.isSmooth,
+           "Ctrl wheel scaling must preserve wheel metadata and normal mode");
+
+    // Exact-value parser: physical display units, frequency shorthand, and
+    // strict full-string/range validation (no accidental 0 on invalid text).
+    float parsed = -99.0f;
+    using Param = arverb::Parameter;
+    check (arplugin::parseDisplayValue (Param::Mix, "35%", parsed)
+           && std::abs (parsed - 0.35f) < 1e-6f, "percent text entry");
+    check (arplugin::parseDisplayValue (Param::DampingHz, "6.3k", parsed)
+           && std::abs (parsed - 6300.0f) < 0.001f, "kHz text entry");
+    check (arplugin::parseDisplayValue (Param::DecaySeconds, "3.75 s", parsed)
+           && std::abs (parsed - 3.75f) < 1e-6f, "seconds text entry");
+    for (const auto bad : {"not a number", "nan", "1e999", "-99",
+                           "35%garbage", "999999", "1.5.5"}) {
+        check (!arplugin::parseDisplayValue (Param::Mix, bad, parsed),
+               "invalid/out-of-range percent entries must be rejected");
+    }
+    check (!arplugin::parseDisplayValue (Param::DampingHz, "2 kittens", parsed)
+            && !arplugin::parseDisplayValue (Param::DecaySeconds, "30", parsed),
+           "invalid suffix and out-of-range decay must be rejected");
+
     arplugin::ReverbProcessor p;
+    check (p.getLatencySamples() == 0,
+           "zero reported plugin latency; device/host buffer latency separate");
     check(p.getNumInputChannels() == 2 && p.getNumOutputChannels() == 2,
           "stereo bus layout");
     check(p.getBypassParameter() != nullptr, "explicit bypass parameter");
@@ -157,12 +193,19 @@ int main() {
                 }
                 if (const auto* slider = dynamic_cast<const juce::Slider*>(child)) {
                     ++sliderCount;
-                    check(slider->isScrollWheelEnabled(),
-                          "all rotary controls must respond to mouse wheel");
+                    check(slider->isScrollWheelEnabled()
+                            && dynamic_cast<const arplugin::PrecisionRotarySlider*>(slider) != nullptr
+                            && slider->getMouseDragSensitivity() == 280,
+                          "all 13 knobs support fine Ctrl-wheel and predictable drag");
                 }
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            auto* exactDisplay = dynamic_cast<juce::Label*> (
+                editor->findChildWithID ("active-parameter-value"));
+            check (exactDisplay && exactDisplay->isEditableOnDoubleClick()
+                   && editor->getLocalBounds().contains (exactDisplay->getBounds()),
+                   "active parameter LCD value must be directly editable at all sizes");
             // A focused visual geometry contract: hero dial dominant, small
             // dials comfortably sized, and fully inside their hardware modules.
             const juce::Slider* hero = nullptr;
@@ -229,6 +272,26 @@ int main() {
                     mixControl->setValue (originalMix, juce::sendNotificationSync);
                     check (combo->getSelectedId() == static_cast<int> (arverb::presetCount),
                            "preset recognition must recover after value restoration");
+                    // Simulate JUCE's native double-click TextEditor Enter
+                    // commit: valid typed display percentage is applied to
+                    // APVTS; invalid text cannot corrupt the current value.
+                    exactDisplay->showEditor();
+                    check (exactDisplay->getCurrentTextEditor() != nullptr,
+                           "double-click LCD must open native TextEditor");
+                    exactDisplay->getCurrentTextEditor()->setText ("35", false);
+                    exactDisplay->hideEditor (false);
+                    check (std::abs (mixControl->getValue() - 0.35) < 0.0001
+                           && combo->getSelectedId() == 0,
+                           "exact typed value updates the knob and invalidates factory preset");
+                    exactDisplay->showEditor();
+                    exactDisplay->getCurrentTextEditor()->setText ("garbage", false);
+                    exactDisplay->hideEditor (false);
+                    check (std::abs (mixControl->getValue() - 0.35) < 0.0001,
+                           "invalid typed value must not alter host parameter");
+                    combo->setSelectedId (static_cast<int> (arverb::presetCount),
+                                          juce::sendNotificationSync);
+                    check (combo->getSelectedId() == static_cast<int> (arverb::presetCount),
+                           "factory preset remains selectable after inline text edits");
                 }
             check (factoryCount == static_cast<int> (arverb::presetCount),
                    "all 32 real factory programs must be selectable");
