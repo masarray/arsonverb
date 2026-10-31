@@ -1,3 +1,9 @@
+# P2 candidate — static faceplate render caching (2026-10-31)
+
+At window resize, composite gold product logo, MUSICAL VINTAGE REVERB subtitle and four milled-module captions once into the existing ARGB chassis cache. Parent editor paint draws cached surface and live Decay LCD surround; native slider components paint live arc/LED themselves. Retain exact original geometry, fonts and draw order. Avoid a second texture cache, timers, background rendering or audio callback UI dependencies. Benchmark offscreen paint at two sizes; real host screenshot at 100/125/150% remains mandatory for optical approval.
+
+---
+
 # 2026-10-31 — Premium header LCD text inset from user screenshot
 
 Original Windows screenshot (844×422) showed **Mix** nearly touching the dark field left edge and **CUSTOM** too close to its ComboBox frame. The JUCE active name x-origin moves from 355 to 371 in 1100px design space, width shrinks equally to retain the original right alignment. `HardwareLookAndFeel::positionComboBoxText` uses 16px left padding rather than 9px and reserves 42px rather than 35px for right controls. No larger UI, panel movement, new timer, or change to the directly editable numeric LCD. Four-size GUI test checks active name stays inset; actual screenshot still the aesthetic acceptance gate.
