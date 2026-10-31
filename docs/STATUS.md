@@ -1,9 +1,12 @@
-# IN VALIDATION — PR #18 Musical Clarity & Header Refinement (2026-10-31)
+# VERIFIED — PR #18 Musical Clarity DSP & Premium Header Polish (2026-10-31)
 
-- GUI: inset dark LCD name Mix +16 design units, preset text CUSTOM +7px for a comfortable professional left margin.
-- DSP: 8-line FDN and 32 programs unchanged. Add finite, stereo-linked, signal-conditioned wet presence shaper (~1.25–4.2kHz), 10ms attack/180ms release, controlled by existing DUCK; 0% DUCK is exactly transparent. No added latency/lookahead or RT allocation.
-- Regression: isolated 2.5k-vs-230Hz selective energy, stereo symmetry, 0 DUCK transparent, GUI header geometry; existing block, C ABI and automation tests retained.
-- **Pending validation:** new Windows JUCE VST3/Standalone 6/6 CTests and Linux Release/sanitizers. Manual listening and measurement required for sonic quality claims, even after CI passes.
+- [PR #18](https://github.com/masarray/arsonverb/pull/18) **MERGED** as `cb6cfa0aa7f27904a7ef43916099d74d329a2a32`.
+- [Windows JUCE VST3/Standalone CI](https://github.com/masarray/arsonverb/actions/runs/41173756696) **SUCCESS: 6/6 CTests PASSED**, including presence-selective audio regression and real JUCE host/editor controls; unsigned artifact ID **13032193185**, 8,599,945 bytes (original archive).
+- [Linux Release + ASan/UBSan CI](https://github.com/masarray/arsonverb/actions/runs/41173756668) **SUCCESS**.
+- GUI: Mix name inset +16 design units; CUSTOM ComboBox text 16px rather than 9px left inset. No layout or asset regressions.
+- DSP: Original stereo-linked presence detection ~1.25–4.2kHz, 10ms attack/180ms release; selectively ducks wet presence when input occupies it. Existing DUCK amount scales the effect; at DUCK=0 the new shaping is exactly output-transparent. Dry, feedback FDN, RT60, 13 host parameter IDs, all 32 factory programs, state format, C ABI and reported latency unchanged. No added lookahead, allocations, threads or locks in audio callback.
+- Regression validates stronger attenuation around 2.5k than 230Hz, 0% duck transparency, stereo symmetry, finite samples, plus prior C ABI, host, automation, stress and geometry.
+- **Not yet certified:** subjective vocal/music/instrument listening, actual host visual appearance at 100/125/150% DPI, level-matched parity versus commercial reverb, RT60 by frequency and named-hardware CPU p99.
 
 ---
 
