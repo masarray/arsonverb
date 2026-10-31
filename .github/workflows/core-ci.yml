@@ -48,11 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           git show HEAD^1:src/Reverb.cpp > build-ci/p2-reference-Reverb.cpp
-          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p2-reference-Reverb.cpp src/Presets.cpp src/arverb_c.cpp tests/audio_signature.cpp -o build-ci/p2-reference-audio
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p2-reference-Reverb.cpp src/Presets.cpp tests/audio_signature.cpp -o build-ci/p2-reference-audio
           ./build-ci/p2-reference-audio > build-ci/p2-before-audio.txt
           ./build-ci/arverb_audio_signature > build-ci/p2-after-audio.txt
           diff -u build-ci/p2-before-audio.txt build-ci/p2-after-audio.txt
-          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p2-reference-Reverb.cpp src/Presets.cpp src/arverb_c.cpp tests/benchmark.cpp -o build-ci/p2-reference-benchmark
+          c++ -std=c++17 -O3 -DNDEBUG -Isrc -Iinclude build-ci/p2-reference-Reverb.cpp src/Presets.cpp tests/benchmark.cpp -o build-ci/p2-reference-benchmark
           ./build-ci/p2-reference-benchmark --quick > build-ci/p2-before-54.csv
           ./build-ci/arverb_benchmark --quick > build-ci/p2-after-54.csv
           python3 scripts/compare_perf.py build-ci/p2-before-54.csv build-ci/p2-after-54.csv > build-ci/p2-AB.txt
