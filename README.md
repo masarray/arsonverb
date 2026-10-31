@@ -2,7 +2,7 @@
 
 ## Download — v1.0.1 Latest Stable (2026-11-01)
 
-**Free/open source AGPL-3.0-only.** All seven native binaries are published on the [official v1.0.1 release page](https://github.com/masarray/arsonverb/releases/tag/v1.0.1).
+**Free/open source AGPL-3.0-only.** All native platform packages are published on the [official v1.0.1 release page](https://github.com/masarray/arsonverb/releases/tag/v1.0.1).
 
 ### Windows download — choose one
 
@@ -20,7 +20,7 @@ All three downloads use standard, unencrypted ZIP archives. The installer ZIP co
 | Linux x86_64 | [VST3 tar.gz](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz) | [Standalone tar.gz](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-Linux-x86_64-Standalone-v1.0.1.tar.gz) | Manual per-user installation |
 | macOS Intel/Apple Silicon | [Universal VST3 ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-macOS-universal-VST3-v1.0.1.zip) | [Universal .app ZIP](https://github.com/masarray/arsonverb/releases/download/v1.0.1/ArSonVerb-macOS-universal-Standalone-v1.0.1.zip) | Manual per-user installation |
 
-[SHA-256 checksums](https://github.com/masarray/arsonverb/releases/download/v1.0.1/SHA256SUMS.txt) · [Installation, OS security and distribution guide](docs/RELEASE_V1.0.1.md)
+[SHA-256 checksums](https://github.com/masarray/arsonverb/releases/download/v1.0.1/SHA256SUMS.txt) · [Installer ZIP checksum](https://github.com/masarray/arsonverb/releases/download/v1.0.1/SHA256SUMS-Installer-ZIP.txt) · [Installation and distribution guide](docs/RELEASE_V1.0.1.md)
 
 **Install choices:** Windows VST3 ZIP is the primary no-setup download; Installer ZIP provides selectable VST3/Standalone and uninstall. Linux and macOS archives install manually. Browser/download scanning may still inspect ZIP contents; these packages do not alter or hide executables.
 
