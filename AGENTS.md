@@ -1,4 +1,4 @@
-# Current PR #18 direction: preserve gold GUI and ABI; improve Mix/CUSTOM LCD left insets and add strictly wet-only adaptive presence shaping tied to existing Duck control. This is an original one-pole stereo-linked filter design, not speech AI and not a new Valhalla/FabFilter topology. Do not claim subjective parity before measured and level-matched tests; retain no allocations/locks/threads in audio callback. See docs/SONIC_BASELINE.md.
+# Verified PR #18: preserve gold GUI and ABI; improve Mix/CUSTOM LCD left insets and add strictly wet-only adaptive presence shaping tied to existing Duck control. This is an original one-pole stereo-linked filter design, not speech AI and not a new Valhalla/FabFilter topology. Do not claim subjective parity before measured and level-matched tests; retain no allocations/locks/threads in audio callback. See docs/SONIC_BASELINE.md. Windows 6/6 CTests passed (run 41173756696) and Linux Release/sanitizers passed (run 41173756668). Subjective listening and real DAW visual approval remain open.
 
 # ArSonVerb — repository rules for coding assistants
 
@@ -34,7 +34,7 @@ For Windows MSVC: `cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64 -D
 5. Never claim GitHub CI is green until actual GitHub Actions runs are observed.
 6. Report the tested OS, command, actual output, known issues and next task for a clean new-thread handoff.
 
-Current verified release status: **v0.4.1 JUCE 9.0.4 Windows VST3+Standalone 6/6 CTests PASSED in PR #17 (workflow 41165637177); Linux Release and ASan/UBSan PASSED (workflow 41165637133)**. PR #17 merged; unsigned artifact ID 13029208079. Ctrl+wheel precision, 280px knob drag and direct LCD native-unit editing are verified in Windows host-contract tests. Reported plugin latency is 0 samples, not zero physical device/buffer latency. Actual GUI screenshots and listening acceptance remain manual.
+Current verified release status: **v0.4.1 JUCE 9.0.4 Windows VST3+Standalone 6/6 CTests PASSED in merged PR #18 (workflow 41173756696); Linux Release and ASan/UBSan PASSED (workflow 41173756668)**. Unsigned artifact ID 13032193185. Existing PR #17 precision controls and PR #18 presence-aware wet Duck/premium header are both shipped in the test build. Plugin reports zero added latency samples, not zero device buffering. Real DAW screen and level-matched listening acceptance remain manual.
 
 ## v0.4 continuation notes (2026-10-29)
 
