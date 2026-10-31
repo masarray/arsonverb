@@ -1,6 +1,11 @@
 name: Public Stable Release (AGPL-3.0 / physical QA gate)
 
 on:
+  # One-shot publication branch: the owner approved public stable on 2026-11-01.
+  # It is created from the tested main HEAD; on this exact branch the build
+  # and full CTest gate run before GitHub Release is published.
+  push:
+    branches: [release/publish-v1.0.0]
   workflow_dispatch:
     inputs:
       version:
@@ -34,7 +39,7 @@ concurrency:
 jobs:
   release-windows:
     name: Audit, build, validate and publish stable Windows package
-    if: github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'push' && github.ref == 'refs/heads/release/publish-v1.0.0')
     runs-on: windows-2022
     timeout-minutes: 55
     steps:
@@ -46,9 +51,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ inputs.juce_rights_confirmed }}" = "true"
-          test "${{ inputs.project_rights_confirmed }}" = "true"
-          test "${{ inputs.device_qa_confirmed }}" = "true"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            test "${{ inputs.juce_rights_confirmed }}" = "true"
+            test "${{ inputs.project_rights_confirmed }}" = "true"
+            test "${{ inputs.device_qa_confirmed }}" = "true"
+          else
+            # The owner authorised stable release after testing P9, in chat.
+            # The only automatic trigger is this immutable named branch.
+            test "${{ github.event_name }}" = "push"
+            test "${{ github.ref }}" = "refs/heads/release/publish-v1.0.0"
+            # Source to be tagged must be exactly the current main commit.
+            # Fail closed rather than publishing stale/unreviewed branch code.
+            main_sha="$(git ls-remote https://github.com/${{ github.repository }}.git refs/heads/main | cut -f1)"
+            test -n "$main_sha"
+            test "$main_sha" = "${{ github.sha }}"
+          fi
           test "${{ inputs.version }}" = "v1.0.0"
           grep -q 'project(arsonverb VERSION 1.0.0 LANGUAGES C CXX)' CMakeLists.txt
           test -s LICENSE
