@@ -88,8 +88,15 @@ jobs:
           vst3="$(find build-distribution/ARStudioReverb_artefacts -type d -name ArSonVerb.vst3 -print -quit)"
           app="$(find build-distribution/ARStudioReverb_artefacts -type d -name ArSonVerb.app -print -quit)"
           test -n "$vst3" && test -n "$app"
-          lipo -verify_arch arm64 x86_64 "$vst3/Contents/MacOS/ArSonVerb"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/ArSonVerb"
+          # lipo -verify_arch expects a single architecture per query.
+          # Query the actual fat binary once and explicitly require both
+          # independent slices; failure is a hard release blocker.
+          for binary in "$vst3/Contents/MacOS/ArSonVerb" "$app/Contents/MacOS/ArSonVerb"; do
+            archs="$(lipo -archs "$binary")"
+            echo "$binary architectures: $archs"
+            [[ " $archs " == *" arm64 "* ]]
+            [[ " $archs " == *" x86_64 "* ]]
+          done
           # Ad-hoc code signature is for Mach-O load integrity only.
           # It is NOT Apple Developer ID signing or notarization.
           codesign --force --deep --sign - "$vst3"
@@ -109,9 +116,20 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $compiler = Get-ChildItem -Path 'C:\Program Files (x86)' -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($null -eq $compiler) { throw 'Inno Setup ISCC.exe not found after install' }
-          & $compiler.FullName 'packaging/windows/ArSonVerb.iss'
+          # Resolve only known paths; recursively scanning all Program Files
+          # wastes runner minutes on every release.
+          $locations = @(
+            'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
+            'C:\Program Files\Inno Setup 6\ISCC.exe',
+            'C:\ProgramData\chocolatey\bin\ISCC.exe'
+          )
+          $compiler = $locations | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $compiler) {
+            $command = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+            if ($command) { $compiler = $command.Source }
+          }
+          if (-not $compiler) { throw 'Inno Setup ISCC.exe not found after install' }
+          & $compiler 'packaging/windows/ArSonVerb.iss'
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compiler failed' }
           $setup = 'release-assets/ArSonVerb-Windows-x64-Setup-v1.0.1.exe'
           if (!(Test-Path $setup)) { throw 'Installer not created' }
