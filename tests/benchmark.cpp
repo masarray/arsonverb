@@ -39,7 +39,8 @@ void updateAutomation (arverb::Engine& engine, int iteration) noexcept {
     engine.setParameter(arverb::Parameter::LowCutHz, alternate ? 180.0f : 400.0f);
     engine.setParameter(arverb::Parameter::HighCutHz, alternate ? 7000.0f : 12000.0f);
 }
-void runCase(int rate, int block, int count, bool automation, double seconds) {
+void runCase(int rate, int block, int count, bool automation, double seconds,
+             bool dense = false) {
     const auto callbacks = std::max<std::size_t>(
         80, static_cast<std::size_t>(std::ceil(seconds * rate / block)));
     const auto warmup = std::max<std::size_t>(
@@ -48,7 +49,8 @@ void runCase(int rate, int block, int count, bool automation, double seconds) {
     engines.reserve(static_cast<std::size_t>(count));
     for (int n = 0; n < count; ++n) {
         auto e = std::make_unique<arverb::Engine>();
-        e->loadPreset(arverb::Preset::MusicHall);
+        e->loadPreset(dense ? arverb::Preset::LongDreamHall
+                            : arverb::Preset::MusicHall);
         e->prepare(rate);
         engines.push_back(std::move(e));
     }
@@ -96,7 +98,9 @@ void runCase(int rate, int block, int count, bool automation, double seconds) {
     const double p99 = percentile(durations, 0.99);
     std::printf("%d,%d,%d,%s,%zu,%.4f,%.4f,%.4f,%.4f,%.4f,"
                 "%.4f,%.3f,%.3f,%zu,%.9g\n",
-                rate, block, count, automation ? "block_automation" : "steady",
+                rate, block, count,
+                dense ? (automation ? "dense_block_automation" : "dense_steady")
+                      : (automation ? "block_automation" : "steady"),
                 callbacks, mean, percentile(durations, 0.50),
                 percentile(durations, 0.95), p99, durations.back(),
                 deadline, 100.0 * mean / deadline,
@@ -106,8 +110,11 @@ void runCase(int rate, int block, int count, bool automation, double seconds) {
 
 int main(int argc, char** argv) {
     double seconds = 1.25; // Longer profiling by default, opt-in command.
+    bool dense = false; // Explicit P3 high-diffusion workload, not old P1 default.
     for (int i = 1; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--quick") == 0) {
+        if (std::strcmp(argv[i], "--dense") == 0) {
+            dense = true;
+        } else if (std::strcmp(argv[i], "--quick") == 0) {
             seconds = 0.14; // CI smoke only; never a reliable CPU ranking.
         } else if (std::strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
             char* end = nullptr;
@@ -119,7 +126,7 @@ int main(int argc, char** argv) {
             }
             seconds = requested;
         } else if (std::strcmp(argv[i], "--help") == 0) {
-            std::puts("arverb_benchmark [--quick | --seconds N]\n"
+            std::puts("arverb_benchmark [--quick | --seconds N] [--dense]\n"
                       "CSV: all 54 cases, no realtime scheduling, CPU jitter possible.");
             return 0;
         } else {
@@ -138,6 +145,6 @@ int main(int argc, char** argv) {
         for (int block : blockSizes)
             for (int count : instanceCounts)
                 for (bool automation : {false, true})
-                    runCase(rate, block, count, automation, seconds);
+                    runCase(rate, block, count, automation, seconds, dense);
     return 0;
 }

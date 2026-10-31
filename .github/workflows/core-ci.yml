@@ -83,6 +83,10 @@ jobs:
           ./build-ci/arverb_benchmark --quick > build-ci/p3-P3-54.csv
           python3 scripts/compare_perf.py build-ci/p3-P2-54.csv build-ci/p3-P3-54.csv > build-ci/p3-AB.txt
           cat build-ci/p3-AB.txt
+          ./build-ci/p3-P2-benchmark --quick --dense > build-ci/p3-P2-dense-54.csv
+          ./build-ci/arverb_benchmark --quick --dense > build-ci/p3-P3-dense-54.csv
+          python3 scripts/compare_perf.py build-ci/p3-P2-dense-54.csv build-ci/p3-P3-dense-54.csv > build-ci/p3-dense-AB.txt
+          cat build-ci/p3-dense-AB.txt
       - name: Upload P3 matched-runner CPU evidence
         if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/p3-')
         uses: actions/upload-artifact@v4
@@ -92,6 +96,9 @@ jobs:
             build-ci/p3-P2-54.csv
             build-ci/p3-P3-54.csv
             build-ci/p3-AB.txt
+            build-ci/p3-P2-dense-54.csv
+            build-ci/p3-P3-dense-54.csv
+            build-ci/p3-dense-AB.txt
           if-no-files-found: error
           retention-days: 7
       - name: Publish P1 DSP profiler CSV

@@ -50,8 +50,9 @@ constexpr float kEarlyGain[6] = {0.34f, 0.29f, 0.23f, 0.18f, 0.14f, 0.12f};
 // one original density layer, not a ray-traced room model or Valhalla code.
 // The old 6-tap sound remains untouched below Diffusion=0.62. Delay storage
 // stays inside the existing 132ms early buffers; no new allocations.
-constexpr float kDenseEarlyMs[6]   = {18.7f, 31.1f, 46.9f, 68.3f, 95.7f, 117.3f};
-constexpr float kDenseEarlyGain[6] = {0.15f,-0.12f, 0.10f,-0.08f, 0.06f,-0.05f};
+// Three extra taps/channel, keeping density useful without doubling tap CPU.
+constexpr float kDenseEarlyMs[3]   = {21.7f, 55.3f, 109.7f};
+constexpr float kDenseEarlyGain[3] = {0.18f,-0.14f, 0.11f};
 
 constexpr float bassDecayCutoff(float lowCutHz) noexcept {
     // Subtle recirculating low-frequency absorption, NOT an extra wet HPF.
@@ -91,13 +92,15 @@ struct Engine::State {
     // in the sample loop without introducing per-parameter cache invalidation.
     float earlySampleL[6]{};
     float earlySampleR[6]{};
-    float denseEarlySampleL[6]{};
-    float denseEarlySampleR[6]{};
+    float denseEarlySampleL[3]{};
+    float denseEarlySampleR[3]{};
     float fdnBaseSamples[kLines]{};
     float millisecondsToSamples = 0.0f;
     Oscillator lfo[kLines];
     LowPass feedbackLP[kLines];
-    detail::BassDecayContour feedbackBass[kLines];
+    // Bass absorption only along the Householder reflection eigenmode:
+    // one shared one-pole state, not 8 costly per-line filters.
+    detail::BassDecayContour feedbackBass;
     HighPass wetHP[2][2];
     LowPass wetLP[2][2];
     detail::PresenceDucker presence;
@@ -128,7 +131,7 @@ struct Engine::State {
         for (auto& ch : diffuser) for (auto& d : ch) d.reset();
         for (auto& l : lines) l.reset();
         for (auto& f : feedbackLP) f.reset();
-        for (auto& f : feedbackBass) f.reset();
+        feedbackBass.reset();
         for (auto& ch : wetHP) for (auto& f : ch) f.reset();
         for (auto& ch : wetLP) for (auto& f : ch) f.reset();
         presence.reset();
@@ -160,6 +163,8 @@ void Engine::prepare(double sampleRate) {
     for (int t = 0; t < 6; ++t) {
         s.earlySampleL[t] = kEarlyMs[t] * s.millisecondsToSamples;
         s.earlySampleR[t] = s.earlySampleL[t] * (1.0f + 0.019f * (t % 3));
+    }
+    for (int t = 0; t < 3; ++t) {
         s.denseEarlySampleL[t] = kDenseEarlyMs[t] * s.millisecondsToSamples;
         s.denseEarlySampleR[t] = s.denseEarlySampleL[t] * (1.0f + 0.014f * (t % 3));
     }
@@ -327,7 +332,7 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         const float density = clamp((diffusion - 0.62f) / 0.38f, 0.0f, 1.0f);
         if (density > 0.0f) {
             float extraL = 0.0f, extraR = 0.0f;
-            for (int t = 0; t < 6; ++t) {
+            for (int t = 0; t < 3; ++t) {
                 const float a = s.early[0].read(s.denseEarlySampleL[t]);
                 const float b = s.early[1].read(s.denseEarlySampleR[t]);
                 extraL += kDenseEarlyGain[t] * (a + 0.10f * b);
@@ -360,15 +365,16 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         // H = I - 2vv'/8. Orthogonal Householder feedback: energy preserving
         // before per-line RT60 and damping; O(N), not an O(N^2) matrix multiply.
         const float householderProjection = 0.25f * sumHouseholder;
+        // One modal absorption path preserves Householder O(N) feedback and
+        // avoids the 8 extra filters that cost ~31% in the initial P3 trial.
+        // The selected eigenmode loses low-frequency energy gradually;
+        // other eigenmodes, stereo injection and dry remain untouched.
+        const float bassShapedProjection = s.feedbackBass.process(
+            householderProjection, s.bassCoeff, s.bassDepth);
         for (std::size_t i = 0; i < kLines; ++i) {
             s.gains[i] += s.smoother * (s.targetGains[i] - s.gains[i]);
-            const float mixed = taps[i] - householderProjection * kReflect[i];
-            // Frequency-dependent *decay* rather than output-EQ only:
-            // gently reduce very-low-frequency recurrence inside the tank,
-            // leaving consonant/midband feedback and the dry path untouched.
-            const float bassShaped = s.feedbackBass[i].process(
-                mixed, s.bassCoeff, s.bassDepth);
-            const float damped = s.feedbackLP[i].process(bassShaped, s.hfFeedbackCoeff);
+            const float mixed = taps[i] - bassShapedProjection * kReflect[i];
+            const float damped = s.feedbackLP[i].process(mixed, s.hfFeedbackCoeff);
             const float injected = 0.30f * (kInjectL[i] * diffL + kInjectR[i] * diffR);
             s.lines[i].push(killDenormal(s.gains[i] * damped + injected));
         }
