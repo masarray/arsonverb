@@ -8,7 +8,7 @@ on:
         required: true
         default: "v1.0.0"
         type: string
-       juce_rights_confirmed:
+      juce_rights_confirmed:
         description: "I confirm the applicable JUCE licence is valid for distribution"
         required: true
         type: boolean
