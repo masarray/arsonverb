@@ -250,6 +250,7 @@ int main() {
             editor->setSize(width, height);
             int toggleCount = 0;
             int sliderCount = 0;
+            int creatorCreditCount = 0;
             for (int index = 0; index < editor->getNumChildComponents(); ++index) {
                 const auto* child = editor->getChildComponent(index);
                 if (child->isVisible())
@@ -259,6 +260,19 @@ int main() {
                     ++toggleCount;
                     check(toggle->getWidth() >= 95,
                           "BTN180-style BYPASSED text must fit at minimum editor size");
+                }
+                if (const auto* link = dynamic_cast<const juce::HyperlinkButton*>(child)) {
+                    ++creatorCreditCount;
+                    check(link->getComponentID() == "creator-credit"
+                              && link->getButtonText() ==
+                                   "Created by Mas Ari - SonKuPik (c) 2026"
+                              && link->getURL().toString (false) ==
+                                   "https://www.youtube.com/@sonkupik",
+                          "creator footer text and URL must match the request");
+                    check(link->isVisible() && link->getHeight() >= 14
+                              && link->getBounds().getCentreY() >
+                                 static_cast<int>(height * 477.0f / 510.0f),
+                          "clickable credit stays readable beneath four modules");
                 }
                 if (const auto* slider = dynamic_cast<const juce::Slider*>(child)) {
                     ++sliderCount;
@@ -270,6 +284,7 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            check(creatorCreditCount == 1, "exactly one clickable SonKuPik footer");
             // Independent GUI geometry, including small 800x370 plugin host:
             // the active header name must have a reproducible inset.
             bool headerNameFound = false;
