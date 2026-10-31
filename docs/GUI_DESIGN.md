@@ -1,5 +1,7 @@
 # 2026-10-31 — Optical gold radius and recessed LED pointer correction
 
+**Verified in PR #15:** Windows VST3 + Standalone build and 6/6 CTest PASSED (https://github.com/masarray/arsonverb/actions/runs/41162733041); manual DAW screenshot comparison remains open.
+
 **Source:** user screenshot `image(20261031-025850).png` (actual 844×422 Windows screenshot).
 
 ## Root cause and mechanical correction

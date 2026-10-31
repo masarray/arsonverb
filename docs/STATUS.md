@@ -1,4 +1,17 @@
-# Decay gold-to-arc + LED inset geometry correction (pending CI)
+# VERIFIED — PR #15 Decay gold gap / inset LED (2026-10-31)
+
+- [PR #15](https://github.com/masarray/arsonverb/pull/15) **MERGED** at `b356a053faf6a6550506e9b4f65dfc071fe880d5`.
+- [Windows VST3 + Standalone CI](https://github.com/masarray/arsonverb/actions/runs/41162733041) **SUCCESS: 6/6 CTest passed** including GUI geometry and JUCE host smoke test. GitHub unsigned artifact ID **13027862989**.
+- [Core Release and sanitizer CI](https://github.com/masarray/arsonverb/actions/runs/41162733037) **SUCCESS**.
+- Corrected apparent gold radius for 15% transparent PNG margin: Decay source image face factor `0.416 → 0.468`; small stays `0.422`. Visible gold to jade arc centre gap: small ~7.48, Decay ~7.44 reference units.
+- LED center moved from old `side*0.344` to `side*vintageGoldVisibleRatio(side)*0.77`, seated on the gold disc rather than bezel. LED angle and continuous arc still driven by same normalized JUCE slider position.
+- No audio DSP, host automation IDs, presets, parameter routing, window size, or gold asset edits. Existing two-size cached asset renderer preserved.
+- **Remaining manual gate:** screenshot and listening QA in actual Windows host at 100%, 125%, 150% DPI; CI does not certify premium/pixel-perfect visual quality.
+- Latest test ZIP derived from the CI binary with VST3 and Standalone only; compiler import libraries excluded.
+
+---
+
+# Design plan — verified in PR #15
 
 # 2026-10-31 — Optical gold radius and recessed LED pointer correction
 
