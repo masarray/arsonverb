@@ -78,9 +78,12 @@ if(ARVERB_BUILD_PLUGIN)
         FetchContent_MakeAvailable(JUCE)
     endif()
 
-    # Inter is OFL-licensed and embedded only in the JUCE visual frontend.
-    # The reusable DSP library and pure C ABI do not link this font.
-    juce_add_binary_data(ArSonVerbFonts SOURCES assets/fonts/InterVariable.ttf)
+    # All tiny GUI resources are compiled into the JUCE frontend, never the
+    # reusable C++ DSP core. The alpha logo is an optimized derivative of the
+    # approved ArSon-Verb metallic PNG: 225x39 and 3.7 kB on disk.
+    juce_add_binary_data(ArSonVerbFonts SOURCES
+        assets/fonts/InterVariable.ttf
+        assets/gui/ArSonVerbLogo.png)
 
     juce_add_plugin(ARStudioReverb
         COMPANY_NAME "ArSon"

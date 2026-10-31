@@ -66,7 +66,7 @@ struct Dial {
 constexpr std::array<Dial, arverb::parameterCount> dials {{
     {arverb::Parameter::Mix,          92, 214, 74, "MIX"},
     {arverb::Parameter::PreDelayMs,   92, 369, 74, "PRE-DELAY"},
-    {arverb::Parameter::DecaySeconds, 266, 248, 172, "DECAY"},
+    {arverb::Parameter::DecaySeconds, 281, 248, 172, "DECAY"},
     {arverb::Parameter::Size,         767, 214, 74, "SIZE"},
     {arverb::Parameter::Diffusion,    767, 369, 74, "DIFFUSION"},
     {arverb::Parameter::DampingHz,    511, 214, 74, "HF DAMP"},
@@ -92,6 +92,15 @@ constexpr bool dialOrderIsStable() noexcept {
     return true;
 }
 static_assert (dialOrderIsStable(), "Faceplate controls must match stable DSP IDs");
+
+// One alpha PNG decoded on first use, on JUCE's message thread. All plugin
+// windows share the same decoded logo without asset I/O or audio-thread work.
+const juce::Image& productWordmark() {
+    static const juce::Image logo = juce::ImageFileFormat::loadFrom (
+        BinaryData::ArSonVerbLogo_png,
+        static_cast<std::size_t> (BinaryData::ArSonVerbLogo_pngSize));
+    return logo;
+}
 
 juce::String humanValue (arverb::Parameter param, float value) {
     using P = arverb::Parameter;
@@ -442,6 +451,18 @@ void ReverbEditor::refreshParameterReadout (std::size_t index) {
         juce::dontSendNotification);
 }
 
+juce::Rectangle<int> ReverbEditor::decayDisplayBounds() const {
+    const float sx = getWidth() / referenceWidth;
+    const float sy = getHeight() / referenceHeight;
+    // Anchor LCD to the exact bottom of the PRE-DELAY caption. The aligned
+    // baseline survives min/default/max editor sizes and font rounding.
+    const auto nominal = scaled (221.0f, 0.0f, 122.0f, 44.0f, sx, sy);
+    const auto captionBottom = labels[static_cast<std::size_t> (
+        arverb::Parameter::PreDelayMs)].getBottom();
+    return {nominal.getX(), captionBottom - nominal.getHeight(),
+            nominal.getWidth(), nominal.getHeight()};
+}
+
 void ReverbEditor::rebuildFaceplateCache() {
     const int w = getWidth(), h = getHeight();
     if (w <= 0 || h <= 0) return;
@@ -507,12 +528,21 @@ void ReverbEditor::paint (juce::Graphics& g) {
     g.fillAll (juce::Colour (0xff1c1b1c));
     if (faceplateCache.isValid()) g.drawImageAt (faceplateCache, 0, 0);
 
-    // Inter typography with deliberate weight and contrast at the compact size.
-    // A single wordmark prevents accidental spacing between ArSon / Verb.
-    g.setColour (palette::mainText);
-    g.setFont (uiHeavy (31.5f * fs));
-    g.drawText ("ArSonVerb", scaled (25, 20, 270, 38, sx, sy),
-                juce::Justification::centredLeft);
+    // Transparent champagne-gold product asset. Aspect ratio remains exact,
+    // and the image is decoded once, never during mouse/automation updates.
+    const auto logoBox = scaled (25, 15, 240, 42, sx, sy);
+    const auto& logo = productWordmark();
+    if (logo.isValid()) {
+        g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
+        g.drawImageWithin (logo, logoBox.getX(), logoBox.getY(),
+                           logoBox.getWidth(), logoBox.getHeight(),
+                           juce::RectanglePlacement::centred);
+    } else {
+        // Defensive fallback when a damaged resource is encountered.
+        g.setColour (palette::mainText);
+        g.setFont (uiHeavy (26.0f * fs));
+        g.drawText ("ArSon-Verb", logoBox, juce::Justification::centredLeft);
+    }
     g.setColour (palette::secondaryText);
     g.setFont (uiHeavy (std::max (11.8f, 13.6f * fs)));
     g.drawText ("MUSICAL VINTAGE REVERB",
@@ -530,7 +560,7 @@ void ReverbEditor::paint (juce::Graphics& g) {
     }
 
     // Green hardware-style decay readout, not a general-purpose text box.
-    const auto display = scaled (206, 412, 122, 44, sx, sy).toFloat();
+    const auto display = decayDisplayBounds().toFloat();
     g.setColour (juce::Colour (0xff1e2622));
     g.fillRoundedRectangle (display, 5.0f * fs);
     g.setGradientFill (juce::ColourGradient (juce::Colour (0xff263e32),
@@ -567,7 +597,8 @@ void ReverbEditor::resized() {
                              juce::roundToInt (110.0f * sx), juce::roundToInt (21.0f * s));
         labels[i].setFont (uiHeavy (std::max (12.5f, 17.6f * s)));
     }
-    decayReadout.setBounds (scaled (207, 411, 120, 44, sx, sy));
+    decayReadout.setBounds (decayDisplayBounds().withTrimmedLeft (2)
+                                                .withTrimmedRight (2));
     decayReadout.setFont (uiHeavy (23.0f * s));
     parameterReadout.setBounds (scaled (355, 27, 305, 34, sx, sy));
     parameterReadout.setFont (uiHeavy (std::max (12.0f, 14.5f * s)));

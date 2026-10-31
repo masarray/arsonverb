@@ -1,3 +1,18 @@
+# Product Logo + Optical Decay Alignment — CI pending
+
+# 2026-10-31 — Product logo and optical Decay layout
+
+- Approved artwork: **ArSon-Verb** metallic champagne serif, original generated transparent PNG. Optimized alpha-indexed derivative embedded at `assets/gui/ArSonVerbLogo.png` (225x39, approximately 3.7 kB, no runtime external resources); the original high-resolution artwork remains the source for future large print exports.
+- JUCE `BinaryData::ArSonVerbLogo_png` is decoded **once on GUI/message thread** and the cached image is drawn only when header repaints; audio core remains JUCE-independent, with no added IO or allocations inside the DSP callback.
+- The old `drawText("ArSonVerb")` wordmark is replaced by the branded PNG at `scaled(25,15,240,42)`, preserving aspect ratio. Existing window title and host/product identifiers remain `ArSonVerb` for compatibility.
+- The large Decay dial center moves right from 266 to **281** reference units (+15 = ~11 px at default). Its `DECAY` caption follows because all knob labels are generated from the same dial record.
+- LCD box shifts x from 206 to **221** reference units, matching the dial offset. **Its bottom Y is no longer magic-number-based**: computed from the exact lower edge of the PRE-DELAY label. LCD number and frame reuse `ReverbEditor::decayDisplayBounds()` to prevent drift at 800×370, 842×394, 1000×470, and 1180×545.
+- Host UI regression verifies alpha PNG decode/size and LCD alignment at all four dimensions. 13 parameter IDs, 32 factory programs, preset automation, state serialization, audio processing and routing remain unchanged.
+- CI discipline: one integrated PR with Windows VST3+Standalone + 6/6 tests; retain manual screenshot checks at 100/125/150% display scale as a separate aesthetic approval.
+
+
+---
+
 # VERIFIED — Factory32 + Crisp Inter + Raised Decay LCD (2026-10-31)
 
 - [PR #11](https://github.com/masarray/arsonverb/pull/11) **MERGED** as `5d971a5c9cc831426a484578758307e11d35daa0`.

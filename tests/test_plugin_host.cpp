@@ -2,6 +2,7 @@
 // Intentionally calls the actual AudioProcessor methods used by DAWs.
 #include "PluginProcessor.hpp"
 #include "PluginEditor.hpp"
+#include <BinaryData.h>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -38,6 +39,14 @@ int main() {
     // JUCE editor/value attachments require a valid message manager on the
     // test thread; no actual DAW window is necessary.
     juce::ScopedJuceInitialiser_GUI juceGui;
+    // The actual approved transparent PNG is embedded in both plugin + test.
+    const auto logo = juce::ImageFileFormat::loadFrom (
+        BinaryData::ArSonVerbLogo_png,
+        static_cast<std::size_t> (BinaryData::ArSonVerbLogo_pngSize));
+    check (logo.isValid() && logo.hasAlphaChannel(),
+           "branded transparent PNG must decode at runtime");
+    check (logo.getWidth() == 225 && logo.getHeight() == 39,
+           "use optimized branded PNG, not a costly full-resolution artwork");
     // Direct geometry regression: the original bug ignored the slider
     // position and left the pointer fixed at 12 o'clock for every value.
     const float start = juce::MathConstants<float>::pi * 1.25f;
@@ -102,6 +111,22 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            // LCD lower border and PRE-DELAY caption lower border must be
+            // optically co-linear at each supported host/editor size.
+            const juce::Label* preDelayLabel = nullptr;
+            const juce::Label* decayValueLabel = nullptr;
+            for (int n = 0; n < editor->getNumChildComponents(); ++n) {
+                if (auto* label = dynamic_cast<const juce::Label*> (
+                    editor->getChildComponent(n))) {
+                    if (label->getText() == "PRE-DELAY") preDelayLabel = label;
+                    if (label->isVisible() && label->getText().endsWith(" s"))
+                        decayValueLabel = label;
+                }
+            }
+            check (preDelayLabel && decayValueLabel,
+                   "PRE-DELAY caption and Decay LCD label must exist");
+            check (std::abs (preDelayLabel->getBottom() - decayValueLabel->getBottom()) <= 1,
+                   "Decay LCD bottom must track PRE-DELAY caption at all sizes");
             int factoryCount = 0;
             for (int n = 0; n < editor->getNumChildComponents(); ++n)
                 if (auto* combo = dynamic_cast<juce::ComboBox*> (
