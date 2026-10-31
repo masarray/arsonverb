@@ -1,13 +1,17 @@
-# P3 IN VALIDATION — Musical Early Energy and Frequency-Dependent Feedback Decay (2026-10-31)
+# VERIFIED — P3 Musical Early-to-Late + Modal Bass Decay (2026-10-31)
 
-- Extends early energy density from six sparse taps with zero additional taps; a continuous early-to-late send/crossfeed morph using existing 6 taps for Diffusion above 0.62. Existing delay buffers (132ms) are reused; the original early-reflection signal remains unchanged at Diffusion <=0.62. Density morph is continuous and bounded, not an additional lookahead or convolution.
-- Adds a one shared one-pole, mild bass absorption contour on the Householder feedback eigenmode (3-10% low-band attenuation per pass, cutoff 85Hz + 0.14×Wet Low Cut Hz). The existing Wet Low Cut control therefore shapes both output HPF and low-band tail recurrence; avoids adding new host IDs. New filter states reset on host reset.
-- Retains eight-line Householder topology, 13 IDs, 32 factory preset values, automation, zero reported additional plugin latency, gold JUCE visual and existing presets. **Sound changes deliberately**; previous P2 audio bit-signatures are not expected to match (but run as deterministic regressions).
-- Initial P3 full 8-filter/6-tap variant **REJECTED** after same-runner benchmark indicated ~31% mean CPU increase and one offline deadline crossing. Revised variant uses one modal filter and 0 extra taps. P3 same-runner benchmark includes both ordinary MusicHall and explicit high-diffusion (LongDreamHall) same-runner CPU A/B.
-- P3 isolated bass/mid frequency tests + all-rate/early-density/finite/stereo/continuous output test; all prior CTest, sanitizer and host tests remain mandatory. CPU comparison against P2 and user DAW level-matched vocal/music listening still needed; no industry sonic parity claim.
-- References: ValhallaRoom early energy research and FabFilter Pro-R 2 frequency-dependent decay EQ (behavioral research; original implementation).
+- [PR #22](https://github.com/masarray/arsonverb/pull/22) **MERGED** to main, commit `36f4538619e1dee92cc25ddc6e1a9768bf0f1eca`.
+- **Linux PR CI:** [41198849584](https://github.com/masarray/arsonverb/actions/runs/41198849584) SUCCESS (Release, all CTests, ASan/UBSan). **Windows JUCE PR CI:** [41198849618](https://github.com/masarray/arsonverb/actions/runs/41198849618) SUCCESS, **8/8 CTests**, VST3 + Standalone unsigned artifact ID 13042515037.
+- Sonic addition: 6 **existing** stereo early taps gain a continuous early-to-late send (0.28→0.40) and stereo early crossfeed (0.10→0.18) with Diffusion >0.62. **No additional tap reads or buffers**; low-Diffusion early geometry preserved. A **single** shared one-pole Householder eigenmode bass contour, coupled to Wet Low Cut, adds subtle frequency-dependent modal LF absorption without new host parameters.
+- **Measured CPU P2 versus P3 on one Linux runner:** 54 normal and 54 high-Diffusion short cases. Median mean callback time changed **+5.59% normal**, **+5.98% high-Diffusion**; median p99 +7.26% / +4.91%. 0 *offline* deadline crossings in all 108 candidate cases. CI data are noisy and do not establish ASIO/WASAPI xrun-free performance.
+- Both earlier heavier designs **rejected, never merged**: 8 filters + 6 extra taps had ~31% mean overhead and one offline deadline crossing; 1 modal filter + 3 tap pairs still cost ~18–21%. Only third lean proposal merged.
+- Windows offscreen JUCE full paint after cache warmup: 2.227 ms at 842×394, 2.378 ms at 1180×545 (16 repetitions each, same workflow; not real GPU FPS).
+- 13 automation IDs, 32 exact preset values, existing gold GUI, dry path, C ABI, realtime no-heap/no-lock, **0 reported additional plugin latency samples** retained. **Audible tone deliberately changed; 27 P2/P3 fingerprints are NOT supposed to match**. New P3 sonic-response and stability regression passes.
+- Manual acceptance **still required**: level-matched P2/P3 voice/snare/piano/acoustic guitar and full mix, mono fold-down, ASIO low-buffer physical CPU/xruns, Windows host screenshot at 100/125/150% scaling. This is a meaningful sound iteration, not proven parity with Valhalla/FabFilter.
+- Outcome and methodology: `docs/P3_RESULTS_20261031.md`. No new CI created by this documentation-only reconciliation.
 
 ---
+
 
 # VERIFIED — P2 Sound-Preserving DSP & Static GUI Cache (2026-10-31)
 

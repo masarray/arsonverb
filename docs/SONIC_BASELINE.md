@@ -1,17 +1,15 @@
-# P3 candidate — dense early energy + frequency-dependent bass recurrence
+# P3 verified — lighter early-to-late energy and modal bass decay
 
-The formerly six isolated early taps now have a sparse+diffuse morph controlled by the existing Diffusion knob. When Diffusion <= 0.62, no no extra delay reads or early-layer change occurs. Above threshold, six existing taps gain increased stereo crossfeed and early-to-late send, using existing sample-rate-allocated early delay buffers and smoothly varying a ~10% blend. This is intentionally original DSP, not reimplementation of ValhallaRoom.
+The final P3 design adds **no extra delay taps or buffer reads**. At Diffusion <=0.62, the original early crossfeed and early-send formula remain; at higher Diffusion, the six existing stereo taps smoothly increase their crossfeed from 0.10 to 0.18 and their share of the signal sent to the existing four-stage diffusers from 0.28 to 0.40. This is a modest original early-energy *mixing* innovation, **not a new Plate/Hall/Chamber mode** and not an increase in the number of reflection taps.
 
-The eight-line FDN now absorbs very low frequencies in its *shared Householder reflection eigenmode* as well as using independent wet HPF at output. Bass absorption is controlled by existing Wet Low Cut: cutoff 85+0.14×cutoff Hz, mild 3%-10% low-band reduction per recirculation. This differentiates low-band decay, while preserving upper midband decay and the dry path. Each filter state advances continuously for automation, with coefficient calculation only at control changes and sample-wise smoothing. Audio callback is still lock-free, allocation-free, O(8); there is no lookahead or added latency sample.
+Inside the eight-line Householder feedback network, one existing projection is now processed by a **single shared first-order bass contour**. The low-frequency absorption coefficient is shaped by the existing Wet Low Cut (85 + 0.14×LowCut Hz, with approx 3–10% low-band modal absorption). This alters the *one reflection eigenmode* response without eight new per-line filters and without a full multiband Decay Rate EQ. Input dry is unmodified; existing output wet HP/LP and presence ducking are retained. Zero extra reported latency and the lock-free/audio-allocation-free processing contract remain.
 
-Industry behavioral references (not borrowed algorithms):
-- https://valhalladsp.com/2011/05/04/valhallaroom-early-reflections-versus-early-energy/
-- https://valhalladsp.com/2011/05/18/valhallaroom-the-early-controls/
-- https://prod.fabfilter.com/help/pro-r/using/decayrateEQ
+Two more expensive variants were rejected from measured evidence rather than merged. Final 108-case same-runner quick benchmark shows median mean callback +5.59% normal / +5.98% high-Diffusion versus P2 with no offline deadline crossings. Physical DAW and level-matched A/B must decide whether the different early energy and low-mid reverb decay are musically preferable. Numerical tests are not listening tests.
 
-This is a *new sound* and must be tested with level-matched natural vocal, snare, piano and acoustic guitar. Numeric response checks do not validate musical quality. Large uncontrolled changes in tail brightness and bass should be rejected by listening. Need CPU p99 and real Windows DAW screenshots. Factory programs retain all 13 existing numeric values, and no old automation IDs are changed.
+Source behavior references: [ValhallaRoom early energy](https://valhalladsp.com/2011/05/04/valhallaroom-early-reflections-versus-early-energy/), [ValhallaRoom early send](https://valhalladsp.com/2011/05/18/valhallaroom-the-early-controls/), [FabFilter frequency-dependent decay](https://prod.fabfilter.com/help/pro-r/using/decayrateEQ). No proprietary algorithms were copied.
 
 ---
+
 
 # 2026-10-31 — Musical clarity DSP milestone (PR #18 merged; CI verified, listening pending)
 
