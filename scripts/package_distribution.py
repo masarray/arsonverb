@@ -89,7 +89,7 @@ def checksum(out: Path, platform: str) -> None:
                        and not p.name.startswith("SHA256SUMS"))
     if not filenames:
         raise RuntimeError("No build artifacts to checksum")
-    with (out / f"SHA256SUMS-{platform}.txt").open("w", encoding="ascii") as f:
+    with (out / f"SHA256SUMS-{platform}.txt").open("w", encoding="ascii", newline="\\n") as f:
         for path in filenames:
             with path.open("rb") as source:
                 digest = hashlib.file_digest(source, "sha256").hexdigest()
