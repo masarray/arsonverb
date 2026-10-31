@@ -1,3 +1,9 @@
+# P9 — AGPL-3.0-only + realtime startup and preset-change crackle mitigation (2026-11-01)
+
+[PR #30](https://github.com/masarray/arsonverb/pull/30) addresses physical user feedback: P8 still crackles at opening and sporadically on presets. No public stable release before physical confirmation. Project copyright owner expressly chose **AGPL-3.0-only**, full text in `LICENSE` and Inter OFL in `assets/fonts/OFL.txt`; JUCE 9 AGPL option. P9 implementation prewarms the DSP graph in `prepareToPlay`, makes the 14-parameter GUI preset transaction nonblocking and coherent to the callback, skips unchanged host notifications, replaces callback libm coefficient spikes with bounded polynomials and crossfades fixed delay taps on large Pre-delay/Size changes. Rapid preset numerical/continuity regression is part of Linux and Windows CI. Maintain stable IDs and C ABI. **Hardware ASIO xrun proof and audible crackle elimination remain unverified; no green CI can certify them.**
+
+---
+
 # v1.0.0 — GUI CREDIT + MANUAL STABLE RELEASE GATE, MERGED (2026-10-31)
 
 [PR #29](https://github.com/masarray/arsonverb/pull/29) merged into `main` as `488c51e6fe960c684bfea570b965e7f10665c67f`. **Windows JUCE [run 41222071166](https://github.com/masarray/arsonverb/actions/runs/41222071166) SUCCESS 11/11 CTests**, including responsive footer hyperlink exact URL and text tests; Windows VST3 + Standalone unsigned artifact `13049869119`, audition artifact `13050328503`. **Linux [run 41222071197](https://github.com/masarray/arsonverb/actions/runs/41222071197) SUCCESS** Release and ASan/UBSan. P8 DSP is unchanged: 13 automatable scalar IDs, four modes, 32 presets and C ABI intact. GUI displays clickable `Created by Mas Ari - SonKuPik (c) 2026` at the chassis bottom without changing editor dimensions or audio runtime. CMake version now 1.0.0.
