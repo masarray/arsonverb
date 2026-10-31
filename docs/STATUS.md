@@ -1,6 +1,6 @@
 # CURRENT — P5 reconciled integrated status (2026-10-31)
 
-**Source of truth:** `masarray/arsonverb` `main@24c1f95` (P5 code merge `8da785b`; subsequent documentation only). **All 22 PRs in this repository are merged; 0 open PRs.** Historical branches are not pending unmerged deliverables. P1–P5 milestones are integrated. This summary supersedes historical P1-not-started / Plate-is-only-a-preset / JUCE-not-built notes further below.
+**Audited DSP source:** `masarray/arsonverb` P5 code merge `8da785b`; later commits `24c1f95` and docs PR #25 only reconcile documentation. **As of PR #25: 23 PRs merged, 0 open.** Historical branches are not pending unmerged deliverables. P1–P5 milestones are integrated. This summary supersedes historical P1-not-started / Plate-is-only-a-preset / JUCE-not-built notes further below.
 
 | Gate | Result |
 |---|---|
