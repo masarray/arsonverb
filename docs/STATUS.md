@@ -1,8 +1,13 @@
-# P8 v0.7.0 — REALTIME STARTUP + TOP AIR, PR VALIDATION PENDING (2026-10-31)
+# P8 v0.7.0 — MERGED, PR CI PASSED — physical ASIO validation pending (2026-10-31)
 
-**Working branch:** `feat/p8-rt-startup-air-20261031`, following verified P7 main `71f3e75`. The user still hears startup crackles and insufficient sparkle; those are real-world symptoms, not yet hardware-reproduced by CI. P8 moves first-block DSP coefficient initialization into `prepare()`, bounds expensive automation coefficient recalculation to once per 128 processed samples with last-value-wins, and strengthens wet-only top air when HighCut and Damping are open. Adds net live-allocation lifecycle and real-engine spectral/block-size tests, plus same-runner P7/P8 54-case CPU evidence in the existing CI workflow. **Do not claim CI green, crackle-free workstation operation or top-plugin sonic parity until verified.** Existing 13 host scalar IDs, 32 presets, four feedback modes, gold GUI and C ABI retained. See `docs/P8_REALTIME_STARTUP_AIR.md` for engineering scope and physical acceptance gate.
+**Verified:** [PR #28](https://github.com/masarray/arsonverb/pull/28) merged to `main` as `aef6cbc1115f94055e2c8bd42639fcefd209c54b`. [Core PR CI 41219722061](https://github.com/masarray/arsonverb/actions/runs/41219722061) SUCCESS, Linux Release 10/10 + ASan/UBSan. [Windows JUCE PR CI 41219722058](https://github.com/masarray/arsonverb/actions/runs/41219722058) SUCCESS, **11/11 CTests including actual pre-playback-restored-APVTS startup regression**, VST3 + Standalone and current-engine 8-WAV physical audition pack. Unsigned Windows plugin artifact **13049931087**; 8-WAV audition artifact **13049981061** (workflow name still P6, content is P8 source). GitHub artifacts retained seven days.
+
+**Critical P8 fixes:** prime expensive coefficient/oscillator states during core prepare and copy JUCE APVTS-restored host preset into core **before** prepare (one canonical host sync path). Coalesce expensive automated coefficient updates every 128 processed samples, retain per-sample smoothing and every-block Mix/mode. Add wet-only bounded 7.8k top air derived from HighCut + Damping. New real-engine spectral/cold-block and 60 repeated prepare/reset net-allocation checks. 13 scalar IDs + appended algorithm, 32 preset numeric values, four algorithms, C ABI and gold GUI remain unchanged. P7/P8 same-runner 54-case benchmark recorded; mixed timing results, **no universal CPU speedup claim**. 
+
+**STOP-SHIP still open:** actual workstation ASIO/WASAPI startup crackles/xruns, 32/64/128/256 buffer testing, matched-level P7/P8 vocal/music air versus sibilance, pluginval, alternate DAW and distribution licensing. CI is not a hardware crackle-free certificate. See `docs/P8_REALTIME_STARTUP_AIR.md`.
 
 ---
+
 
 # P7 v0.6.0 RT60-aware High-Frequency Tail — MERGED and PR CI verified (2026-10-31)
 
