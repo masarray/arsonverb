@@ -134,6 +134,17 @@ struct Engine::State {
     detail::BassDecayContour feedbackBass;
     HighPass wetHP[2][2];
     LowPass wetLP[2][2];
+    detail::AirShelf airShelf[2];
+    float airCoeff = 0.0f;
+    float wetHighSlope = 0.0f, targetHighSlope = 0.0f;
+    float airLift = 0.0f, targetAirLift = 0.0f;
+    float hfDampingBlend = 1.0f, targetHFDampingBlend = 1.0f;
+    // Sine/cosine gain targets calculated only when the host Mix changes.
+    // Two native gain smoothers keep the audio callback free of any trig,
+    // lookup or interpolation per sample.
+    float currentDryGain=1.0f, currentWetGain=0.0f;
+    float targetDryGain=1.0f, targetWetGain=0.0f;
+    float cachedMix=-1.0f;
     detail::PresenceDucker presence;
     std::array<float, parameterCount> smooth{};
     float gains[kLines]{};
@@ -167,6 +178,7 @@ struct Engine::State {
         feedbackBass.reset();
         for (auto& ch : wetHP) for (auto& f : ch) f.reset();
         for (auto& ch : wetLP) for (auto& f : ch) f.reset();
+        for (auto& f : airShelf) f.reset();
         presence.reset();
         for (std::size_t i = 0; i < kLines; ++i) {
             lfo[i].reset(static_cast<float>(i) * 1.7718f + 0.39f);
@@ -215,11 +227,18 @@ void Engine::prepare(double sampleRate) {
     s.envelopeAttack = 1.0f - std::exp(-1.0f / (0.012f * fs));
     s.envelopeRelease = 1.0f - std::exp(-1.0f / (0.34f * fs));
     s.presence.prepare(fs);
+    s.airCoeff = lowPassCoeff(6500.0f, fs);
     s.algorithmStep = 1.0f / std::max(1.0f, fs * 0.100f); // 100ms morph
     s.fromAlgorithm = s.toAlgorithm = algorithm_.load(std::memory_order_relaxed);
     s.algorithmBlend=1.0f;
     for (std::size_t i = 0; i < parameterCount; ++i)
         s.smooth[i] = parameters_[i].load(std::memory_order_relaxed);
+    constexpr float halfPi=1.57079632679489661923f;
+    s.cachedMix = s.smooth[static_cast<unsigned>(Parameter::Mix)];
+    s.currentDryGain = s.targetDryGain =
+        s.cachedMix>=1.0f ? 0.0f : std::cos(halfPi*s.cachedMix);
+    s.currentWetGain = s.targetWetGain =
+        s.cachedMix<=0.0f ? 0.0f : std::sin(halfPi*s.cachedMix);
 
     const float decay = s.smooth[static_cast<unsigned>(Parameter::DecaySeconds)];
     const float size = s.smooth[static_cast<unsigned>(Parameter::Size)];
@@ -235,7 +254,17 @@ void Engine::prepare(double sampleRate) {
     s.cachedHighCut = -1.0f;
     s.hfFeedbackCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::DampingHz)], fs);
     s.wetLowCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::LowCutHz)], fs);
-    s.wetHighCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::HighCutHz)], fs);
+    const float highCut = s.smooth[static_cast<unsigned>(Parameter::HighCutHz)];
+    s.wetHighCoeff = lowPassCoeff(highCut, fs);
+    // Bright settings transition from a 12dB/oct to a gentler 6dB/oct
+    // wet post-filter, with a small controlled air shelf above ~6.5k.
+    s.wetHighSlope = s.targetHighSlope =
+        clamp((highCut - 5500.0f) / 5500.0f, 0.0f, 1.0f);
+    s.airLift = s.targetAirLift =
+        0.55f * clamp((highCut - 6500.0f) / 13500.0f, 0.0f, 1.0f);
+    const float dampingCut = s.smooth[static_cast<unsigned>(Parameter::DampingHz)];
+    s.hfDampingBlend = s.targetHFDampingBlend =
+        clamp(0.05f + 0.000020f * (18000.0f - dampingCut), 0.05f, 0.43f);
     const float initialLowCut = s.smooth[static_cast<unsigned>(Parameter::LowCutHz)];
     s.bassCoeff = s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(initialLowCut), fs);
     s.bassDepth = s.targetBassDepth = bassDecayDepth(initialLowCut);
@@ -288,6 +317,15 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     const auto idx = [](Parameter p) -> unsigned { return static_cast<unsigned>(p); };
     // Atomic host target captured once per block. The entire 100ms
     // transition uses the SAME tank; no two-engine tail CPU/memory cost.
+    const float requestedMix = target[idx(Parameter::Mix)];
+    if (requestedMix != s.cachedMix) {
+        s.cachedMix = requestedMix;
+        constexpr float halfPi=1.57079632679489661923f;
+        s.targetDryGain = requestedMix>=1.0f ? 0.0f
+                            : std::cos(halfPi*requestedMix);
+        s.targetWetGain = requestedMix<=0.0f ? 0.0f
+                            : std::sin(halfPi*requestedMix);
+    }
     const unsigned requested = algorithm_.load(std::memory_order_relaxed);
     if (requested != s.toAlgorithm) {
         s.fromAlgorithm = (s.algorithmBlend < 0.5f)
@@ -316,6 +354,11 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     if (target[idx(Parameter::DampingHz)] != s.cachedDamping) {
         s.cachedDamping = target[idx(Parameter::DampingHz)];
         s.targetHF = lowPassCoeff(s.cachedDamping, s.sampleRate);
+        // High frequencies should still decay, but one full 1-pole LP on
+        // *each* tank recurrence causes an excessively dark, dead tail.
+        // A convex high-frequency damping shelf limits that repeated loss.
+        s.targetHFDampingBlend = clamp(
+            0.05f + 0.000020f * (18000.0f - s.cachedDamping), 0.05f, 0.43f);
     }
     if (target[idx(Parameter::LowCutHz)] != s.cachedLowCut) {
         s.cachedLowCut = target[idx(Parameter::LowCutHz)];
@@ -326,15 +369,19 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     if (target[idx(Parameter::HighCutHz)] != s.cachedHighCut) {
         s.cachedHighCut = target[idx(Parameter::HighCutHz)];
         s.targetHigh = lowPassCoeff(s.cachedHighCut, s.sampleRate);
+        s.targetHighSlope = clamp(
+            (s.cachedHighCut - 5500.0f) / 5500.0f, 0.0f, 1.0f);
+        s.targetAirLift = 0.55f * clamp(
+            (s.cachedHighCut - 6500.0f) / 13500.0f, 0.0f, 1.0f);
     }
 
-    // Eight smoothed scalars are actually consumed in process().
+    // Seven smoothed scalar controls remain: Mix is smoothed directly in
+    // gain space, avoiding LUT/index/lerp arithmetic on every sample.
     // Decay, modulation rate and the three EQ frequency parameters instead
     // drive independent, correctly smoothed feedback/filter coefficients.
     // Integrating those five unused sample histories cost CPU but had no
     // influence on the audio output. Keep the original audible update order.
-    constexpr std::array<unsigned, 8> kSmoothedAudioControls {{
-        static_cast<unsigned>(Parameter::Mix),
+    constexpr std::array<unsigned, 7> kSmoothedAudioControls {{
         static_cast<unsigned>(Parameter::PreDelayMs),
         static_cast<unsigned>(Parameter::Size),
         static_cast<unsigned>(Parameter::Diffusion),
@@ -346,7 +393,10 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     for (std::size_t frame = 0; frame < frames; ++frame) {
         for (const unsigned p : kSmoothedAudioControls)
             s.smooth[p] += s.smoother * (target[p] - s.smooth[p]);
-        const float mix = s.smooth[idx(Parameter::Mix)];
+        s.currentDryGain += s.smoother*(s.targetDryGain-s.currentDryGain);
+        s.currentWetGain += s.smoother*(s.targetWetGain-s.currentWetGain);
+        const float dryGain=s.currentDryGain;
+        const float wetGain=s.currentWetGain;
         const float preSamples = s.smooth[idx(Parameter::PreDelayMs)] * s.millisecondsToSamples;
         const float size = s.smooth[idx(Parameter::Size)];
         const float diffusion = s.smooth[idx(Parameter::Diffusion)];
@@ -358,6 +408,9 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         s.hfFeedbackCoeff += s.smoother * (s.targetHF - s.hfFeedbackCoeff);
         s.wetLowCoeff += s.smoother * (s.targetLow - s.wetLowCoeff);
         s.wetHighCoeff += s.smoother * (s.targetHigh - s.wetHighCoeff);
+        s.hfDampingBlend += s.smoother * (s.targetHFDampingBlend - s.hfDampingBlend);
+        s.wetHighSlope += s.smoother * (s.targetHighSlope - s.wetHighSlope);
+        s.airLift += s.smoother * (s.targetAirLift - s.airLift);
         s.bassCoeff += s.smoother * (s.targetBassCoeff - s.bassCoeff);
         s.bassDepth += s.smoother * (s.targetBassDepth - s.bassDepth);
         // Contain invalid upstream samples before they enter a recursive network.
@@ -449,17 +502,28 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         for (std::size_t i = 0; i < kLines; ++i) {
             s.gains[i] += s.smoother * (s.targetGains[i] - s.gains[i]);
             const float mixed = feedback[i];
-            const float damped = s.feedbackLP[i].process(mixed, s.hfFeedbackCoeff);
+            const float filtered = s.feedbackLP[i].process(mixed, s.hfFeedbackCoeff);
+            const float damped = mixed + s.hfDampingBlend * (filtered - mixed);
             const float injected = 0.30f * (kInjectL[i] * diffL + kInjectR[i] * diffR);
             s.lines[i].push(killDenormal(s.gains[i] * damped + injected));
         }
 
-        float wetL = (tailL * 0.24f) + earlyL * (0.38f * earlyAmount);
-        float wetR = (tailR * 0.24f) + earlyR * (0.38f * earlyAmount);
+        // Recover audible late-space level without brightening the dry
+        // channel or altering the feedback loop's internal stability.
+        float wetL = (tailL * 0.34f) + earlyL * (0.42f * earlyAmount);
+        float wetR = (tailR * 0.34f) + earlyR * (0.42f * earlyAmount);
         wetL = s.wetHP[0][1].process(s.wetHP[0][0].process(wetL, s.wetLowCoeff), s.wetLowCoeff);
         wetR = s.wetHP[1][1].process(s.wetHP[1][0].process(wetR, s.wetLowCoeff), s.wetLowCoeff);
-        wetL = s.wetLP[0][1].process(s.wetLP[0][0].process(wetL, s.wetHighCoeff), s.wetHighCoeff);
-        wetR = s.wetLP[1][1].process(s.wetLP[1][0].process(wetR, s.wetHighCoeff), s.wetHighCoeff);
+        const float lpL1 = s.wetLP[0][0].process(wetL, s.wetHighCoeff);
+        const float lpR1 = s.wetLP[1][0].process(wetR, s.wetHighCoeff);
+        const float lpL2 = s.wetLP[0][1].process(lpL1, s.wetHighCoeff);
+        const float lpR2 = s.wetLP[1][1].process(lpR1, s.wetHighCoeff);
+        // Dark cutoff retains the older steep roll-off. At high cutoff,
+        // recover air and sheen with smooth post-filter slope morph.
+        wetL = s.airShelf[0].process(
+            lpL2 + s.wetHighSlope * (lpL1 - lpL2), s.airCoeff, s.airLift);
+        wetR = s.airShelf[1].process(
+            lpR2 + s.wetHighSlope * (lpR1 - lpR2), s.airCoeff, s.airLift);
 
         // Presence shaping is a wet-only complement to existing broadband
         // ducking; no lookahead, new parameter, or FDN topology change.
@@ -471,8 +535,11 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         const float envCoef = loudness > s.duckEnvelope ? s.envelopeAttack : s.envelopeRelease;
         s.duckEnvelope += envCoef * (loudness - s.duckEnvelope);
         const float duckGain = 1.0f / (1.0f + 6.0f * duckAmount * s.duckEnvelope);
-        outputLeft[frame] = (1.0f - mix) * inL + mix * duckGain * (mid + side);
-        outputRight[frame] = (1.0f - mix) * inR + mix * duckGain * (mid - side);
+        // Exact sine/cos gain law at stable settings. No sample-loop
+        // trigonometry, LUT, indirection or branch; both gains are smoothed.
+        // 50% retains ~-3dB of direct signal; 100% is pure wet/send.
+        outputLeft[frame] = dryGain * inL + wetGain * duckGain * (mid + side);
+        outputRight[frame] = dryGain * inR + wetGain * duckGain * (mid - side);
     }
 }
 

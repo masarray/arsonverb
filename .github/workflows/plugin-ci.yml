@@ -40,7 +40,7 @@ jobs:
           -DARVERB_BUILD_TESTS=ON
           -DARVERB_BUILD_SHARED=ON
       - name: Build VST3, Standalone, and host smoke tests
-        run: cmake --build build-plugin --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests
+        run: cmake --build build-plugin --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests
       - name: Run DSP and real AudioProcessor host-contract tests
         run: ctest --test-dir build-plugin -C Release --output-on-failure
         env:

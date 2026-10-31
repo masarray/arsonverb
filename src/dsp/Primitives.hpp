@@ -132,6 +132,18 @@ struct PresenceDucker {
 // Frequency-selective low/low-mid decay contour in the feedback tank.
 // One pole only; optional zero-depth is *exactly* transparent at the output.
 // State is always advanced to support fast automation without filter startup.
+// One-pole wet high shelf; air is a *spectral tilt*, not a wideband
+// gain boost, pitch shift, noise generator or extra source of sibilance.
+// Caller determines bounded lift from high-cut and existing wet color.
+struct AirShelf {
+    LowPass low;
+    void reset() noexcept { low.reset(); }
+    float process(float wet, float coeff, float lift) noexcept {
+        const float body = low.process(wet, coeff);
+        return wet + lift * (wet - body);
+    }
+};
+
 struct BassDecayContour {
     LowPass low;
     void reset() noexcept { low.reset(); }
