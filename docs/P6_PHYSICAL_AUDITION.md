@@ -4,9 +4,9 @@ Date: 2026-10-31. P6 is a code/QA milestone after merged P5, not a sonic parity 
 
 ## Meaningful product outcome
 
-- Native JUCE VST3 host layouts: mono input to mono output **and** stereo input to stereo output. Existing stereo engine samples stay unchanged.
+- Native JUCE VST3 host layouts: mono input to mono output, **mono input to stereo output**, and stereo input to stereo output. Existing stereo engine samples stay unchanged.
 - Mono input is routed to both sides of the *same* FDN; output is its mid (L+R)/2. Stack-bounded 128-frame chunks, no process allocations, heap, lock, worker or new latency. The normalized mono downmix explicitly removes side information. This does not magically prevent real-world phase cancellation.
-- The real JUCE host test compares 1→1 output with 2→2 downmix on identical inputs across all four modes, and odd buffer sizes. Unsupported mismatched layouts fail negotiation.
+- The real JUCE host test compares 1→1 output with 2→2 downmix, and 1→2 output with genuine dual-mono-fed 2→2 stereo on identical inputs across all four modes and odd buffer sizes. Unsupported mismatched layouts fail negotiation.
 - Stable 13 parameter IDs, bypass, appended algorithm choice, 32 presets, C API and gold GUI preserved.
 
 ## Physical audition pack (built by existing Windows plugin CI)
@@ -24,7 +24,7 @@ Six-second truncation, modulation and insufficient decay range may make some T20
 
 1. In repo GitHub Actions open latest successful **JUCE VST3 Windows Build**. Download the unsigned Windows VST3 + Standalone artifact and **ArSonVerb-P6-Physical-Audition-48k**. CI artifacts expire after seven days; neither artifact is a signed public release.
 2. Extract complete VST3 bundle. For a DAW install it under Windows standard VST3 folder (Program Files / Common Files / VST3), or launch Standalone. No published license approval: do not publicly redistribute.
-3. On a **mono vocal insert**, start Mix 15–25%, Duck 0, compare algorithm modes and sweep Mix 0/25/50/75/100%. On a **stereo music insert**, repeat and fold output down to mono. Compare raw recorded audio with levels matched.
+3. On a **mono vocal insert**, test both 1→1 and, if the host allows, 1→2 stereo expansion; start Mix 15–25%, Duck 0, compare algorithm modes and sweep Mix 0/25/50/75/100%. On a **stereo music insert**, repeat and fold output down to mono. Compare raw recorded audio with levels matched.
 4. On an **aux/send**, leave dry voice in DAW and set plugin Mix 100% wet. Raise/lower send and FX return independently. Avoid a second copy of dry, inadvertent parallel insert or duplicate FX returns.
 5. Compare high-cut 8/12/16 kHz, decay short/long, recorded vocal consonants and sibilants, guitar, piano and snare. Listen for metallic ringing, echo density, harsh HF, dark tail, frequency masking, and mono loss. The eight impulse files are for inspection, not musical listening certification.
 6. Test Windows device driver at 48/96 kHz and buffer 32/64/256 frames. Record DAW version, ASIO/WASAPI device, CPU p99 if available, real xruns/dropouts, plugin count, host state persistence, bypass and preset recall. Report sample time and routing topology for each issue.
