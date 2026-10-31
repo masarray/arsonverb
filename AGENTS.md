@@ -1,3 +1,7 @@
+## P5 blocking musical Mix/Air correction — NOT YET VERIFIED (2026-10-31)
+
+User tested P4 and reported severe Mix drop and unmusical, airless sound. Never treat 9/9 earlier CI as auditory certification. P5 repairs the linear dry/wet Mix law via prepare-time sine/cos tables, bright high-cut filter slope, per-pass damping and limited 6.5k wet air shelf, with no new latency/parameter IDs/UI assets. This is a **deliberate sonic change**, and needs explicit Mix sweep/mono/frequency tests plus Windows VST3+Standalone, Linux sanitizer and human audition. Do not call this Valhalla parity or measured cancellation cure until audio correlation testing is verified.
+
 ## P4 distinct FDN algorithm milestone — merged and CI verified (2026-10-31)
 
 Classic uses the original P3 Householder path, Plate uses a normalized Hadamard, Chamber four independent orthogonal pair rotations and Hall an alternate Householder vector. One tank, 100ms matrix morph, zero new delay buffers and zero reported extra plugin latency. The new host algorithm choice follows the original thirteen IDs and bypass, so older DAW states explicitly restore Classic. Premium compact algorithm capsule; keep full factory browser. PR #23 merged; Windows JUCE 9/9 CTests, Linux Release and ASan/UBSan passed. Prior-session XML -> Classic regression verified. Real ASIO callback p99 and level-matched physical listening remain required; do NOT claim Valhalla/FabFilter parity. Details in docs/P4_ALGORITHMS.md.

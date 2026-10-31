@@ -1,3 +1,14 @@
+# P5 IN VALIDATION — CRITICAL Mix Gain-Dip & Airless Reverb Repair (2026-10-31)
+
+- User hardware audition reported severe loss of dry when turning Mix and no airy quality compared with Valhalla. Existing P4 9/9 tests did **not** test perceived dry/wet loudness or spectral energy; they therefore cannot certify Mix quality. Treat this as a blocking sound defect, not a visual issue.
+- Confirmed source cause: linear crossfade reduced dry to −6dB at 50% Mix, followed by input-triggered ducking of the delayed, comparatively weak wet. Corrected to normalized **sine/cosine equal-power law** using precomputed 513-point LUTs populated during prepare (no audio-thread transcendental functions).
+- Wet high cut had two stacked LP stages even at bright settings, and all eight feedback paths each used full LP every return, reducing HF tail. P5 uses a bounded, smoothed feedback-shelf damping blend, a high-cut-dependent 12→6dB/oct wet post-filter morph, and a subtle 6.5kHz air shelf on **wet only**. No oscillator/noise shimmer or indiscriminate sibilance gain; High Cut continues to set darkness.
+- Slightly rebalances late and early wet returns to avoid disappearing at wet-heavy mix. 0% Mix returns bit-exact dry, 100% is intentionally wet-only; users on DAW send should use Mix=100% per Valhalla/FabFilter guidance.
+- Original 13 scalar controls, algorithm choice, 32 presets, C ABI, gold GUI and 0 additional reported sample latency unchanged. Tonality DOES change by design; claims of bit-identical P4 audio must NOT be made.
+- NEW tests cover 0/50/100 Mix dry onset, smooth mix sweep, wet/mono viability, frequency-dependent air shelf and non-finite output. Existing all CTest/sanitizers/Windows JUCE remain gates. Manual real vocal/music listening, actual ASIO CPU p99, Mono compatibility/DAW send topology must still be checked. **DO NOT MERGE before verified results.**
+
+---
+
 # VERIFIED — P4 Four Real Reverb Families, Windows VST3 + Standalone (2026-10-31)
 
 - [PR #23](https://github.com/masarray/arsonverb/pull/23) **MERGED** to main, feature commit `ded771991cd69f26e254e365f5b50e9c0dfc95dd`.
