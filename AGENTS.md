@@ -2,7 +2,7 @@
 
 ## P1 performance instrumentation — 2026-10-31
 
-P1 profiling source is now in progress: `tests/benchmark.cpp` measures 54 audio-callback workload cases, `tests/test_plugin_host.cpp` optionally measures real-JUCE editor paint/resize, and `docs/PERFORMANCE_P1.md` defines how to repeat and interpret CPU p99. No current results are proof of real DAW glitch-free operation or real-machine p99. Do not tune DSP arithmetic, claim CPU improvements or change approved gold GUI until reproducible baseline and sonic regression evidence. CI quick profiling is informational, not a speed gate. Avoid new CI matrix jobs and do not add profiling overhead to the audio path.
+P1 profiling infrastructure is merged in PR #20, and its CI is verified: `tests/benchmark.cpp` measures 54 audio-callback workload cases, `tests/test_plugin_host.cpp` optionally measures real-JUCE editor paint/resize, and `docs/PERFORMANCE_P1.md` defines how to repeat and interpret CPU p99. 54-case Linux CI CPU timings and 2-size Windows offscreen GUI paint measurements are preserved under docs/performance/ and summarized in docs/P1_RESULTS_20261031.md. Results are not proof of a glitch-free DAW or the user's physical workstation p99. Do not tune DSP arithmetic, claim CPU improvements or change approved gold GUI until reproducible baseline and sonic regression evidence. CI quick profiling is informational, not a speed gate. Avoid new CI matrix jobs and do not add profiling overhead to the audio path.
 
 ## Pre-P1 reconciliation — 2026-10-31
 

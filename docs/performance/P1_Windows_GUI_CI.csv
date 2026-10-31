@@ -1,0 +1,3 @@
+width,height,resize_us,paint_mean_us,paint_p95_us,paint_max_us,iterations
+842,394,2605.600,2424.338,3814.400,3814.400,16
+1180,545,4551.300,2516.325,4246.000,4246.000,16

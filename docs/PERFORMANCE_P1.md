@@ -1,6 +1,6 @@
 # P1 — Realtime Performance Baseline (2026-10-31)
 
-Status: **implemented, not yet production performance-certified**. This milestone measures the existing PR #19 audio/GUI engine without modifying the reverb sound or premium hardware artwork.
+Status: **merged and CI-verified; not yet physical-DAW performance-certified**. This milestone measures the existing PR #19 audio/GUI engine without modifying the reverb sound or premium hardware artwork.
 
 ## Ground rules and external engineering references
 
