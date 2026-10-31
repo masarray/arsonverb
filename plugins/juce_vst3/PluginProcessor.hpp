@@ -40,6 +40,7 @@ public:
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void syncEngineParameters (bool hostBypass) noexcept;
     void render (juce::AudioBuffer<float>&, bool hostBypass) noexcept;
 
     arverb::Engine engine;
