@@ -1,4 +1,4 @@
-name: Public Stable Release (manual rights and QA gate)
+name: Public Stable Release (AGPL-3.0 / physical QA gate)
 
 on:
   workflow_dispatch:
@@ -8,13 +8,6 @@ on:
         required: true
         default: "v1.0.0"
         type: string
-      juce_basis:
-        description: "Confirmed JUCE 9 licensing basis for distributing the plugin"
-        required: true
-        type: choice
-        options:
-          - commercial-juce9
-          - agplv3-with-source
       juce_rights_confirmed:
         description: "I confirm the applicable JUCE licence is valid for distribution"
         required: true
@@ -58,10 +51,10 @@ jobs:
           test "${{ inputs.device_qa_confirmed }}" = "true"
           test "${{ inputs.version }}" = "v1.0.0"
           grep -q 'project(arsonverb VERSION 1.0.0 LANGUAGES C CXX)' CMakeLists.txt
-          if [[ "${{ inputs.juce_basis }}" == "agplv3-with-source" ]]; then
-            test -s LICENSE
-            grep -Eqi 'AGPL|Affero' LICENSE
-          fi
+          test -s LICENSE
+          grep -q "GNU AFFERO GENERAL PUBLIC LICENSE" LICENSE
+          test -s assets/fonts/OFL.txt
+          grep -q "SIL OPEN FONT LICENSE" assets/fonts/OFL.txt
           echo "Explicit rights / physical acceptance gates provided; these are owner declarations."
       - name: Compile JUCE 9.0.4 Windows VST3 and Standalone
         run: >-
@@ -71,7 +64,7 @@ jobs:
           -DARVERB_BUILD_TESTS=ON
           -DARVERB_BUILD_SHARED=ON
       - name: Build all tested release targets
-        run: cmake --build build-public --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests arverb_rt60_tail_tests
+        run: cmake --build build-public --config Release --parallel 2 --target ARStudioReverb_VST3 ARStudioReverb_Standalone arverb_plugin_host_tests arverb_tests arverb_contract_tests arverb_audio_regression_tests arverb_stress_tests arverb_c_abi_tests arverb_audio_signature arverb_sonic_structure_tests arverb_algorithm_tests arverb_mix_air_tests arverb_rt60_tail_tests arverb_preset_transition_tests
       - name: Enforce full CTest gate
         run: ctest --test-dir build-public -C Release --output-on-failure
       - name: Bundle redistributables, provenance and checksum
@@ -82,11 +75,13 @@ jobs:
           Copy-Item -Recurse -Path 'build-public/ARStudioReverb_artefacts/Release/VST3/ArSonVerb.vst3' -Destination 'package/ArSonVerb.vst3'
           Copy-Item -Path 'build-public/ARStudioReverb_artefacts/Release/Standalone/ArSonVerb.exe' -Destination 'package/ArSonVerb.exe'
           Copy-Item -Path docs/RELEASE_V1.0.0.md -Destination 'package/RELEASE_NOTES.md'
+          Copy-Item -Path LICENSE -Destination 'package/LICENSE'
+          Copy-Item -Path assets/fonts/OFL.txt -Destination 'package/INTER-OFL.txt'
           Set-Content -Path 'package/BUILD_PROVENANCE.txt' -Value @(
             'ArSonVerb v1.0.0'
             'Git commit: ${{ github.sha }}'
             'JUCE 9.0.4; Windows x64; VST3 + Standalone'
-            'Distribution basis: ${{ inputs.juce_basis }}'
+            'Distribution basis: project AGPL-3.0-only; JUCE 9 AGPLv3'
             'Public binary is unsigned; installer is not included'
           )
           Compress-Archive -Path package/* -DestinationPath 'ArSonVerb-Windows-x64-v1.0.0.zip' -Force

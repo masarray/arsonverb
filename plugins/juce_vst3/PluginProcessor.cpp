@@ -64,24 +64,27 @@ ReverbProcessor::ReverbProcessor()
 }
 
 void ReverbProcessor::syncEngineParameters (bool hostBypass) noexcept {
-    // Canonical host snapshot: both prepare and render must use exactly
-    // these values. Prevent host-restored presets from doing coefficient
-    // first-use work on the time-critical first ASIO callback.
-    const bool bypass = hostBypass || (bypassTarget != nullptr
-                          && bypassTarget->load (std::memory_order_relaxed) >= 0.5f);
-    for (std::uint32_t i = 0; i < arverb::parameterCount; ++i) {
-        auto value = targets[i] != nullptr
+    // All 14 host preset fields should reach one coherent block boundary.
+    // If GUI is currently applying a factory preset, keep the previous
+    // completed Engine snapshot. No locks, spin, allocation, or waiting.
+    const auto epoch = presetEpoch.load (std::memory_order_acquire);
+    if ((epoch & 1u) != 0u) return;
+    std::array<float, arverb::parameterCount> snapshot{};
+    for (std::uint32_t i = 0; i < arverb::parameterCount; ++i)
+        snapshot[i] = targets[i] != nullptr
             ? targets[i]->load (std::memory_order_relaxed)
             : arverb::parameterInfo (static_cast<arverb::Parameter> (i)).defaultValue;
-        if (i == static_cast<std::uint32_t> (arverb::Parameter::Mix) && bypass)
-            value = 0.0f; // Smooth wet ramp; keep processing the tail and input history.
-        engine.setParameter (static_cast<arverb::Parameter> (i), value);
-    }
-    if (algorithmTarget != nullptr) {
-        const auto index = juce::jlimit (0, 3,
-            juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)));
-        engine.setAlgorithm (static_cast<arverb::Algorithm> (index));
-    }
+    const bool bypass = hostBypass || (bypassTarget != nullptr
+                      && bypassTarget->load (std::memory_order_relaxed) >= 0.5f);
+    const auto algorithm = algorithmTarget != nullptr
+        ? juce::jlimit (0, 3,
+            juce::roundToInt (algorithmTarget->load (std::memory_order_relaxed)))
+        : 0;
+    if (presetEpoch.load (std::memory_order_acquire) != epoch) return;
+    if (bypass) snapshot[static_cast<std::size_t> (arverb::Parameter::Mix)] = 0.0f;
+    for (std::uint32_t i = 0; i < arverb::parameterCount; ++i)
+        engine.setParameter (static_cast<arverb::Parameter> (i), snapshot[i]);
+    engine.setAlgorithm (static_cast<arverb::Algorithm> (algorithm));
 }
 
 bool ReverbProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const {
@@ -102,6 +105,13 @@ void ReverbProcessor::prepareToPlay (double sampleRate, int) {
         // Prime from the actual DAW/APVTS state, not internal defaults.
         syncEngineParameters (false);
         engine.prepare (sampleRate);  // May allocate, only in prepareToPlay.
+        // Prewarm all DSP branches and data pages before the first ASIO
+        // callback. Fixed stack buffers; no host audio, worker or latency.
+        // Reset restores empty delay/filter and oscillator state.
+        std::array<float, 256> silence{}, warmL{}, warmR{};
+        engine.process (silence.data(), silence.data(),
+                        warmL.data(), warmR.data(), silence.size());
+        engine.reset();
         ready = true;
     } catch (const std::exception&) {
         // Unsupported sample rate: safe dry pass-through until re-prepared.
@@ -195,24 +205,34 @@ void ReverbProcessor::setStateInformation (const void* data, int size) {
 }
 
 void ReverbProcessor::applyPreset (arverb::Preset preset) {
-    // Native factory presets now select genuinely distinct feedback topology,
-    // while their original 13 numeric values remain unchanged.
+    // GUI-thread factory transaction. Audio skips partial state without
+    // retrying; no work or locks added to the time-critical callback.
     const auto values = arverb::presetValues (preset);
-    if (auto* mode = parameters.getParameter (kAlgorithmId)) {
-        mode->beginChangeGesture();
-        mode->setValueNotifyingHost (mode->convertTo0to1 (
-            static_cast<float>(static_cast<unsigned>(arverb::presetAlgorithm(preset)))));
-        mode->endChangeGesture();
-    }
+    presetEpoch.fetch_add (1u, std::memory_order_acq_rel);
     for (std::uint32_t i = 0; i < arverb::parameterCount; ++i) {
         const auto p = static_cast<arverb::Parameter> (i);
         if (auto* parameter = parameters.getParameter (arverb::parameterInfo (p).id)) {
-            const float target = values[i];
+            const float normalized = parameter->convertTo0to1 (values[i]);
+            // Common preset values should never create superfluous DAW
+            // messages, APVTS listeners, or UI invalidations.
+            if (std::abs (parameter->getValue() - normalized) < 1.0e-7f)
+                continue;
             parameter->beginChangeGesture();
-            parameter->setValueNotifyingHost (parameter->convertTo0to1 (target));
+            parameter->setValueNotifyingHost (normalized);
             parameter->endChangeGesture();
         }
     }
+    // Topology last reduces the number of intermediate state combinations.
+    if (auto* mode = parameters.getParameter (kAlgorithmId)) {
+        const float normalized = mode->convertTo0to1 (
+            static_cast<float> (static_cast<unsigned> (arverb::presetAlgorithm (preset))));
+        if (std::abs (mode->getValue() - normalized) >= 1.0e-7f) {
+            mode->beginChangeGesture();
+            mode->setValueNotifyingHost (normalized);
+            mode->endChangeGesture();
+        }
+    }
+    presetEpoch.fetch_add (1u, std::memory_order_release);
 }
 
 juce::AudioProcessorEditor* ReverbProcessor::createEditor() {

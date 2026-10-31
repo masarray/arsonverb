@@ -15,6 +15,18 @@ constexpr std::size_t kLines = 8;
 // Bound expensive control-coefficient work under tiny ASIO buffer automation.
 // The last host target wins; audio coefficients remain sample-smoothed.
 constexpr unsigned kControlQuantumSamples = 128;
+constexpr float kDelayMorphSeconds = 0.070f; // clickless dual-read tap crossfade
+
+// Audio-thread-safe sine gain polynomial on [0,pi/2]. At x=pi/2,
+// 11th-order Taylor error < 6e-8 in double; no transcendental library
+// calls when Mix changes as part of a 14-parameter host preset.
+inline float sineQuarterWave(float normalized) noexcept {
+    const float x = detail::clamp(normalized, 0.0f, 1.0f) * 1.57079632679489661923f;
+    const float x2 = x * x;
+    return x * (1.0f + x2 * (-1.0f / 6.0f + x2 * (1.0f / 120.0f
+            + x2 * (-1.0f / 5040.0f + x2 * (1.0f / 362880.0f
+            - x2 / 39916800.0f)))));
+}
 
 inline void algorithmMatrix (unsigned mode, const float* input, float* output) noexcept {
     // All three *new* feedback families are orthogonal and do not add delay
@@ -107,8 +119,9 @@ inline float calibratedHFLoss(float decaySeconds, float roomSize,
     const float traversalSeconds = representativeDelayMs() * 0.001f * roomSize;
     const float excessLogLoss = -kLn001 * traversalSeconds / decaySeconds *
                                 (1.0f / highRT60Fraction - 1.0f);
-    // expm1 retains precision when Decay is long and damping is bright.
-    return detail::clamp(-std::expm1(excessLogLoss), 0.0f, 0.92f);
+    // Finite bounded exponent: use the same fast polynomial as the gain and
+    // filter coefficients; this is evaluated on preset automation callbacks.
+    return detail::clamp(1.0f - detail::fastExpNeg(-excessLogLoss), 0.0f, 0.92f);
 }
 
 // Top-air is a bounded wet-only spectral tilt, never a noise generator.
@@ -193,6 +206,16 @@ struct Engine::State {
     float cachedLowCut = -1.0f;
     float cachedHighCut = -1.0f;
     unsigned coefficientCooldownSamples = 0;
+    // Block targets can move hundreds of milliseconds at preset switches.
+    // Smoothing delay *length* moves the playback head and can produce a
+    // fast pitch sweep / alias pop. Morph two fixed read taps instead.
+    // If a new target arrives mid-transition, keep the current transition
+    // continuous, then use the latest target (last-wins, no RT allocations).
+    float preTapCurrent = 0.0f, preTapNext = 0.0f, preTapTarget = 0.0f;
+    float preTapBlend = 1.0f;
+    float sizeTapCurrent = 1.0f, sizeTapNext = 1.0f, sizeTapTarget = 1.0f;
+    float sizeTapBlend = 1.0f;
+    float delayMorphStep = 0.0f;
     float targetHF = 0.0f;
     float targetLow = 0.0f;
     float targetHigh = 0.0f;
@@ -271,18 +294,23 @@ void Engine::prepare(double sampleRate) {
     s.algorithmBlend=1.0f;
     for (std::size_t i = 0; i < parameterCount; ++i)
         s.smooth[i] = parameters_[i].load(std::memory_order_relaxed);
-    constexpr float halfPi=1.57079632679489661923f;
     s.cachedMix = s.smooth[static_cast<unsigned>(Parameter::Mix)];
-    s.currentDryGain = s.targetDryGain =
-        s.cachedMix>=1.0f ? 0.0f : std::cos(halfPi*s.cachedMix);
-    s.currentWetGain = s.targetWetGain =
-        s.cachedMix<=0.0f ? 0.0f : std::sin(halfPi*s.cachedMix);
+    s.currentDryGain = s.targetDryGain = sineQuarterWave(1.0f - s.cachedMix);
+    s.currentWetGain = s.targetWetGain = sineQuarterWave(s.cachedMix);
+    // Freeze initial taps at the host's actual restored preset.
+    s.preTapCurrent = s.preTapNext = s.preTapTarget =
+        s.smooth[static_cast<unsigned>(Parameter::PreDelayMs)]
+        * s.millisecondsToSamples;
+    s.sizeTapCurrent = s.sizeTapNext = s.sizeTapTarget =
+        s.smooth[static_cast<unsigned>(Parameter::Size)];
+    s.preTapBlend = s.sizeTapBlend = 1.0f;
+    s.delayMorphStep = 1.0f / std::max(1.0f, fs * kDelayMorphSeconds);
 
     const float decay = s.smooth[static_cast<unsigned>(Parameter::DecaySeconds)];
     const float size = s.smooth[static_cast<unsigned>(Parameter::Size)];
     for (std::size_t i = 0; i < kLines; ++i) {
         const float lengthSeconds = kDelayMs[i] * 0.001f * size;
-        s.gains[i] = std::exp(-kLn001 * lengthSeconds / decay);
+        s.gains[i] = detail::fastExpNeg(kLn001 * lengthSeconds / decay);
         s.targetGains[i] = s.gains[i];
     }
     // P8: all invariant/exp/trig work belongs in prepare(), not the first
@@ -320,6 +348,11 @@ void Engine::reset() noexcept {
     s.fromAlgorithm=s.toAlgorithm=algorithm_.load(std::memory_order_relaxed);
     s.algorithmBlend=1.0f;
     s.coefficientCooldownSamples=0;
+    // Transport resets must not re-open an old half-finished tap transition.
+    s.preTapCurrent = s.preTapNext;
+    s.preTapBlend = 1.0f;
+    s.sizeTapCurrent = s.sizeTapNext;
+    s.sizeTapBlend = 1.0f;
 }
 void Engine::setAlgorithm(Algorithm value) noexcept {
     const auto v=static_cast<unsigned>(value);
@@ -364,11 +397,8 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     const float requestedMix = target[idx(Parameter::Mix)];
     if (requestedMix != s.cachedMix) {
         s.cachedMix = requestedMix;
-        constexpr float halfPi=1.57079632679489661923f;
-        s.targetDryGain = requestedMix>=1.0f ? 0.0f
-                            : std::cos(halfPi*requestedMix);
-        s.targetWetGain = requestedMix<=0.0f ? 0.0f
-                            : std::sin(halfPi*requestedMix);
+        s.targetDryGain = sineQuarterWave(1.0f - requestedMix);
+        s.targetWetGain = sineQuarterWave(requestedMix);
     }
     const unsigned requested = algorithm_.load(std::memory_order_relaxed);
     if (requested != s.toAlgorithm) {
@@ -392,7 +422,8 @@ void Engine::process(const float* inputLeft, const float* inputRight,
             s.cachedDecay = target[idx(Parameter::DecaySeconds)];
             for (std::size_t i = 0; i < kLines; ++i) {
                 const float delaySec = kDelayMs[i] * s.cachedSize * 0.001f;
-                s.targetGains[i] = std::exp(-kLn001 * delaySec / s.cachedDecay);
+                s.targetGains[i] = detail::fastExpNeg(
+                    kLn001 * delaySec / s.cachedDecay);
             }
             anyCoefficientChanged = true;
         }
@@ -444,24 +475,34 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     // drive independent, correctly smoothed feedback/filter coefficients.
     // Integrating those five unused sample histories cost CPU but had no
     // influence on the audio output. Keep the original audible update order.
-    constexpr std::array<unsigned, 7> kSmoothedAudioControls {{
-        static_cast<unsigned>(Parameter::PreDelayMs),
-        static_cast<unsigned>(Parameter::Size),
+    constexpr std::array<unsigned, 5> kSmoothedAudioControls {{
         static_cast<unsigned>(Parameter::Diffusion),
         static_cast<unsigned>(Parameter::ModDepthMs),
         static_cast<unsigned>(Parameter::Width),
         static_cast<unsigned>(Parameter::EarlyLevel),
         static_cast<unsigned>(Parameter::DuckAmount)
     }};
+    // Publish only the latest requested tap locations; avoid repeatedly
+    // interrupting an in-flight morph and introducing discontinuities.
+    s.preTapTarget = target[idx(Parameter::PreDelayMs)] * s.millisecondsToSamples;
+    s.sizeTapTarget = target[idx(Parameter::Size)];
     for (std::size_t frame = 0; frame < frames; ++frame) {
+        if (s.preTapBlend >= 1.0f && s.preTapCurrent != s.preTapTarget) {
+            s.preTapNext = s.preTapTarget;
+            s.preTapBlend = 0.0f;
+        }
+        if (s.sizeTapBlend >= 1.0f && s.sizeTapCurrent != s.sizeTapTarget) {
+            s.sizeTapNext = s.sizeTapTarget;
+            s.sizeTapBlend = 0.0f;
+        }
         for (const unsigned p : kSmoothedAudioControls)
             s.smooth[p] += s.smoother * (target[p] - s.smooth[p]);
         s.currentDryGain += s.smoother*(s.targetDryGain-s.currentDryGain);
         s.currentWetGain += s.smoother*(s.targetWetGain-s.currentWetGain);
         const float dryGain=s.currentDryGain;
         const float wetGain=s.currentWetGain;
-        const float preSamples = s.smooth[idx(Parameter::PreDelayMs)] * s.millisecondsToSamples;
-        const float size = s.smooth[idx(Parameter::Size)];
+        const float preSamples = s.preTapCurrent;
+        const float size = s.sizeTapCurrent;
         const float diffusion = s.smooth[idx(Parameter::Diffusion)];
         const float modDepth = s.smooth[idx(Parameter::ModDepthMs)] * s.millisecondsToSamples;
         const float width = s.smooth[idx(Parameter::Width)];
@@ -493,6 +534,19 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         } else if (preSamples > 0.0f) {
             preL = inL * (1.0f - preSamples) + s.pre[0].read(1.0f) * preSamples;
             preR = inR * (1.0f - preSamples) + s.pre[1].read(1.0f) * preSamples;
+        }
+        if (s.preTapBlend < 1.0f) {
+            const float next = s.preTapNext;
+            float nextL = inL, nextR = inR;
+            if (next >= 1.0f) {
+                nextL = s.pre[0].read(next);
+                nextR = s.pre[1].read(next);
+            } else if (next > 0.0f) {
+                nextL = inL * (1.0f - next) + s.pre[0].read(1.0f) * next;
+                nextR = inR * (1.0f - next) + s.pre[1].read(1.0f) * next;
+            }
+            preL += s.preTapBlend * (nextL - preL);
+            preR += s.preTapBlend * (nextR - preR);
         }
         s.pre[0].push(inL);
         s.pre[1].push(inR);
@@ -527,7 +581,13 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         float tailL = 0.0f, tailR = 0.0f;
         for (std::size_t i = 0; i < kLines; ++i) {
             const float base = s.fdnBaseSamples[i] * size;
-            taps[i] = s.lines[i].read(base + modDepth * s.lfo[i].sinPhase);
+            const float modulation = modDepth * s.lfo[i].sinPhase;
+            taps[i] = s.lines[i].read(base + modulation);
+            if (s.sizeTapBlend < 1.0f) {
+                const float nextTap = s.lines[i].read(
+                    s.fdnBaseSamples[i] * s.sizeTapNext + modulation);
+                taps[i] += s.sizeTapBlend * (nextTap - taps[i]);
+            }
             sumHouseholder += kReflect[i] * taps[i];
             tailL += kReadL[i] * taps[i];
             tailR += kReadR[i] * taps[i];
@@ -606,6 +666,14 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         // 50% retains ~-3dB of direct signal; 100% is pure wet/send.
         outputLeft[frame] = dryGain * inL + wetGain * duckGain * (mid + side);
         outputRight[frame] = dryGain * inR + wetGain * duckGain * (mid - side);
+        if (s.preTapBlend < 1.0f) {
+            s.preTapBlend = std::min(1.0f, s.preTapBlend + s.delayMorphStep);
+            if (s.preTapBlend >= 1.0f) s.preTapCurrent = s.preTapNext;
+        }
+        if (s.sizeTapBlend < 1.0f) {
+            s.sizeTapBlend = std::min(1.0f, s.sizeTapBlend + s.delayMorphStep);
+            if (s.sizeTapBlend >= 1.0f) s.sizeTapCurrent = s.sizeTapNext;
+        }
     }
 }
 
