@@ -1,4 +1,16 @@
-# Product Logo + Optical Decay Alignment — CI pending
+# VERIFIED — Metallic ArSon-Verb logo + responsive Decay alignment (2026-10-31)
+
+- [PR #12](https://github.com/masarray/arsonverb/pull/12) **MERGED**, source merge commit `0e042c8004acd934b9255a93f811fb25d9bdba15`.
+- [Windows VST3/Standalone run #41154696105](https://github.com/masarray/arsonverb/actions/runs/41154696105) **SUCCESS**: VST3 + Standalone compiled and **6/6 CTest passed**, including PNG alpha decode and PRE-DELAY/Decay LCD lower-edge alignment at four supported sizes.
+- [Core Release + sanitizer run #41154696083](https://github.com/masarray/arsonverb/actions/runs/41154696083) **SUCCESS**; the DSP core/C ABI was not altered.
+- Windows unsigned artifact ID **13024767856** (`ARStudioReverb-Windows-x64-unsigned`).
+- Source logo: approved champagne-gold transparent ArSon-Verb artwork. Optimized **225×39 PNG, 3720 bytes** inside JUCE BinaryData, decoded once for all plugin windows. Header title/platform product identifier remains ArSonVerb for backward compatibility.
+- Large Decay knob+caption and LCD shifted +15 reference-x; LCD bottom edge dynamically follows PRE-DELAY caption bottom (not a fixed Y), with the display and text sharing geometry.
+- **Manual acceptance still open**: visual screenshots on Windows at 100/125/150% DPI and real DAW plugin loading/audio. CI proves functional correctness, not pixel-perfect design.
+
+---
+
+# Historical proposal — now verified by PR #12
 
 # 2026-10-31 — Product logo and optical Decay layout
 

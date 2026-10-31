@@ -1,5 +1,7 @@
 # 2026-10-31 — Product logo and optical Decay layout
 
+**Verified in PR #12:** Windows VST3 + Standalone, 6/6 CTest PASSED: https://github.com/masarray/arsonverb/actions/runs/41154696105
+
 - Approved artwork: **ArSon-Verb** metallic champagne serif, original generated transparent PNG. Optimized alpha-indexed derivative embedded at `assets/gui/ArSonVerbLogo.png` (225x39, approximately 3.7 kB, no runtime external resources); the original high-resolution artwork remains the source for future large print exports.
 - JUCE `BinaryData::ArSonVerbLogo_png` is decoded **once on GUI/message thread** and the cached image is drawn only when header repaints; audio core remains JUCE-independent, with no added IO or allocations inside the DSP callback.
 - The old `drawText("ArSonVerb")` wordmark is replaced by the branded PNG at `scaled(25,15,240,42)`, preserving aspect ratio. Existing window title and host/product identifiers remain `ArSonVerb` for compatibility.
