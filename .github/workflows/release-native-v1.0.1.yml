@@ -88,8 +88,15 @@ jobs:
           vst3="$(find build-distribution/ARStudioReverb_artefacts -type d -name ArSonVerb.vst3 -print -quit)"
           app="$(find build-distribution/ARStudioReverb_artefacts -type d -name ArSonVerb.app -print -quit)"
           test -n "$vst3" && test -n "$app"
-          lipo -verify_arch arm64 x86_64 "$vst3/Contents/MacOS/ArSonVerb"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/ArSonVerb"
+          # lipo -verify_arch expects a single architecture per query.
+          # Query the actual fat binary once and explicitly require both
+          # independent slices; failure is a hard release blocker.
+          for binary in "$vst3/Contents/MacOS/ArSonVerb" "$app/Contents/MacOS/ArSonVerb"; do
+            archs="$(lipo -archs "$binary")"
+            echo "$binary architectures: $archs"
+            [[ " $archs " == *" arm64 "* ]]
+            [[ " $archs " == *" x86_64 "* ]]
+          done
           # Ad-hoc code signature is for Mach-O load integrity only.
           # It is NOT Apple Developer ID signing or notarization.
           codesign --force --deep --sign - "$vst3"
