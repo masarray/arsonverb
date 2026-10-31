@@ -1,6 +1,7 @@
 #include "PluginEditor.hpp"
 #include <BinaryData.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -227,12 +228,14 @@ void HardwareLookAndFeel::drawRotarySlider (juce::Graphics& g,
     const float dotR = vintageLedRadius (side);
     const auto disk = juce::Rectangle<float> (
         dotX - dotR, dotY - dotR, 2.0f * dotR, 2.0f * dotR);
+    // Light halo sits BEHIND the machined black socket; drawing it after
+    // the bezel made the metal jewel appear painted on rather than recessed.
+    if (slider.isEnabled()) {
+        g.setColour (palette::jade.withAlpha (0.19f));
+        g.fillEllipse (disk.expanded (3.0f));
+    }
     g.setColour (juce::Colour (0xff101d1a));
     g.fillEllipse (disk.expanded (1.45f));
-    if (slider.isEnabled()) {
-        g.setColour (palette::jade.withAlpha (0.22f));
-        g.fillEllipse (disk.expanded (2.75f));
-    }
     g.setColour (slider.isEnabled() ? juce::Colour (0xff40d58c)
                                     : juce::Colour (0xff777a73));
     g.fillEllipse (disk);
@@ -350,7 +353,7 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
                      juce::Colour (0xff514637));
     theme.setColour (juce::PopupMenu::highlightedTextColourId, palette::mainText);
 
-    presetBox.setTextWhenNothingSelected ("PRESETS");
+    presetBox.setTextWhenNothingSelected ("CUSTOM");
     // No placeholder rows: the immutable core catalog supplies every label
     // and all 13 parameters. Menu section order does not renumber Preset IDs.
     for (const auto* category : {"Vocal", "Music", "Vintage", "Ambient"}) {
@@ -364,8 +367,15 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     presetBox.setJustificationType (juce::Justification::centredLeft);
     presetBox.onChange = [this] {
         const int id = presetBox.getSelectedId();
-        if (id > 0 && id <= static_cast<int> (arverb::presetCount))
+        if (id > 0 && id <= static_cast<int> (arverb::presetCount)) {
+            // A factory program writes 13 host parameters. Avoid transient
+            // CUSTOM states while the transaction is being applied.
+            applyingPreset = true;
             processor.applyPreset (static_cast<arverb::Preset> (id - 1));
+            applyingPreset = false;
+            synchronisePresetSelection();
+            refreshParameterReadout (static_cast<std::size_t> (activeParameter));
+        }
     };
     addAndMakeVisible (presetBox);
 
@@ -399,20 +409,19 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
             juce::AudioProcessorValueTreeState::SliderAttachment> (
                 processor.parameters, meta.id, slider);
         slider.onDragStart = [this, i] {
-            presetBox.setSelectedId (0, juce::dontSendNotification);
             activeParameter = static_cast<int> (i);
             refreshParameterReadout (i);
-            parameterReadout.setVisible (true);
-        };
-        slider.onDragEnd = [this] {
-            activeParameter = -1;
-            parameterReadout.setVisible (false);
         };
         slider.onValueChange = [this, i] {
             if (i == static_cast<std::size_t> (arverb::Parameter::DecaySeconds))
                 refreshDecayReadout();
-            if (activeParameter == static_cast<int> (i))
+            if (!applyingPreset) {
+                activeParameter = static_cast<int> (i);
                 refreshParameterReadout (i);
+                // Includes wheel, double click, host automation and restore,
+                // not just the start of a mouse-drag gesture.
+                synchronisePresetSelection (static_cast<int> (i));
+            }
         };
     }
 
@@ -426,7 +435,8 @@ ReverbEditor::ReverbEditor (ReverbProcessor& p)
     parameterReadout.setJustificationType (juce::Justification::centred);
     parameterReadout.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (parameterReadout);
-    parameterReadout.setVisible (false);
+    refreshParameterReadout (0);
+    synchronisePresetSelection();
 
     setResizable (true, true);
     setResizeLimits (800, 370, 1180, 545);
@@ -438,6 +448,46 @@ ReverbEditor::~ReverbEditor() {
     bypassAttachment.reset();
     for (auto& attachment : sliderAttachments) attachment.reset();
     setLookAndFeel (nullptr);
+}
+
+void ReverbEditor::synchronisePresetSelection (int editedSlider) {
+    // The actual APVTS parameters are authoritative. A ComboBox selected ID
+    // is not: wheel, automation and a restored DAW session can all modify the
+    // sound without selecting a new factory program.
+    std::array<float, arverb::parameterCount> actual {};
+    for (std::size_t i = 0; i < actual.size(); ++i) {
+        const auto id = arverb::parameterInfo (static_cast<arverb::Parameter> (i)).id;
+        const auto* value = processor.parameters.getRawParameterValue (id);
+        if (value == nullptr) return;
+        actual[i] = value->load (std::memory_order_relaxed);
+    }
+    // JUCE notifies Slider::onValueChange before attachment listeners in some
+    // paths. Prefer the freshly edited slider over a not-yet-updated APVTS
+    // atomic for that single control. No delayed callback or polling timer.
+    if (editedSlider >= 0 && editedSlider < static_cast<int> (actual.size()))
+        actual[static_cast<std::size_t> (editedSlider)] =
+            static_cast<float> (sliders[static_cast<std::size_t> (editedSlider)].getValue());
+
+    int selection = 0;
+    for (std::size_t presetIndex = 0; presetIndex < arverb::presetCount; ++presetIndex) {
+        const auto values = arverb::presetValues (static_cast<arverb::Preset> (presetIndex));
+        bool match = true;
+        for (std::size_t i = 0; i < actual.size(); ++i) {
+            // Small scale-relative margin covers normalized APVTS roundtrips
+            // without treating real user edits as a factory preset.
+            const float tolerance = std::max (0.0001f, std::abs (values[i]) * 0.00001f);
+            if (std::abs (actual[i] - values[i]) > tolerance) {
+                match = false;
+                break;
+            }
+        }
+        if (match) {
+            selection = static_cast<int> (presetIndex) + 1;
+            break;
+        }
+    }
+    if (presetBox.getSelectedId() != selection)
+        presetBox.setSelectedId (selection, juce::dontSendNotification);
 }
 
 void ReverbEditor::refreshDecayReadout() {
