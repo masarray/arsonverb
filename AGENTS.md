@@ -1,6 +1,6 @@
 ## P6 developer preview — verify before merge (2026-10-31)
 
-Latest code candidate v0.5.0 adds native JUCE mono track (1→1) while preserving the original stereo path (2→2), no new DSP or user controls, and a reproducible 8-WAV offline QA suite. Test actual JUCE bus negotiation and mono output against stereo mid in four algorithms, irregular blocks, bypass/state recall. Ensure P6 Windows artifact includes the VST3/Standalone and the separate P6 measured audition pack; only existing CI jobs, and do not claim physical or listening verification without a real host. P6 candidate details: docs/P6_PHYSICAL_AUDITION.md. Existing P5 status below is verified; do not confuse it with unverified P6.
+Latest code candidate v0.5.0 adds native JUCE mono (1→1), mono-to-stereo expansion (1→2) and preserves the original stereo path (2→2), no new DSP or user controls, and a reproducible 8-WAV offline QA suite. Test actual JUCE bus negotiation and mono output against stereo mid in four algorithms, irregular blocks, bypass/state recall. Ensure P6 Windows artifact includes the VST3/Standalone and the separate P6 measured audition pack; only existing CI jobs, and do not claim physical or listening verification without a real host. P6 candidate details: docs/P6_PHYSICAL_AUDITION.md. Existing P5 status below is verified; do not confuse it with unverified P6.
 
 # Current integration baseline (reconciled 2026-10-31)
 
