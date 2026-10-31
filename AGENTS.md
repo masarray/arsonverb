@@ -1,6 +1,6 @@
 ## P5 blocking musical Mix/Air correction — NOT YET VERIFIED (2026-10-31)
 
-User tested P4 and reported severe Mix drop and unmusical, airless sound. Never treat 9/9 earlier CI as auditory certification. P5 repairs the linear dry/wet Mix law via prepare-time sine/cos tables, bright high-cut filter slope, per-pass damping and limited 6.5k wet air shelf, with no new latency/parameter IDs/UI assets. This is a **deliberate sonic change**, and needs explicit Mix sweep/mono/frequency tests plus Windows VST3+Standalone, Linux sanitizer and human audition. Do not call this Valhalla parity or measured cancellation cure until audio correlation testing is verified.
+User tested P4 and reported severe Mix drop and unmusical, airless sound. Never treat 9/9 earlier CI as auditory certification. P5 repairs the linear dry/wet Mix law via block-level sine/cos target updates and gain-space smoothing, bright high-cut filter slope, per-pass damping and limited 6.5k wet air shelf, with no new latency/parameter IDs/UI assets. This is a **deliberate sonic change**, and needs explicit Mix sweep/mono/frequency tests plus Windows VST3+Standalone, Linux sanitizer and human audition. Do not call this Valhalla parity or measured cancellation cure until audio correlation testing is verified.
 
 ## P4 distinct FDN algorithm milestone — merged and CI verified (2026-10-31)
 
