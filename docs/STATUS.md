@@ -1,3 +1,14 @@
+# RECONCILED — Pre-P1 performance baseline (2026-10-31)
+
+- Canonical repository: `masarray/arsonverb` `main`. Last feature merge **PR #18** at `cb6cfa0aa7f27904a7ef43916099d74d329a2a32`; thereafter exactly two commits changed **only** `AGENTS.md` and `docs/STATUS.md`. Feature source and plugin build inputs were not changed after the verified merge.
+- **All 16 recorded PRs (#1, #3, #5–#18) are merged; 0 open PRs.** 16 historical feature/fix branches remain as references to those already-merged PRs. Do NOT merge or delete them as unmerged work.
+- **Post-merge main CI**: [Core C++ CI run 41174229314](https://github.com/masarray/arsonverb/actions/runs/41174229314) **SUCCESS** on Linux, Windows, macOS plus Linux ASan/UBSan; [JUCE Windows VST3 + Standalone run 41174229390](https://github.com/masarray/arsonverb/actions/runs/41174229390) **SUCCESS**. Earlier PR #18 run [41173756696](https://github.com/masarray/arsonverb/actions/runs/41173756696) ran 6/6 CTests successfully.
+- Compatibility retained: 13 APVTS automation IDs, 32 programs, 8-line Householder FDN, C ABI and gold hardware GUI. Plugin reports zero **additional** latency samples; that is not proof of zero host/device buffer latency or freedom from callback deadline misses.
+- **P1 NOT STARTED**. Existing `tests/benchmark.cpp` reports only an offline aggregate processing time; CPU p95/p99, 1/8/16-instance scaling, 32/64-sample worst cases, GUI redraw/resize timings and real hardware ASIO/WASAPI underrun behavior have not been measured. A future P1 may only proceed from the verified `main` source, with reproducible profiling before optimizing DSP or UI.
+- This reconciliation is documentation-only: no engine, GUI, benchmark, build config or CI workflow changes; no new CI requested. Subjective listening and DAW screenshot acceptance remain separate.
+
+---
+
 # VERIFIED — PR #18 Musical Clarity DSP & Premium Header Polish (2026-10-31)
 
 - [PR #18](https://github.com/masarray/arsonverb/pull/18) **MERGED** as `cb6cfa0aa7f27904a7ef43916099d74d329a2a32`.

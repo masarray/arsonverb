@@ -1,4 +1,4 @@
-# 2026-10-31 — Musical clarity DSP milestone (PR #18 candidate)
+# 2026-10-31 — Musical clarity DSP milestone (PR #18 merged; CI verified, listening pending)
 
 The verified earlier architecture is one original 8-line Householder FDN for all 32 factory programs. Prior to this milestone wet output had low/high cuts, FDN high damping, input predelay and broadband DUCK but no selective vocal/instrument presence protection. There is no claimed spectral AI classifier.
 
