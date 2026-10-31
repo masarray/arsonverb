@@ -1,3 +1,18 @@
+# P3 candidate — dense early energy + frequency-dependent bass recurrence
+
+The formerly six isolated early taps now have a sparse+diffuse morph controlled by the existing Diffusion knob. When Diffusion <= 0.62, no extra reads or early-layer change occurs. Above threshold, six low-amplitude taps form additional stereo early energy, using existing sample-rate-allocated early delay buffers and smoothly varying a ~10% blend. This is intentionally original DSP, not reimplementation of ValhallaRoom.
+
+The eight-line FDN now absorbs very low frequencies in its *feedback loop* as well as using independent wet HPF at output. Bass absorption is controlled by existing Wet Low Cut: cutoff 85+0.14×cutoff Hz, mild 3%-10% low-band reduction per recirculation. This differentiates low-band decay, while preserving upper midband decay and the dry path. Each filter state advances continuously for automation, with coefficient calculation only at control changes and sample-wise smoothing. Audio callback is still lock-free, allocation-free, O(8); there is no lookahead or added latency sample.
+
+Industry behavioral references (not borrowed algorithms):
+- https://valhalladsp.com/2011/05/04/valhallaroom-early-reflections-versus-early-energy/
+- https://valhalladsp.com/2011/05/18/valhallaroom-the-early-controls/
+- https://prod.fabfilter.com/help/pro-r/using/decayrateEQ
+
+This is a *new sound* and must be tested with level-matched natural vocal, snare, piano and acoustic guitar. Numeric response checks do not validate musical quality. Large uncontrolled changes in tail brightness and bass should be rejected by listening. Need CPU p99 and real Windows DAW screenshots. Factory programs retain all 13 existing numeric values, and no old automation IDs are changed.
+
+---
+
 # 2026-10-31 — Musical clarity DSP milestone (PR #18 merged; CI verified, listening pending)
 
 The verified earlier architecture is one original 8-line Householder FDN for all 32 factory programs. Prior to this milestone wet output had low/high cuts, FDN high damping, input predelay and broadband DUCK but no selective vocal/instrument presence protection. There is no claimed spectral AI classifier.

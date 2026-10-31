@@ -46,6 +46,22 @@ constexpr float kDiffuseMs[2][4] = {
 constexpr float kEarlyMs[6] = {14.9f, 23.3f, 37.7f, 55.1f, 83.3f, 126.1f};
 constexpr float kEarlyGain[6] = {0.34f, 0.29f, 0.23f, 0.18f, 0.14f, 0.12f};
 
+// Additional low-amplitude, irregularly spaced *early energy* taps. This is
+// one original density layer, not a ray-traced room model or Valhalla code.
+// The old 6-tap sound remains untouched below Diffusion=0.62. Delay storage
+// stays inside the existing 132ms early buffers; no new allocations.
+constexpr float kDenseEarlyMs[6]   = {18.7f, 31.1f, 46.9f, 68.3f, 95.7f, 117.3f};
+constexpr float kDenseEarlyGain[6] = {0.15f,-0.12f, 0.10f,-0.08f, 0.06f,-0.05f};
+
+constexpr float bassDecayCutoff(float lowCutHz) noexcept {
+    // Subtle recirculating low-frequency absorption, NOT an extra wet HPF.
+    return 85.0f + 0.14f * lowCutHz;
+}
+constexpr float bassDecayDepth(float lowCutHz) noexcept {
+    // 3..10% low-band reduction per pass; small at normal vocal settings.
+    return 0.03f + 0.07f * (lowCutHz / 1200.0f);
+}
+
 using detail::Delay;
 using detail::Allpass;
 using detail::LowPass;
@@ -75,10 +91,13 @@ struct Engine::State {
     // in the sample loop without introducing per-parameter cache invalidation.
     float earlySampleL[6]{};
     float earlySampleR[6]{};
+    float denseEarlySampleL[6]{};
+    float denseEarlySampleR[6]{};
     float fdnBaseSamples[kLines]{};
     float millisecondsToSamples = 0.0f;
     Oscillator lfo[kLines];
     LowPass feedbackLP[kLines];
+    detail::BassDecayContour feedbackBass[kLines];
     HighPass wetHP[2][2];
     LowPass wetLP[2][2];
     detail::PresenceDucker presence;
@@ -94,6 +113,10 @@ struct Engine::State {
     float targetHF = 0.0f;
     float targetLow = 0.0f;
     float targetHigh = 0.0f;
+    float targetBassCoeff = 0.0f;
+    float targetBassDepth = 0.0f;
+    float bassCoeff = 0.0f;
+    float bassDepth = 0.0f;
     float duckEnvelope = 0.0f;
     float hfFeedbackCoeff = 0.0f;
     float wetHighCoeff = 0.0f;
@@ -105,6 +128,7 @@ struct Engine::State {
         for (auto& ch : diffuser) for (auto& d : ch) d.reset();
         for (auto& l : lines) l.reset();
         for (auto& f : feedbackLP) f.reset();
+        for (auto& f : feedbackBass) f.reset();
         for (auto& ch : wetHP) for (auto& f : ch) f.reset();
         for (auto& ch : wetLP) for (auto& f : ch) f.reset();
         presence.reset();
@@ -136,6 +160,8 @@ void Engine::prepare(double sampleRate) {
     for (int t = 0; t < 6; ++t) {
         s.earlySampleL[t] = kEarlyMs[t] * s.millisecondsToSamples;
         s.earlySampleR[t] = s.earlySampleL[t] * (1.0f + 0.019f * (t % 3));
+        s.denseEarlySampleL[t] = kDenseEarlyMs[t] * s.millisecondsToSamples;
+        s.denseEarlySampleR[t] = s.denseEarlySampleL[t] * (1.0f + 0.014f * (t % 3));
     }
     for (std::size_t i = 0; i < kLines; ++i)
         s.fdnBaseSamples[i] = kDelayMs[i] * s.millisecondsToSamples;
@@ -173,6 +199,9 @@ void Engine::prepare(double sampleRate) {
     s.hfFeedbackCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::DampingHz)], fs);
     s.wetLowCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::LowCutHz)], fs);
     s.wetHighCoeff = lowPassCoeff(s.smooth[static_cast<unsigned>(Parameter::HighCutHz)], fs);
+    const float initialLowCut = s.smooth[static_cast<unsigned>(Parameter::LowCutHz)];
+    s.bassCoeff = s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(initialLowCut), fs);
+    s.bassDepth = s.targetBassDepth = bassDecayDepth(initialLowCut);
     reset();
 }
 
@@ -224,6 +253,8 @@ void Engine::process(const float* inputLeft, const float* inputRight,
     if (target[idx(Parameter::LowCutHz)] != s.cachedLowCut) {
         s.cachedLowCut = target[idx(Parameter::LowCutHz)];
         s.targetLow = lowPassCoeff(s.cachedLowCut, s.sampleRate);
+        s.targetBassCoeff = lowPassCoeff(bassDecayCutoff(s.cachedLowCut), s.sampleRate);
+        s.targetBassDepth = bassDecayDepth(s.cachedLowCut);
     }
     if (target[idx(Parameter::HighCutHz)] != s.cachedHighCut) {
         s.cachedHighCut = target[idx(Parameter::HighCutHz)];
@@ -260,6 +291,8 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         s.hfFeedbackCoeff += s.smoother * (s.targetHF - s.hfFeedbackCoeff);
         s.wetLowCoeff += s.smoother * (s.targetLow - s.wetLowCoeff);
         s.wetHighCoeff += s.smoother * (s.targetHigh - s.wetHighCoeff);
+        s.bassCoeff += s.smoother * (s.targetBassCoeff - s.bassCoeff);
+        s.bassDepth += s.smoother * (s.targetBassDepth - s.bassDepth);
         // Contain invalid upstream samples before they enter a recursive network.
         // Sanitise malformed host buffers, including finite values close to FLT_MAX.
         // +24 dBFS and beyond is valid; 32.0f preserves substantial headroom
@@ -288,6 +321,21 @@ void Engine::process(const float* inputLeft, const float* inputRight,
             earlyL += kEarlyGain[t] * (a + 0.10f * b);
             earlyR += kEarlyGain[t] * (b + 0.10f * a);
         }
+        // Extend early energy only at high Diffusion. The original first
+        // six reflections remain exact for Diffusion <= 0.62. Density rises
+        // continuously, avoiding a hard mode switch or added DSP latency.
+        const float density = clamp((diffusion - 0.62f) / 0.38f, 0.0f, 1.0f);
+        if (density > 0.0f) {
+            float extraL = 0.0f, extraR = 0.0f;
+            for (int t = 0; t < 6; ++t) {
+                const float a = s.early[0].read(s.denseEarlySampleL[t]);
+                const float b = s.early[1].read(s.denseEarlySampleR[t]);
+                extraL += kDenseEarlyGain[t] * (a + 0.10f * b);
+                extraR += kDenseEarlyGain[t] * (b + 0.10f * a);
+            }
+            earlyL += density * (0.23f * extraL - 0.10f * earlyL);
+            earlyR += density * (0.23f * extraR - 0.10f * earlyR);
+        }
         s.early[0].push(preL);
         s.early[1].push(preR);
 
@@ -315,7 +363,12 @@ void Engine::process(const float* inputLeft, const float* inputRight,
         for (std::size_t i = 0; i < kLines; ++i) {
             s.gains[i] += s.smoother * (s.targetGains[i] - s.gains[i]);
             const float mixed = taps[i] - householderProjection * kReflect[i];
-            const float damped = s.feedbackLP[i].process(mixed, s.hfFeedbackCoeff);
+            // Frequency-dependent *decay* rather than output-EQ only:
+            // gently reduce very-low-frequency recurrence inside the tank,
+            // leaving consonant/midband feedback and the dry path untouched.
+            const float bassShaped = s.feedbackBass[i].process(
+                mixed, s.bassCoeff, s.bassDepth);
+            const float damped = s.feedbackLP[i].process(bassShaped, s.hfFeedbackCoeff);
             const float injected = 0.30f * (kInjectL[i] * diffL + kInjectR[i] * diffR);
             s.lines[i].push(killDenormal(s.gains[i] * damped + injected));
         }

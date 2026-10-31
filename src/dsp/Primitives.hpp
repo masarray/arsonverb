@@ -129,6 +129,18 @@ struct PresenceDucker {
     }
 };
 
+// Frequency-selective low/low-mid decay contour in the feedback tank.
+// One pole only; optional zero-depth is *exactly* transparent at the output.
+// State is always advanced to support fast automation without filter startup.
+struct BassDecayContour {
+    LowPass low;
+    void reset() noexcept { low.reset(); }
+    float process(float x, float coefficient, float depth) noexcept {
+        const float bass = low.process(x, coefficient);
+        return x - depth * bass;
+    }
+};
+
 struct Oscillator {
     float sinPhase = 0.0f;
     float cosPhase = 1.0f;
