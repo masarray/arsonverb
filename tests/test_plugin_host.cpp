@@ -102,6 +102,23 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            int factoryCount = 0;
+            for (int n = 0; n < editor->getNumChildComponents(); ++n)
+                if (auto* combo = dynamic_cast<juce::ComboBox*> (
+                        editor->getChildComponent (n))) {
+                    factoryCount += combo->getNumItems();
+                    // Test actual menu wiring, not merely Processor::applyPreset.
+                    combo->setSelectedId (static_cast<int> (arverb::presetCount),
+                                          juce::sendNotificationSync);
+                    check (combo->getSelectedId() == static_cast<int> (arverb::presetCount),
+                           "last factory program must be selectable in GUI");
+                    const auto actualDecay =
+                        p.parameters.getRawParameterValue ("decay")->load();
+                    check (std::fabs (actualDecay - 10.8f) < 0.03f,
+                           "dropdown selection must apply actual parameter values");
+                }
+            check (factoryCount == static_cast<int> (arverb::presetCount),
+                   "all 32 real factory programs must be selectable");
             // Render every native JUCE control in a headless offscreen image.
             juce::Image image (juce::Image::ARGB, width, height, true);
             juce::Graphics graphics (image);
@@ -122,6 +139,17 @@ int main() {
             static_cast<arverb::Parameter>(i)).id) != nullptr,
             "stable DSP ID missing after GUI redesign");
     p.prepareToPlay(48000.0, 256);
+    // Verify UI/processor use the same catalog for every host-facing parameter.
+    p.applyPreset (arverb::Preset::SlowCinematicWash);
+    const auto lastPreset = arverb::presetValues (arverb::Preset::SlowCinematicWash);
+    for (std::size_t i = 0; i < arverb::parameterCount; ++i) {
+        const auto& meta = arverb::parameterInfo (static_cast<arverb::Parameter> (i));
+        const auto* apvts = p.parameters.getParameter (meta.id);
+        check (apvts != nullptr, "new program host parameter missing");
+        check (std::fabs (apvts->convertFrom0to1 (apvts->getValue()) - lastPreset[i])
+                <= (meta.maximum - meta.minimum) * 0.002f,
+               "32-program selection must update each of 13 DAW parameters");
+    }
     p.applyPreset(arverb::Preset::VocalPlate);
     setParameter(p, "decay", 3.4f);
     setParameter(p, "lowcut", 320.0f);

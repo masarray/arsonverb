@@ -41,12 +41,50 @@ struct ParameterInfo {
 constexpr std::size_t parameterCount = static_cast<std::size_t>(Parameter::Count);
 const ParameterInfo& parameterInfo(Parameter param) noexcept;
 
+// First four enum values preserved for backward-compatible core clients.
 enum class Preset : std::uint32_t {
-    VocalPlate, VocalChamber, MusicHall, AiryBallad
+    VocalPlate,
+    VocalChamber,
+    MusicHall,
+    AiryBallad,
+    VocalPlateClean,
+    VocalPlateWarm,
+    VocalChamberTight,
+    VocalHallPop,
+    VocalHallBallad,
+    VocalWideAir,
+    VocalSpaceShort,
+    SnarePlateClassic,
+    DrumRoomTight,
+    DrumRoomWarm,
+    GuitarShortSpace,
+    GuitarDreamHall,
+    PianoHallWarm,
+    KeysStereoWash,
+    StringsLushHall,
+    LeadSynthSpace,
+    VintagePlate70s,
+    VintageHall80s,
+    DarkVintageChamber,
+    RetroBroadcast,
+    ClassicStudioRoom,
+    VintageModHall,
+    AirBloom,
+    LongDreamHall,
+    VelvetSpace,
+    WideMotionCloud,
+    DeepAtmosphere,
+    SlowCinematicWash,
+    Count
 };
-
-// Single source of truth for fixed preset bundles. No allocation, no state mutation.
-std::array<float, parameterCount> presetValues(Preset preset) noexcept;
+constexpr std::size_t presetCount = static_cast<std::size_t> (Preset::Count);
+struct PresetInfo {
+    const char* name;
+    const char* category;
+    std::array<float, parameterCount> values; // 13 native parameter units
+};
+const PresetInfo& presetInfo (Preset preset) noexcept;
+std::array<float, parameterCount> presetValues (Preset preset) noexcept;
 
 // The C++ DSP core has no dependency on VST, JUCE, audio I/O, UI or operating system.
 // A single Engine instance belongs to exactly one audio thread.
