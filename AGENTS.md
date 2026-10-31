@@ -1,3 +1,9 @@
+## Latest: PUBLIC ArSonVerb v1.0.1 native release (2026-11-01)
+
+https://github.com/masarray/arsonverb/releases/tag/v1.0.1 is the **latest published stable** release: exact binary source commit `4c65f369348790bb6da7465deaffc2b3921fdeee`. Seven binary choices across Windows/Linux/macOS plus SHA256SUMS and AGPL source. Windows Inno Setup offers no-admin per-user optional VST3/Standalone and proper uninstall; Windows VST3 and portable standalone ZIP also exist. Linux has native VST3 and standalone tar.gz. macOS universal arm64+x86_64 has VST3 ZIP and standalone .app ZIP, ad-hoc sign NOT Apple Developer ID/notarization. Native run 41247949265 had all 3 OS jobs pass 12/12 JUCE host/core tests; publisher 41248747185 re-checked all hashes and published successfully. P9 audio DSP/13 automation IDs/32 presets unchanged. v1.0.0 remains immutable. Current main docs may be ahead of exact v1.0.1 tag; never mutate tag/release assets. Security warnings cannot be defeated by archive format, and code signing is absent on budget; be candid.
+
+---
+
 ## LIVE PUBLIC STABLE RELEASE — v1.0.0 (2026-11-01)
 
 **ArSonVerb v1.0.0 was published publicly** at https://github.com/masarray/arsonverb/releases/tag/v1.0.0, from exact source commit `4d4499bc664353a2c6f35e7c9ec3b26de9a372e0`. Windows x64 VST3 + Standalone ZIP, SHA-256 sums, corresponding tagged source and AGPL/OFL notices are available. Release workflow [41245558417](https://github.com/masarray/arsonverb/actions/runs/41245558417) succeeded 12/12 CTests and all publishing steps. Owner approved P9 listening results and explicit public stable. This replaces earlier statements that v1.0.0 is 'not released' or that physical approval is still pending. Continue improving as future versions; never silently mutate the published v1.0.0 tag or assets. No universal ASIO xrun-free/zero-round-trip claims; preserve 13 automation IDs, four algorithms, 32 factory presets and premium gold GUI.
