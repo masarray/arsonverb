@@ -47,6 +47,10 @@ private:
     std::array<std::atomic<float>*, arverb::parameterCount> targets{};
     std::atomic<float>* bypassTarget = nullptr;
     std::atomic<float>* algorithmTarget = nullptr;
+    // Odd while a factory preset is applying 14 APVTS parameters; even when
+    // complete. The callback takes one nonblocking coherent snapshot and
+    // retains previous settings if it overlaps a GUI transaction.
+    std::atomic<std::uint32_t> presetEpoch {0};
     bool ready = false; // Audio thread owns after prepareToPlay, no GUI reads
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbProcessor)
