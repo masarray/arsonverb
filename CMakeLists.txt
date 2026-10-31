@@ -83,7 +83,8 @@ if(ARVERB_BUILD_PLUGIN)
     # approved ArSon-Verb metallic PNG: 225x39 and 3.7 kB on disk.
     juce_add_binary_data(ArSonVerbFonts SOURCES
         assets/fonts/InterVariable.ttf
-        assets/gui/ArSonVerbLogo.png)
+        assets/gui/ArSonVerbLogo.png
+        assets/gui/ArSonVerbGoldKnob.png)
 
     juce_add_plugin(ARStudioReverb
         COMPANY_NAME "ArSon"

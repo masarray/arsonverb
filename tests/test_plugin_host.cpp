@@ -47,6 +47,33 @@ int main() {
            "branded transparent PNG must decode at runtime");
     check (logo.getWidth() == 225 && logo.getHeight() == 39,
            "use optimized branded PNG, not a costly full-resolution artwork");
+    // Gold knob source: strictly one compact transparent physical asset.
+    // The vector pointer and jade progress arc must NOT be baked into the PNG.
+    const auto gold = juce::ImageFileFormat::loadFrom (
+        BinaryData::ArSonVerbGoldKnob_png,
+        static_cast<std::size_t> (BinaryData::ArSonVerbGoldKnob_pngSize));
+    check (gold.isValid() && gold.hasAlphaChannel(),
+           "gold knob resource must decode with transparency");
+    check (gold.getWidth() == 160 && gold.getHeight() == 160,
+           "use compact optimized gold knob resource");
+    check (gold.getPixelAt (0, 0).getAlpha() == 0 &&
+           gold.getPixelAt (80, 80).getAlpha() >= 225,
+           "gold knob must have transparent exterior and opaque center");
+    // Test native look & feel directly without desktop peer/pixel-alpha traps.
+    // Checks both cache sizes and ensures physical surface is actually gold.
+    arplugin::HardwareLookAndFeel goldLook;
+    for (int side : {74, 172}) {
+        juce::Image surface (juce::Image::ARGB, side, side, true);
+        juce::Graphics canvas (surface);
+        juce::Slider control;
+        goldLook.drawRotarySlider (canvas, 0, 0, side, side, 0.50f,
+            juce::MathConstants<float>::pi * 1.25f,
+            juce::MathConstants<float>::pi * 2.75f, control);
+        const auto centre = surface.getPixelAt (side / 2, side / 2);
+        check (centre.getAlpha() > 220 && centre.getRed() > centre.getBlue() + 15 &&
+               centre.getGreen() > centre.getBlue(),
+               "both small and large knob must render golden metal surface");
+    }
     // Direct geometry regression: the original bug ignored the slider
     // position and left the pointer fixed at 12 o'clock for every value.
     const float start = juce::MathConstants<float>::pi * 1.25f;

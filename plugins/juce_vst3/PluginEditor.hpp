@@ -7,8 +7,8 @@
 
 namespace arplugin {
 
-// Entirely vector-rendered on the message thread; no textures, WebView,
-// timers, or allocations are added to the real-time DSP callback.
+// Native JUCE renderer: one embedded physical-knob texture plus vector level
+// indicator/pointer. No timers or allocations in the real-time DSP callback.
 // In JUCE, the slider supplies a normalized 0..1 position. Both the pointer
 // and progress arc must use this exact angle to stay synchronized.
 inline float vintageRotaryAngle (float position, float start, float end) noexcept {
@@ -41,11 +41,10 @@ public:
     juce::Font getPopupMenuFont() override;
 
 private:
-    // Cached circular metal faces at two actual UI sizes: 1 common diameter
-    // across all 12 small knobs, and 1 large Decay dial. Rebuilt only on resize
-    // or first draw, not for automation/mouse drags or audio processing.
-    std::array<juce::Image, 2> brushedFaceCache;
-    std::array<int, 2> brushedFaceSizes {{0, 0}};
+    // 2 image caches (12 small, 1 large); alpha asset pre-scaled on resize.
+    // LookAndFeel keeps the artwork stationary while the level/pointer rotate.
+    std::array<juce::Image, 2> goldFaceCache;
+    std::array<int, 2> goldFaceSizes {{0, 0}};
 };
 
 class ReverbEditor final : public juce::AudioProcessorEditor {

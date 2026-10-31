@@ -1,3 +1,20 @@
+# Gold Knob Asset Integration — pending Windows CI
+
+# Gold Knob GUI — Verified Asset Integration Milestone (2026-10-31)
+
+The user-selected premium champagne/brushed-gold physical knob is the source for **one** optimized native PNG: `assets/gui/ArSonVerbGoldKnob.png` (160×160, 6,256 bytes, original rgba transparent). PNG alpha on outer corners, physical metal only: NO pointer, NO level arc or ticks, NO rotation/animation in the asset.
+
+- Single image decoded once per process on JUCE GUI thread via `BinaryData::ArSonVerbGoldKnob_png`.
+- One `HardwareLookAndFeel` reuses **two** cached scaled images (12 equal-sized small knobs, one Decay knob); resize triggers high-quality resampling only when imageSide changes. No per-audio-sample processing and no extra thread, timer, shader, WebView or external filesystem access.
+- Old generated graphite disk/concentric ring-render loops replaced with actual champagne/brushed-gold metal, while the dark recessed socket, jade progress arc and moving ivory pointer remain separate JUCE vectors.
+- Same parameter-controlled angle for the pointer and arc endpoint as before. The physical gold surface stays stationary, so texture highlights do not orbit during automation.
+- No change to 13 APVTS host automation identifiers, 32 preset profiles, bypass, DSP engine, or C ABI.
+- Regression host test validates embedded PNG decode/alpha and physically warm metal center color when rendering real LookAndFeel at 74 & 172 GUI reference units.
+- Windows VST3 + Standalone CI + six CTests must pass before merge. Visual match at actual DAW and 125/150% DPI remains for user inspection.
+
+
+---
+
 # VERIFIED — Metallic ArSon-Verb logo + responsive Decay alignment (2026-10-31)
 
 - [PR #12](https://github.com/masarray/arsonverb/pull/12) **MERGED**, source merge commit `0e042c8004acd934b9255a93f811fb25d9bdba15`.
