@@ -25,3 +25,9 @@
 
 ## Real workstation acceptance is REQUIRED
 Use a matched-level mono vocal 1→2 and stereo music 2→2 at 48/96k with true ASIO device. Run buffer sizes 32/64/128/256; save xrun count and audio onset recording for first start, stop/start, preset changes and 8+ parallel instances. Listen to 10–16k sheen, sibilance and cymbal tails on Vocal Plate/Air Bloom/Music Hall against the P7 build at equal return loudness. Explicitly check driver clock, buffer/device selection, GPU activity and another host if crackle continues. The test build is NOT a public release, pluginval result or a promised hardware cure.
+
+## Verified merge and CI (2026-10-31)
+
+**P8 integration:** [PR #28](https://github.com/masarray/arsonverb/pull/28) merged at `aef6cbc1115f94055e2c8bd42639fcefd209c54b`. Core PR Linux [41219722061](https://github.com/masarray/arsonverb/actions/runs/41219722061) passed Release 10/10 and ASan/UBSan. Windows JUCE [41219722058](https://github.com/masarray/arsonverb/actions/runs/41219722058) passed 11/11 and produced test artifacts: VST3/Standalone `13049931087`, audition WAVs `13049981061`.
+
+**Additional critical host fix:** `ReverbProcessor::syncEngineParameters()` is the single canonical APVTS-to-core parameter snapshot used by both `prepareToPlay()` and `render()`. This prevents a restored DAW/preset state from still forcing expensive initialization and gain slewing in the very first audio callback. The new actual JUCE host test sets 50% Mix and several non-default DSP controls BEFORE prepare and verifies exact equal-power first-sample dry gain. The pre-existing pure core cold-buffer check alone did not cover this bug. Hardware crackle-free operation is not yet proven; compare P7/P8 on the physical workstation.
