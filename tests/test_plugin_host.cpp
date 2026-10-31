@@ -201,6 +201,19 @@ int main() {
             }
             check(toggleCount == 1 && sliderCount == static_cast<int>(arverb::parameterCount),
                   "editor must retain bypass and all 13 DSP sliders");
+            // Independent GUI geometry, including small 800x370 plugin host:
+            // the active header name must have a reproducible inset.
+            bool headerNameFound = false;
+            for (int child = 0; child < editor->getNumChildComponents(); ++child)
+                if (auto* label = dynamic_cast<juce::Label*> (
+                        editor->getChildComponent (child)))
+                    if (label->getText() == "Mix") {
+                        check (label->getX() >= juce::roundToInt (
+                            371.0f * width / 1100.0f) - 1,
+                            "active Mix name padded from dark LCD left edge");
+                        headerNameFound = true;
+                    }
+            check (headerNameFound, "active parameter header name exists");
             auto* exactDisplay = dynamic_cast<juce::Label*> (
                 editor->findChildWithID ("active-parameter-value"));
             check (exactDisplay && exactDisplay->isEditableOnDoubleClick()
