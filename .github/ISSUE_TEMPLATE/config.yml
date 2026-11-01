@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Download and installation help
+    url: https://github.com/masarray/arsonverb/blob/main/SUPPORT.md
+    about: Start with official installers, DAW scan instructions and troubleshooting.
+  - name: Security reporting
+    url: https://github.com/masarray/arsonverb/blob/main/SECURITY.md
+    about: Please do not post vulnerability exploit details in public issues.

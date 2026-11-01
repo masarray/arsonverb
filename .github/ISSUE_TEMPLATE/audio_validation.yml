@@ -1,0 +1,50 @@
+name: Audio / DAW validation report
+description: Share level-matched listening, real audio-device, DAW compatibility or pluginval results.
+title: "[Validation] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Real-workstation evidence is valuable. Please distinguish **objective measurements** from **subjective preferences** and cite actual recordings or logs when possible.
+  - type: input
+    id: version
+    attributes:
+      label: Build version or commit
+      placeholder: "v1.0.1, source SHA if custom"
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: OS, DAW, audio device/driver
+      placeholder: "Windows 11, REAPER 7, ASIO interface model"
+    validations:
+      required: true
+  - type: input
+    id: audio
+    attributes:
+      label: Sample rate, buffer, bus routing and concurrent plugin count
+      placeholder: "48 kHz / 64 frames / mono vocal -> stereo aux / 4 instances"
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Test protocol and source material
+      description: Insert vs send, preset/mode, Mix/Duck, input level, matching/reference method, sample length.
+    validations:
+      required: true
+  - type: textarea
+    id: observations
+    attributes:
+      label: Results and reproducibility
+      description: Listening observations, measured CPU/xruns/RT60/correlation, timestamped logs, and what is still uncertain.
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Non-sensitive audio or reports
+      description: Upload only recordings you own or have permission to share.
+    validations:
+      required: false

@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a user-visible improvement with a clear outcome.
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What music-making or engineering task is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe what the user would do and see/hear.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and compatibility
+      description: Other workflows, backward compatibility, CPU/latency concerns, or existing DAW features.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How would we verify it?
+      description: Testable acceptance criteria or listening protocol, not only a visual concept.
+    validations:
+      required: false
