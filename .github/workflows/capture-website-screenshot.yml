@@ -1,0 +1,69 @@
+name: Capture Real ArSonVerb GUI Screenshot (one-shot)
+
+on:
+  push:
+    branches: [feat/website-premium-pages-v1-20261101]
+    paths: ['.github/workflows/capture-website-screenshot.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arsonverb-real-juce-screenshot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  screenshot:
+    name: Build real JUCE editor, render PNG, check into site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install headless JUCE build dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build xvfb xauth pkg-config \
+            libasound2-dev libjack-jackd2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev libxi-dev \
+            libegl-dev libgl1-mesa-dev
+      - name: Configure JUCE 9.0.4 genuine ArSonVerb editor
+        shell: bash
+        run: |
+          cmake -S . -B build-site-screenshot -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DARVERB_BUILD_PLUGIN=ON -DARVERB_BUILD_TESTS=ON
+      - name: Build only the actual AudioProcessor editor host test
+        shell: bash
+        run: cmake --build build-site-screenshot --parallel 2 --target arverb_plugin_host_tests
+      - name: Capture 1180 x 545 PNG directly from native JUCE paint
+        shell: bash
+        run: |
+          xvfb-run --auto-servernum \
+            env ARVERB_GUI_SCREENSHOT_PNG=website/images/arsonverb-v1.0.1.png \
+            ./build-site-screenshot/arverb_plugin_host_tests
+          python3 scripts/test_website.py
+      - name: Archive actual rendered PNG as QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArSonVerb-v1.0.1-Real-JUCE-Editor-Screenshot
+          path: website/images/arsonverb-v1.0.1.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Commit the real screenshot to website source (same file for both hosts)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add website/images/arsonverb-v1.0.1.png
+          if git diff --cached --quiet; then
+            echo "Current screenshot identical; no source mutation."
+          else
+            git commit -m "docs(site): real v1.0.1 JUCE editor screenshot rendered in CI"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
