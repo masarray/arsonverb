@@ -1,5 +1,13 @@
 # ArSonVerb — official landing page
 
+## Homepage downloads and owner-provided platform icons
+
+The hero has exactly three **direct VST3-only** downloads: Windows x64 ZIP, Linux x86_64 tar.gz and macOS universal ZIP. User-supplied Windows/Linux/macOS logo images are cropped into small 80×80 transparent PNG silhouettes in `website/images/*-download-icon.png` and tinted through CSS masks, so all three download buttons remain consistent with the satin bronze/gold visual design.
+
+The download links target the official v1.0.1 GitHub Release; the section below retains installer and standalone choices. CSS download controls use **stationary hover geometry** (no `translateY` transforms), avoiding cursor-boundary hover flicker. On mobile, the three primary buttons stack neatly. Browser-side platform selection remains keyboard accessible.
+
+Website QA `scripts/test_website.py` verifies the three exact hero URLs and ordering, PNG magic and alpha, CSS icon bindings and absence of moving download hitboxes.
+
 One static site, two hosting providers, **no Node, bundler, framework, paid service, API token or backend**.
 
 ## Canonical source
