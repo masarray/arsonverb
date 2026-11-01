@@ -205,6 +205,30 @@ int main() {
         editor->setSize(860, 460);
         check(editor->getWidth() == 860 && editor->getHeight() == 460,
               "editor resize without host window");
+
+        // Optional true JUCE-rendered product screenshot for the static
+        // website. This captures the real editor + all 13 controls, not a
+        // hand-drawn mockup or an externally sourced image. Off the audio
+        // thread and completely inert unless requested by the one-shot
+        // website screenshot workflow.
+        if (const char* screenshotPath = std::getenv("ARVERB_GUI_SCREENSHOT_PNG")) {
+            editor->setSize(1180, 545);
+            juce::Image screenshot(juce::Image::ARGB, 1180, 545, true);
+            juce::Graphics screenshotGraphics(screenshot);
+            editor->paintEntireComponent(screenshotGraphics, true);
+            const juce::File destination(juce::String::fromUTF8(screenshotPath));
+            check(destination.getParentDirectory().createDirectory().wasOk(),
+                  "website screenshot output directory must be creatable");
+            juce::FileOutputStream output(destination);
+            check(output.openedOk(), "website screenshot output file must open");
+            juce::PNGImageFormat png;
+            check(png.writeImageToStream(screenshot, output),
+                  "real JUCE screenshot must encode as PNG");
+            output.flush();
+            check(destination.getSize() > 10000,
+                  "rendered website screenshot must contain real GUI pixels");
+            editor->setSize(860, 460);
+        }
         // Optional *off-audio-thread* GUI profiling in the existing real-JUCE
         // host test. Exercises the complete editor/13 children at two window
         // sizes, not just the static gold PNG. No assertion on elapsed time:

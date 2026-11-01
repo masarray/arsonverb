@@ -1,0 +1,43 @@
+name: Publish ArSonVerb Landing Page — GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'scripts/test_website.py'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: arsonverb-gh-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Validate static site and deploy GitHub Pages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate screenshot, platform downloads and site paths
+        run: python3 scripts/test_website.py
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload single static directory (Cloudflare serves the same folder)
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: website
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
