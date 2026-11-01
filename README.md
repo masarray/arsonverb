@@ -1,5 +1,7 @@
 # ArSonVerb — reusable studio reverb core
 
+**Official download website:** [ArSonVerb — Make space for the music](https://masarray.github.io/arsonverb/) · [All Windows/Linux/macOS packages](https://masarray.github.io/arsonverb/#downloads). Static landing page deployed via GitHub Actions and also ready for Cloudflare Pages (`website/`). Uses a real v1.0.1 JUCE screenshot, not a mockup. [Website deployment and Cloudflare setup](docs/WEBSITE.md).
+
 ## Download — v1.0.1 Latest Stable (2026-11-01)
 
 **Free/open source AGPL-3.0-only.** All native platform packages are published on the [official v1.0.1 release page](https://github.com/masarray/arsonverb/releases/tag/v1.0.1).
