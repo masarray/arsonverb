@@ -75,7 +75,7 @@ def main() -> None:
     for os in ("windows", "linux", "macos"):
         image = SITE / "images" / f"{os}-download-icon.png"
         with image.open("rb") as icon:
-            assert icon.read(8) == b"\\x89PNG\\r\\n\\x1a\\n", image
+            assert icon.read(8) == bytes.fromhex("89504e470d0a1a0a"), image
             ihdr = icon.read(25)
             assert struct.unpack(">II", ihdr[8:16]) == (80, 80), image
             assert ihdr[17] == 6, "Platform logo must have an alpha channel"
