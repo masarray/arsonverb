@@ -71,18 +71,21 @@ def main() -> None:
     css = (SITE / "styles.css").read_text(encoding="utf-8")
     assert "transform:translateY(-2px)" not in css, "Moving hover hitboxes can flicker"
     assert ".btn:hover,.option-button:hover{transform:none}" in css
-    # Regression for real Windows-download flicker: hover used to replace
-    # gradient background-image with a flat color and animate box-shadow.
-    # These rules can blink even without any translate/position change.
-    assert ".btn-gold:hover{background:" not in css, "Windows gradient swapped on hover"
+    # Tactile without flicker: the exact same Windows gradient is used
+    # in every pointer state. A compositor-safe filter + glow/pressed inset
+    # provides instant feedback without moving the click target.
+    assert ".btn-gold:hover{background:" not in css, "Gold gradient must not swap to solid"
     assert ".hero-actions .btn-platform:hover{box-shadow:" not in css
-    assert ".hero-actions .btn-gold:hover{box-shadow:" not in css
-    assert ".option-button:hover{background:" not in css
-    assert ".btn-quiet:hover{background:" not in css
-    assert "styles.css?v=20261101-hover-stable2" in html, "Browser CSS cache must be busted"
-    assert "transition:none!important" in css, "Download hover animations must be disabled"
-    assert ".hero-actions .btn-gold:is(:hover,:active,:focus-visible)" in css
-    assert ".download-option .option-button.secondary:is(:hover,:active,:focus-visible)" in css
+    assert ".hero-actions .btn-gold:hover{box-shadow:" in css, "Gold button needs hover glow"
+    assert "filter:brightness(1.09)" in css, "Hover feedback missing"
+    assert "filter:brightness(.86)" in css, "Pressed feedback missing"
+    assert "box-shadow:inset 0 3px 10px" in css, "Pressed depth missing"
+    assert "transition:filter .16s ease, box-shadow .16s ease" in css, "Tactile transition missing"
+    assert "styles.css?v=20261101-tactile3" in html, "CSS cache must be updated"
+    assert "transform:none!important" in css, "Download button geometry must stay fixed"
+    assert "outline:2px solid #ffe3ae" in css, "Keyboard focus must remain visible"
+    assert ".hero-actions .btn-gold:is(:hover,:active,:focus-visible)" not in css
+    assert ".download-option .option-button.secondary:is(:hover,:active,:focus-visible)" not in css
 
     assert ".hero-actions{display:grid;" in css
     for os in ("windows", "linux", "macos"):
