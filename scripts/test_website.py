@@ -76,7 +76,7 @@ def main() -> None:
     # provides instant feedback without moving the click target.
     assert ".btn-gold:hover{background:" not in css, "Gold gradient must not swap to solid"
     assert ".hero-actions .btn-platform:hover{box-shadow:" not in css
-    assert re.search(r"\\.hero-actions\\s+\\.btn-gold:hover\\s*\\{[^}]*box-shadow:", css, re.S), "Gold button needs hover glow"
+    assert ".hero-actions .btn-gold:hover{" in css and "box-shadow:0 9px 26px" in css, "Gold button needs hover glow"
     assert "filter:brightness(1.09)" in css, "Hover feedback missing"
     assert "filter:brightness(.86)" in css, "Pressed feedback missing"
     assert "box-shadow:inset 0 3px 10px" in css, "Pressed depth missing"
