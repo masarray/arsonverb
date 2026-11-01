@@ -71,6 +71,19 @@ def main() -> None:
     css = (SITE / "styles.css").read_text(encoding="utf-8")
     assert "transform:translateY(-2px)" not in css, "Moving hover hitboxes can flicker"
     assert ".btn:hover,.option-button:hover{transform:none}" in css
+    # Regression for real Windows-download flicker: hover used to replace
+    # gradient background-image with a flat color and animate box-shadow.
+    # These rules can blink even without any translate/position change.
+    assert ".btn-gold:hover{background:" not in css, "Windows gradient swapped on hover"
+    assert ".hero-actions .btn-platform:hover{box-shadow:" not in css
+    assert ".hero-actions .btn-gold:hover{box-shadow:" not in css
+    assert ".option-button:hover{background:" not in css
+    assert ".btn-quiet:hover{background:" not in css
+    assert "styles.css?v=20261101-hover-stable2" in html, "Browser CSS cache must be busted"
+    assert "transition:none!important" in css, "Download hover animations must be disabled"
+    assert ".hero-actions .btn-gold:is(:hover,:active,:focus-visible)" in css
+    assert ".download-option .option-button.secondary:is(:hover,:active,:focus-visible)" in css
+
     assert ".hero-actions{display:grid;" in css
     for os in ("windows", "linux", "macos"):
         image = SITE / "images" / f"{os}-download-icon.png"
