@@ -27,7 +27,7 @@ def validate_links(path: Path) -> int:
         assert not url.startswith("/"), f"Unsafe root-absolute link in {path}: {url}"
         candidate = (path.parent / url).resolve()
         assert candidate.is_relative_to(ROOT.resolve()), f"Path escapes repo: {path}: {url}"
-        assert candidate.is_file(), f"Broken local link in {path}: {url}"
+        assert candidate.exists(), f"Broken local link in {path}: {url}"  # Markdown may link to source directories
         checked += 1
     return checked
 
