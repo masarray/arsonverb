@@ -151,7 +151,7 @@ img{display:block;max-width:100%}
 @media(hover:none){.screenshot-zoom{opacity:1;right:6px;bottom:6px;font-size:7px;padding:4px 6px}}
 
 /* Download entry points: fixed geometry prevents hover-out/hover-in flicker at edges. */
-.hero-actions .btn-platform{display:flex;min-width:0;height:51px;gap:12px;padding:11px 16px;white-space:nowrap;font-size:12px;letter-spacing:-.005em;position:relative;transform:none!important;transition:none!important;filter:none!important}
+.hero-actions .btn-platform{display:flex;min-width:0;height:51px;gap:12px;padding:11px 16px;white-space:nowrap;font-size:12px;letter-spacing:-.005em;position:relative;transform:none!important}
 .hero-actions .btn-platform:hover,.hero-actions .btn-platform:active,.hero-actions .btn-platform:focus-visible{transform:none!important}
 
 
@@ -168,37 +168,63 @@ img{display:block;max-width:100%}
  .hero-download-hint{font-size:10px;line-height:1.6}
 }
 
-/* v2: never change gradient, background image, color, shadow or hitbox on hover.
-   Browser CSS transitions between image gradients and solid colors can flash.
-   No hover animation anywhere on download links; focus-visible outline remains. */
+/* v3 tactile download interactions.
+   Animate only optical properties; NEVER translate, scale, resize or replace
+   the gold linear-gradient. Hitboxes remain exactly stationary. */
 .hero-actions .btn-platform,
 .download-option .option-button{
   transform:none!important;
-  transition:none!important;
+  transition:filter .16s ease, box-shadow .16s ease, border-color .16s ease!important;
   animation:none!important;
+  cursor:pointer;
 }
-.hero-actions .btn-gold,
-.hero-actions .btn-gold:is(:hover,:active,:focus-visible){
+.hero-actions .btn-gold{
   background:linear-gradient(145deg,#edcf9c,#c7a56c);
   color:#28231b;
   box-shadow:0 9px 30px #0808082c;
-  filter:none;
 }
-.hero-actions .btn-quiet,
-.hero-actions .btn-quiet:is(:hover,:active,:focus-visible){
+.hero-actions .btn-quiet{
   background:#252626;
   border-color:#353634;
   box-shadow:none;
-  filter:none;
 }
-.download-option .option-button:not(.secondary),
-.download-option .option-button:not(.secondary):is(:hover,:active,:focus-visible){
-  background:var(--gold);
-  color:#24201b;
-}
-.download-option .option-button.secondary,
-.download-option .option-button.secondary:is(:hover,:active,:focus-visible){
+.download-option .option-button:not(.secondary){background:var(--gold);color:#24201b}
+.download-option .option-button.secondary{
   background:transparent;
   color:#e7d1ab;
   border-color:#77694d;
+}
+/* Hover: brighter face and a precise luminous edge, no movement. */
+@media(hover:hover){
+  .hero-actions .btn-platform:hover,
+  .download-option .option-button:hover{filter:brightness(1.09)}
+  .hero-actions .btn-gold:hover{
+    box-shadow:0 9px 26px #0006,0 0 0 1px #f6dfb68a,0 0 17px #eac48e40;
+  }
+  .hero-actions .btn-quiet:hover{
+    border-color:#bd9f6e;
+    box-shadow:0 0 0 1px #d8bc8850,0 5px 14px #0004;
+  }
+  .download-option .option-button:hover{
+    box-shadow:0 0 0 1px #e6cba16e,0 4px 12px #0003;
+  }
+}
+/* Press: distinct physical depression, no hitbox change or flash. */
+.hero-actions .btn-platform:active,
+.download-option .option-button:active{
+  filter:brightness(.86);
+  box-shadow:inset 0 3px 10px #0006,0 0 0 1px #0005;
+  transition-duration:.06s!important;
+}
+/* Keyboard users receive the same readable tactile cue and focus outline. */
+.hero-actions .btn-platform:focus-visible,
+.download-option .option-button:focus-visible{
+  filter:brightness(1.08);
+  outline:2px solid #ffe3ae;
+  outline-offset:3px;
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-actions .btn-platform,.download-option .option-button{
+    transition:none!important;
+  }
 }
