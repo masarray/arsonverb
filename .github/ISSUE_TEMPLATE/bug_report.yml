@@ -1,0 +1,63 @@
+name: Bug report
+description: Report a reproducible crash, rendering problem, host regression or audio defect.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please verify the issue is not already tracked and use the latest stable build. Never upload private audio or sensitive device logs without permission.
+  - type: input
+    id: version
+    attributes:
+      label: ArSonVerb version
+      placeholder: "v1.0.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows x64
+        - macOS Intel
+        - macOS Apple Silicon
+        - Linux x86_64
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: DAW / host or standalone version
+      placeholder: "REAPER 7 / standalone"
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Audio and routing setup
+      description: Interface/driver, sample rate, buffer size, input/output layout, Mix/preset/algorithm if relevant.
+      placeholder: "48 kHz, 128 frames, stereo insert, Mix 20%, Plate"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide minimal numbered steps that another developer can follow.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected versus actual behavior
+      description: Include an exact error, visible symptom or audible observation.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, screenshots or audio evidence
+      description: Only share files you own, and remove secrets and private data.
+    validations:
+      required: false
