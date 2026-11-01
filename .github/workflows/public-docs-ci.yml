@@ -1,0 +1,51 @@
+name: Public README and Community Quality
+
+on:
+  pull_request:
+    paths:
+      - README.md
+      - CHANGELOG.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - SUPPORT.md
+      - CODE_OF_CONDUCT.md
+      - LICENSE-STATUS.md
+      - 'docs/QUALITY_STATUS.md'
+      - 'docs/ARSONMIX_INTEGRATION.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - scripts/test_public_repo.py
+      - '.github/workflows/public-docs-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - CHANGELOG.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - SUPPORT.md
+      - CODE_OF_CONDUCT.md
+      - LICENSE-STATUS.md
+      - 'docs/QUALITY_STATUS.md'
+      - 'docs/ARSONMIX_INTEGRATION.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - scripts/test_public_repo.py
+      - '.github/workflows/public-docs-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arsonverb-public-docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Link, version and public support contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify user-facing documentation and community entry points
+        run: python3 scripts/test_public_repo.py
