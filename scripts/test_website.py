@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 import struct
 import sys
+import re
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -58,6 +59,30 @@ def main() -> None:
     assert parser.tabs == ["windows", "macos", "linux"], parser.tabs
     assert parser.panels == ["windows", "macos", "linux"], parser.panels
     assert ASSETS <= parser.release_assets, ASSETS - parser.release_assets
+    html = doc.read_text(encoding="utf-8")
+    hero = re.search(r'<div class="hero-actions".*?</div>', html, re.S)
+    assert hero, "Hero download section missing"
+    hero_urls = re.findall(r'<a class="btn btn-(?:gold|quiet) btn-platform" href="([^"]+)"', hero.group())
+    assert [url.rsplit("/", 1)[-1] for url in hero_urls] == [
+        "ArSonVerb-Windows-x64-VST3-v1.0.1.zip",
+        "ArSonVerb-Linux-x86_64-VST3-v1.0.1.tar.gz",
+        "ArSonVerb-macOS-universal-VST3-v1.0.1.zip",
+    ], "Exactly three OS-specific hero VST3 downloads expected"
+    css = (SITE / "styles.css").read_text(encoding="utf-8")
+    assert "transform:translateY(-2px)" not in css, "Moving hover hitboxes can flicker"
+    assert ".btn:hover,.option-button:hover{transform:none}" in css
+    assert ".hero-actions{display:grid;" in css
+    for os in ("windows", "linux", "macos"):
+        image = SITE / "images" / f"{os}-download-icon.png"
+        with image.open("rb") as icon:
+            assert icon.read(8) == bytes.fromhex("89504e470d0a1a0a"), image
+            ihdr = icon.read(25)
+            assert struct.unpack(">II", ihdr[8:16]) == (80, 80), image
+            assert ihdr[17] == 6, "Platform logo must have an alpha channel"
+        assert image.stat().st_size >= 350, "Platform icon unexpectedly empty"
+        assert f"mark-{os}" in html, "Owner-provided OS logo not used"
+        assert f"./images/{os}-download-icon.png" in css, "Icon not served from local static site"
+
     for filename in parser.local:
         assert not filename.startswith("//"), filename
         path = SITE / filename.removeprefix("./")
